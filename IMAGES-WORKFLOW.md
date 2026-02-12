@@ -50,7 +50,28 @@ s3://micahwalter-www-images/
 
 ## Common Workflows
 
-### 1. Adding Images to a New Post
+### 1. Creating a New Post
+
+```bash
+# Create a new post (interactive prompts)
+blog post:new
+
+# Or provide the title upfront
+blog post:new "My Awesome Blog Post"
+
+# This creates:
+# - content/posts/YYYY-MM-DD-slug/index.mdx (with frontmatter template)
+# - Post starts with draft: true by default
+# - Ready for you to add content and images
+```
+
+**Draft Posts:**
+- New posts are created with `draft: true` by default
+- In **development mode** (`npm run dev`): drafts are visible with a "DRAFT" badge
+- In **production build** (`npm run build`): drafts are excluded
+- Set `draft: false` in the frontmatter when ready to publish
+
+### 2. Adding Images to a Post
 
 ```bash
 # 1. Add your original image to the post directory
@@ -60,7 +81,7 @@ cp ~/Downloads/photo.jpg content/posts/2024-01-15-my-post/cover.jpg
 blog images:sync
 ```
 
-### 2. Setting Up on a New Machine
+### 3. Setting Up on a New Machine
 
 ```bash
 # Clone the repo
@@ -79,7 +100,7 @@ blog images:download
 # Now you have both originals and processed images!
 ```
 
-### 3. Just Optimizing Locally (for development)
+### 4. Just Optimizing Locally (for development)
 
 ```bash
 # Optimize images without uploading
@@ -89,7 +110,7 @@ blog images:optimize
 npm run images:dev  # or blog images:optimize && npm run copy-images-local
 ```
 
-### 4. Uploading to Different AWS Profiles
+### 5. Uploading to Different AWS Profiles
 
 ```bash
 # Upload using specific AWS profile
@@ -100,6 +121,34 @@ blog images:sync --profile www
 ```
 
 ## Available Commands
+
+### `blog post:new`
+Create a new blog post with frontmatter template and proper directory structure.
+
+**Options:**
+- Optional: Pass title as argument to skip the prompt
+
+**Prompts:**
+- Title (or pass as argument)
+- Excerpt
+- Category (AI, AWS, Writing, or custom)
+- Tags (comma-separated)
+- Cover image filename
+- Draft status
+
+**Output:**
+- `content/posts/YYYY-MM-DD-slug/index.mdx` with frontmatter template
+
+**Examples:**
+```bash
+# Interactive mode
+blog post:new
+
+# With title argument
+blog post:new "Building Modern Web Apps"
+
+# Creates: content/posts/2026-02-12-building-modern-web-apps/index.mdx
+```
 
 ### `blog images:optimize`
 Process images into multiple sizes and formats (WebP + JPEG fallbacks at 400px, 800px, 1200px).

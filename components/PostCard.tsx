@@ -45,14 +45,19 @@ export default function PostCard({ post, featured = false }: PostCardProps) {
 
         {/* Content */}
         <div>
-          {/* Category Tag */}
-          <div className="mb-2">
+          {/* Category Tag & Draft Badge */}
+          <div className="mb-2 flex items-center gap-2">
             <Link
               href={`/topics/${post.category.toLowerCase()}`}
               className="inline-block px-3 py-1 text-xs font-semibold tracking-wide uppercase bg-charcoal text-cream rounded-full no-underline hover:bg-charcoal/80 transition-colors"
             >
               {post.category}
             </Link>
+            {post.draft && process.env.NODE_ENV === 'development' && (
+              <span className="inline-block px-3 py-1 text-xs font-semibold tracking-wide uppercase bg-accent/80 text-charcoal rounded-full">
+                DRAFT
+              </span>
+            )}
           </div>
 
           {/* Title */}

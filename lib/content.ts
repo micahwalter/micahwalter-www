@@ -54,7 +54,12 @@ export function getAllPosts(): Post[] {
         content,
       } as Post;
     })
-    .filter((post): post is Post => post !== null && !post.draft);
+    .filter((post): post is Post => {
+      if (post === null) return false;
+      // Show drafts in development mode, hide in production
+      if (process.env.NODE_ENV === 'development') return true;
+      return !post.draft;
+    });
 
   return posts;
 }

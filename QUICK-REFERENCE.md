@@ -2,13 +2,23 @@
 
 ## Daily Workflow
 
-### Add new post with images
+### Create and preview new post
 ```bash
-# 1. Create post directory with images
-mkdir -p content/posts/2024-02-12-my-post
-cp ~/photo.jpg content/posts/2024-02-12-my-post/cover.jpg
+# 1. Create new post (starts as draft: true)
+blog post:new "My Post Title"
 
-# 2. Optimize and upload everything
+# 2. Edit the post content
+# content/posts/YYYY-MM-DD-slug/index.mdx
+
+# 3. Preview locally (drafts visible in dev mode)
+npm run dev
+
+# 4. Add images if needed
+cp ~/photo.jpg content/posts/YYYY-MM-DD-my-post/cover.jpg
+
+# 5. When ready to publish, set draft: false in frontmatter
+
+# 6. Optimize and upload everything
 blog images:sync --profile www
 ```
 
@@ -30,6 +40,8 @@ blog images:download --profile www
 | Command | What it does |
 |---------|--------------|
 | `blog help` | Show all commands |
+| `blog post:new` | Create a new blog post with template |
+| `blog post:new "My Title"` | Create post with title (skips prompt) |
 | `blog images:optimize` | Process images (400/800/1200px WebP+JPEG) |
 | `blog images:upload --profile www` | Upload originals + processed to S3 |
 | `blog images:download --profile www` | Download from S3 to local |

@@ -16,6 +16,14 @@ const { execSync } = require('child_process');
 const path = require('path');
 
 const commands = {
+  'post:new': {
+    description: 'Create a new blog post with frontmatter template',
+    script: 'scripts/create-post.js',
+    examples: [
+      'blog post:new',
+      'blog post:new "My Post Title"'
+    ]
+  },
   'images:optimize': {
     description: 'Process images into multiple sizes and formats',
     script: 'scripts/optimize-images.js',
@@ -123,10 +131,17 @@ function runCommand(commandName, args) {
   }
 
   const scriptPath = path.join(__dirname, '..', cmd.script);
-  const argString = args.join(' ');
+
+  // Properly quote arguments that contain spaces
+  const quotedArgs = args.map(arg => {
+    if (arg.includes(' ') || arg.includes('"')) {
+      return `"${arg.replace(/"/g, '\\"')}"`;
+    }
+    return arg;
+  }).join(' ');
 
   try {
-    execSync(`node "${scriptPath}" ${argString}`, { stdio: 'inherit' });
+    execSync(`node "${scriptPath}" ${quotedArgs}`, { stdio: 'inherit' });
   } catch (error) {
     process.exit(error.status || 1);
   }
