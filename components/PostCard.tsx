@@ -39,9 +39,12 @@ export default function PostCard({ post, featured = false }: PostCardProps) {
         <div>
           {/* Category Tag */}
           <div className="mb-2">
-            <span className="inline-block px-3 py-1 text-xs font-semibold tracking-wide uppercase bg-charcoal text-cream rounded-full">
+            <Link
+              href={`/topics/${post.category.toLowerCase()}`}
+              className="inline-block px-3 py-1 text-xs font-semibold tracking-wide uppercase bg-charcoal text-cream rounded-full no-underline hover:bg-charcoal/80 transition-colors"
+            >
               {post.category}
-            </span>
+            </Link>
           </div>
 
           {/* Title */}
@@ -71,12 +74,13 @@ export default function PostCard({ post, featured = false }: PostCardProps) {
           {post.tags && post.tags.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {post.tags.slice(0, 3).map((tag) => (
-                <span
+                <Link
                   key={tag}
-                  className="text-xs text-gray border border-gray/30 rounded px-2 py-1"
+                  href={`/tags/${tag.toLowerCase().replace(/\s+/g, "-")}`}
+                  className="text-xs text-gray border border-gray/30 rounded px-2 py-1 no-underline hover:border-gray hover:bg-gray/10 transition-colors"
                 >
                   {tag}
-                </span>
+                </Link>
               ))}
             </div>
           )}

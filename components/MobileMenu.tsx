@@ -7,9 +7,10 @@ import { useState } from "react";
 interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
+  onSearchOpen: () => void;
 }
 
-export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
+export default function MobileMenu({ isOpen, onClose, onSearchOpen }: MobileMenuProps) {
   const [topicsExpanded, setTopicsExpanded] = useState(false);
 
   return (
@@ -104,6 +105,30 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             >
               Sketches
             </Link>
+
+            <button
+              onClick={() => {
+                onClose();
+                onSearchOpen();
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-lg text-charcoal hover:bg-charcoal/5 rounded-lg transition-colors text-left"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                />
+              </svg>
+              Search
+            </button>
           </nav>
         </DialogPanel>
       </div>

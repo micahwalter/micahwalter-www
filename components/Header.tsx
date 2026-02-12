@@ -84,6 +84,7 @@ export default function Header() {
       <MobileMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
+        onSearchOpen={() => setIsSearchOpen(true)}
       />
 
       {/* Search Modal */}
