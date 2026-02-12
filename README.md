@@ -1,6 +1,14 @@
 # Micah Walter's Website
 
-Static website hosted on AWS using S3 and CloudFront with automated CI/CD.
+Next.js website hosted on AWS using S3 and CloudFront with automated CI/CD.
+
+## Tech Stack
+
+- **Next.js 15**: React framework with App Router
+- **TypeScript**: Type-safe development
+- **Tailwind CSS**: Utility-first styling
+- **S3 + CloudFront**: Serverless hosting with global CDN
+- **GitHub Actions**: Automated build and deployment
 
 ## Architecture
 
@@ -8,28 +16,59 @@ Static website hosted on AWS using S3 and CloudFront with automated CI/CD.
 - **CloudFront**: Global CDN with HTTPS
 - **CloudFront Function**: SPA routing support
 - **Access Logging**: Both S3 and CloudFront logs enabled
-- **GitHub Actions**: Automated deployment pipeline with OIDC authentication
+- **GitHub Actions**: Automated build and deployment pipeline with OIDC authentication
 
-## Quick Start
+## Local Development
+
+### Prerequisites
+
+- Node.js 20+ installed
+- npm or yarn
+
+### Getting Started
+
+```bash
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Open http://localhost:3000 in your browser
+```
+
+### Build for Production
+
+```bash
+# Create production build
+npm run build
+
+# Preview production build locally
+npx serve out/
+```
+
+## Deployment
 
 ### Automated Deployment (Recommended)
 
-Simply push changes to the `main` branch and GitHub Actions will automatically deploy:
+Simply push changes to the `main` branch and GitHub Actions will automatically build and deploy:
 
 ```bash
-# Make changes to files in src/
-echo "Updated content" > src/index.html
+# Make changes to your Next.js app
+# Edit files in app/ directory
 
 # Commit and push
 git add .
-git commit -m "Update website content"
+git commit -m "Update website"
 git push
 ```
 
 GitHub Actions will:
-1. Sync files to S3 with optimized caching headers
-2. Invalidate CloudFront cache
-3. Deploy changes globally in ~2 minutes
+1. Install dependencies
+2. Build Next.js static export
+3. Sync files to S3 with optimized caching headers
+4. Invalidate CloudFront cache
+5. Deploy changes globally in ~3-4 minutes
 
 ### Manual Deployment Trigger
 
@@ -107,6 +146,14 @@ gh secret set AWS_ROLE_ARN --body "<role-arn-from-above>"
 
 ## Features
 
+### Frontend
+- ✅ Next.js 15 with App Router
+- ✅ TypeScript for type safety
+- ✅ Tailwind CSS for styling
+- ✅ Static export (no server required)
+- ✅ Optimized production builds
+- ✅ Fast development with Turbopack
+
 ### Infrastructure
 - ✅ HTTPS enabled (TLS 1.2+)
 - ✅ HTTP/2 and HTTP/3 support
@@ -119,7 +166,7 @@ gh secret set AWS_ROLE_ARN --body "<role-arn-from-above>"
 - ✅ Optimized caching policy
 
 ### CI/CD
-- ✅ Automated deployment on push to `main`
+- ✅ Automated build and deployment on push to `main`
 - ✅ GitHub Actions workflow with OIDC authentication
 - ✅ Smart caching: static assets cached for 1 year, HTML revalidated
 - ✅ Automatic CloudFront cache invalidation

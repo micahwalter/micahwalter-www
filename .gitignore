@@ -29,13 +29,18 @@ Temporary Items
 *.swo
 *~
 
-# Node.js (if you add build tools later)
+# Node.js
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
-yarn.lock
+pnpm-debug.log*
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+.vercel
 
 # Build outputs
 dist/
