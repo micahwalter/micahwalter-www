@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { format } from "date-fns";
 import type { Post } from "@/lib/content";
 
@@ -15,9 +16,12 @@ export default function PostLayout({ post, children }: PostLayoutProps) {
       <header className="mb-12">
         {/* Category */}
         <div className="mb-4">
-          <span className="inline-block px-3 py-1 text-xs font-semibold tracking-wide uppercase bg-charcoal text-cream rounded-full">
+          <Link
+            href={`/topics/${post.category.toLowerCase()}`}
+            className="inline-block px-3 py-1 text-xs font-semibold tracking-wide uppercase bg-charcoal text-cream rounded-full no-underline hover:bg-charcoal/80 transition-colors"
+          >
             {post.category}
-          </span>
+          </Link>
         </div>
 
         {/* Title */}
@@ -33,12 +37,13 @@ export default function PostLayout({ post, children }: PostLayoutProps) {
               <span>·</span>
               <div className="flex flex-wrap gap-2">
                 {post.tags.map((tag) => (
-                  <span
+                  <Link
                     key={tag}
-                    className="text-xs border border-gray/30 rounded px-2 py-1"
+                    href={`/tags/${tag.toLowerCase().replace(/\s+/g, "-")}`}
+                    className="text-xs text-gray border border-gray/30 rounded px-2 py-1 no-underline hover:border-gray hover:bg-gray/10 transition-colors"
                   >
                     {tag}
-                  </span>
+                  </Link>
                 ))}
               </div>
             </>

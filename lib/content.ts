@@ -117,3 +117,10 @@ export function getAllTags(): string[] {
   const tags = new Set(posts.flatMap((post) => post.tags));
   return Array.from(tags);
 }
+
+export function getPostsByTag(tag: string): Post[] {
+  const posts = getSortedPosts();
+  return posts.filter((post) =>
+    post.tags.some((t) => t.toLowerCase() === tag.toLowerCase())
+  );
+}
