@@ -128,27 +128,44 @@ Resources:
         SigningBehavior: always
         SigningProtocol: sigv4
 
-  # CloudFront Function for SPA routing
-  SPARoutingFunction:
+  # CloudFront Function for static HTML routing
+  StaticHTMLRoutingFunction:
     Type: AWS::CloudFront::Function
     Properties:
-      Name: !Sub '${AWS::StackName}-spa-routing'
+      Name: !Sub '${AWS::StackName}-static-html-routing'
       AutoPublish: true
       FunctionCode: |
         function handler(event) {
           var request = event.request;
           var uri = request.uri;
 
-          // Check if the URI has a file extension
+          // Routes that should serve static HTML files
+          var staticRoutes = ['/posts/', '/topics/', '/sketches'];
+          var isStaticRoute = staticRoutes.some(function(route) {
+            return uri.startsWith(route);
+          });
+
+          // If URI doesn't have a file extension
           if (!uri.includes('.')) {
-            // No file extension, route to index.html for SPA routing
-            request.uri = '/index.html';
+            if (uri === '/' || uri === '') {
+              // Root path serves index.html
+              request.uri = '/index.html';
+            } else if (uri.endsWith('/')) {
+              // Directory paths get index.html appended
+              request.uri = uri + 'index.html';
+            } else if (isStaticRoute) {
+              // Static routes get .html appended for clean URLs
+              request.uri = uri + '.html';
+            } else {
+              // Other routes fall back to index.html for client-side routing
+              request.uri = '/index.html';
+            }
           }
 
           return request;
         }
       FunctionConfig:
-        Comment: Routes all paths without file extensions to index.html for SPA
+        Comment: Routes paths to static HTML files with clean URLs or falls back to SPA routing
         Runtime: cloudfront-js-1.0
 
   # CloudFront Distribution
@@ -204,7 +221,7 @@ Resources:
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # Managed-CachingOptimized
           FunctionAssociations:
             - EventType: viewer-request
-              FunctionARN: !GetAtt SPARoutingFunction.FunctionARN
+              FunctionARN: !GetAtt StaticHTMLRoutingFunction.FunctionARN
         CustomErrorResponses:
           - ErrorCode: 403
             ResponseCode: 200
