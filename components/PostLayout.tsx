@@ -56,7 +56,7 @@ export default function PostLayout({ post, children }: PostLayoutProps) {
       {post.coverImage && (
         <div className="mb-12 -mx-6 md:mx-0">
           <CoverImage
-            slug={post.slug}
+            folderName={post.folderName}
             alt={post.title}
             className="rounded-lg"
             priority={true}

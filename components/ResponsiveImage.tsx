@@ -104,21 +104,21 @@ export default function ResponsiveImage({
 }
 
 /**
- * Variant for cover images that extracts slug and filename from path
+ * Variant for cover images that uses folder name for image paths
  */
 interface CoverImageProps extends Omit<ResponsiveImageProps, 'src'> {
-  /** Post slug */
-  slug: string;
+  /** Post folder name (e.g., "2024-01-15-building-ai-agents") */
+  folderName: string;
   /** Image filename without extension (e.g., "cover") */
   filename?: string;
 }
 
 export function CoverImage({
-  slug,
+  folderName,
   filename = 'cover',
   ...props
 }: CoverImageProps) {
-  const src = `/images/posts/${slug}/${filename}`;
+  const src = `/images/posts/${folderName}/${filename}`;
 
   return <ResponsiveImage src={src} {...props} />;
 }

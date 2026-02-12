@@ -23,7 +23,7 @@ export default function PostCard({ post, featured = false }: PostCardProps) {
         {post.coverImage ? (
           <div className="aspect-video w-full overflow-hidden rounded-lg bg-gray/10 mb-4">
             <CoverImage
-              slug={post.slug}
+              folderName={post.folderName}
               alt={post.title}
               className="transition-transform duration-300 group-hover:scale-105"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 400px, 500px"

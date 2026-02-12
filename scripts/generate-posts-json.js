@@ -30,6 +30,7 @@ function getAllPosts() {
 
       return {
         slug,
+        folderName: folder, // Store folder name for image paths
         title: data.title || "",
         publishedAt: data.publishedAt || "",
         excerpt: data.excerpt || "",

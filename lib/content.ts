@@ -4,6 +4,7 @@ import matter from "gray-matter";
 
 export interface Post {
   slug: string;
+  folderName: string; // Folder name with date prefix for image paths
   title: string;
   publishedAt: string;
   excerpt: string;
@@ -40,21 +41,15 @@ export function getAllPosts(): Post[] {
       const fileContents = fs.readFileSync(fullPath, "utf8");
       const { data, content } = matter(fileContents);
 
-      // Convert relative cover image paths to public URLs
-      let coverImage = data.coverImage;
-      if (coverImage && coverImage.startsWith("./")) {
-        const imageName = coverImage.replace("./", "");
-        coverImage = `/images/posts/${folder}-${imageName}`;
-      }
-
       return {
         slug,
+        folderName: folder, // Store folder name for image paths
         title: data.title || "",
         publishedAt: data.publishedAt || "",
         excerpt: data.excerpt || "",
         category: data.category || "Writing",
         tags: data.tags || [],
-        coverImage: coverImage || undefined,
+        coverImage: data.coverImage || undefined,
         draft: data.draft || false,
         content,
       } as Post;
