@@ -48,6 +48,19 @@ public/feed.xml
 public/sitemap.xml
 public/images/posts/
 
+# Optimized images (generated during build)
+.optimized-images/
+
+# Source images in posts (too large for Git, stored in S3)
+# We keep the MDX files and folder structure, but ignore the actual images
+content/posts/**/*.jpg
+content/posts/**/*.jpeg
+content/posts/**/*.png
+content/posts/**/*.gif
+content/posts/**/*.webp
+# Keep everything else (MDX files, etc)
+!content/posts/**/index.mdx
+
 # Build outputs
 dist/
 build/

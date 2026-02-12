@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import type { Post } from "@/lib/content";
+import { CoverImage } from "./ResponsiveImage";
 
 interface PostLayoutProps {
   post: Post;
@@ -54,10 +55,12 @@ export default function PostLayout({ post, children }: PostLayoutProps) {
       {/* Featured Image */}
       {post.coverImage && (
         <div className="mb-12 -mx-6 md:mx-0">
-          <img
-            src={post.coverImage}
+          <CoverImage
+            slug={post.slug}
             alt={post.title}
-            className="w-full rounded-lg"
+            className="rounded-lg"
+            priority={true}
+            sizes="(max-width: 768px) 100vw, 645px"
           />
         </div>
       )}
