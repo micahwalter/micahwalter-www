@@ -54,7 +54,7 @@ Resources:
               SSEAlgorithm: AES256
       LoggingConfiguration:
         DestinationBucketName: !Ref LogsBucket
-        LogFilePrefix: s3-access-logs/
+        LogFilePrefix: s3-access-logs/website/
       LifecycleConfiguration:
         Rules:
           - Id: DeleteOldVersions
@@ -72,12 +72,58 @@ Resources:
         - Key: Purpose
           Value: WebsiteContent
 
-  # CloudFront Origin Access Control
+  # S3 Bucket for optimized blog post images
+  ImagesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-images'
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LoggingConfiguration:
+        DestinationBucketName: !Ref LogsBucket
+        LogFilePrefix: s3-access-logs/images/
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 365
+      Tags:
+        - Key: Project
+          Value: micahwalter-www
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: StaticWebsite
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Purpose
+          Value: BlogImages
+
+  # CloudFront Origin Access Control for Website Bucket
   CloudFrontOAC:
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
       OriginAccessControlConfig:
-        Name: !Sub '${AWS::StackName}-OAC'
+        Name: !Sub '${AWS::StackName}-website-OAC'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # CloudFront Origin Access Control for Images Bucket
+  CloudFrontImagesOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${AWS::StackName}-images-OAC'
         OriginAccessControlOriginType: s3
         SigningBehavior: always
         SigningProtocol: sigv4
@@ -123,6 +169,26 @@ Resources:
             S3OriginConfig:
               OriginAccessIdentity: ''
             OriginAccessControlId: !Ref CloudFrontOAC
+          - Id: ImagesOrigin
+            DomainName: !GetAtt ImagesBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !Ref CloudFrontImagesOAC
+        CacheBehaviors:
+          # Cache behavior for optimized blog post images
+          - PathPattern: '/images/*'
+            TargetOriginId: ImagesOrigin
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            CachedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            Compress: true
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # Managed-CachingOptimized
         DefaultCacheBehavior:
           TargetOriginId: S3Origin
           ViewerProtocolPolicy: redirect-to-https
@@ -181,6 +247,24 @@ Resources:
               StringEquals:
                 AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
 
+  # Bucket Policy for Images Bucket
+  ImagesBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ImagesBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontOAC
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${ImagesBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+
 Outputs:
   CloudFrontURL:
     Description: CloudFront Distribution URL - use this to access your website
@@ -194,6 +278,10 @@ Outputs:
     Description: S3 Bucket Name for website content
     Value: !Ref WebsiteBucket
 
+  ImagesBucketName:
+    Description: S3 Bucket Name for optimized blog post images
+    Value: !Ref ImagesBucket
+
   LogsBucketName:
     Description: S3 Bucket Name for access logs
     Value: !Ref LogsBucket
@@ -201,6 +289,10 @@ Outputs:
   DeployCommand:
     Description: Example AWS CLI command to sync your website files
     Value: !Sub 'aws s3 sync ./dist s3://${WebsiteBucket}/ --delete'
+
+  UploadImagesCommand:
+    Description: Example AWS CLI command to upload optimized images
+    Value: !Sub 'aws s3 sync .optimized-images/posts s3://${ImagesBucket}/images/posts/ --cache-control "public, max-age=31536000, immutable"'
 
   InvalidateCacheCommand:
     Description: Example AWS CLI command to invalidate CloudFront cache after deployment

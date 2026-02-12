@@ -24,6 +24,7 @@ env:
   AWS_REGION: us-east-1
   # Update these values with your CloudFormation stack outputs
   S3_BUCKET: micahwalter-www-website  # From CloudFormation output: WebsiteBucketName
+  IMAGES_BUCKET: micahwalter-www-images  # From CloudFormation output: ImagesBucketName
   CLOUDFRONT_DISTRIBUTION_ID: E1SZIKPZ79BHDU  # From CloudFormation output: CloudFrontDistributionId
 
 jobs:
