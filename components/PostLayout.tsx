@@ -11,6 +11,11 @@ interface PostLayoutProps {
 export default function PostLayout({ post, children }: PostLayoutProps) {
   const formattedDate = format(new Date(post.publishedAt), "MMMM d, yyyy");
 
+  // Extract filename from coverImage path (e.g., "./cover2.jpg" -> "cover2")
+  const coverFilename = post.coverImage
+    ? post.coverImage.replace(/^\.\//, '').replace(/\.(jpg|jpeg|png)$/i, '')
+    : 'cover';
+
   return (
     <article className="max-w-reading mx-auto px-6 py-12">
       {/* Header */}
@@ -57,6 +62,7 @@ export default function PostLayout({ post, children }: PostLayoutProps) {
         <div className="mb-12 -mx-6 md:mx-0">
           <CoverImage
             folderName={post.folderName}
+            filename={coverFilename}
             alt={post.title}
             className="rounded-lg"
             priority={true}

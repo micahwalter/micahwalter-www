@@ -11,6 +11,11 @@ interface PostCardProps {
 export default function PostCard({ post, featured = false }: PostCardProps) {
   const formattedDate = format(new Date(post.publishedAt), "MMMM d, yyyy");
 
+  // Extract filename from coverImage path (e.g., "./cover2.jpg" -> "cover2")
+  const coverFilename = post.coverImage
+    ? post.coverImage.replace(/^\.\//, '').replace(/\.(jpg|jpeg|png)$/i, '')
+    : 'cover';
+
   return (
     <Link
       href={`/posts/${post.slug}`}
@@ -24,6 +29,7 @@ export default function PostCard({ post, featured = false }: PostCardProps) {
           <div className="aspect-video w-full overflow-hidden rounded-lg bg-gray/10 mb-4">
             <CoverImage
               folderName={post.folderName}
+              filename={coverFilename}
               alt={post.title}
               className="transition-transform duration-300 group-hover:scale-105"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 400px, 500px"

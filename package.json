@@ -9,10 +9,12 @@
     "start": "next start",
     "lint": "next lint",
     "optimize-images": "node scripts/optimize-images.js",
+    "copy-images-local": "node scripts/copy-images-local.js",
     "upload-images": "node scripts/upload-images.js",
     "upload-images:www": "node scripts/upload-images.js --profile www",
     "images": "npm run optimize-images && npm run upload-images",
-    "images:www": "npm run optimize-images && npm run upload-images:www"
+    "images:www": "npm run optimize-images && npm run upload-images:www",
+    "images:dev": "npm run optimize-images && npm run copy-images-local"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
