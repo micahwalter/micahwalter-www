@@ -2,12 +2,16 @@
   "name": "micahwalter-www",
   "version": "0.1.0",
   "private": true,
+  "bin": {
+    "blog": "./cli/index.js"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "prebuild": "node scripts/generate-posts-json.js && node scripts/generate-rss.js && node scripts/generate-sitemap.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "blog": "node cli/index.js",
     "optimize-images": "node scripts/optimize-images.js",
     "copy-images-local": "node scripts/copy-images-local.js",
     "upload-images": "node scripts/upload-images.js",
