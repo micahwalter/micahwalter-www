@@ -137,12 +137,25 @@ aws cloudformation describe-stacks \
 gh secret set AWS_ROLE_ARN --body "<role-arn-from-above>"
 ```
 
-## Current Deployment
+## Get Your Deployment Info
 
-- **CloudFront URL**: https://d23gkuvfx56704.cloudfront.net
-- **Distribution ID**: E1SZIKPZ79BHDU
-- **Website Bucket**: micahwalter-www-website
-- **Logs Bucket**: micahwalter-www-logs
+After deploying the CloudFormation stack, get your deployment details:
+
+```bash
+# Get all stack outputs
+aws cloudformation describe-stacks \
+  --stack-name micahwalter-www \
+  --profile www \
+  --region us-east-1 \
+  --query 'Stacks[0].Outputs' \
+  --output table
+```
+
+This will show:
+- **CloudFront URL**: Your website URL
+- **Distribution ID**: For cache invalidation
+- **Website Bucket**: S3 bucket name for content
+- **Logs Bucket**: S3 bucket name for logs
 
 ## Features
 
@@ -215,14 +228,30 @@ aws cloudformation update-stack \
 If you need to deploy directly without GitHub Actions:
 
 ```bash
+# Set your stack name
+STACK_NAME=micahwalter-www
+
+# Get bucket and distribution ID from CloudFormation outputs
+S3_BUCKET=$(aws cloudformation describe-stacks \
+  --stack-name $STACK_NAME \
+  --query 'Stacks[0].Outputs[?OutputKey==`WebsiteBucketName`].OutputValue' \
+  --output text \
+  --profile www)
+
+DISTRIBUTION_ID=$(aws cloudformation describe-stacks \
+  --stack-name $STACK_NAME \
+  --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontDistributionId`].OutputValue' \
+  --output text \
+  --profile www)
+
 # Upload files to S3
-aws s3 sync src/ s3://micahwalter-www-website/ \
+aws s3 sync out/ s3://$S3_BUCKET/ \
   --delete \
   --profile www
 
 # Invalidate CloudFront cache
 aws cloudfront create-invalidation \
-  --distribution-id E1SZIKPZ79BHDU \
+  --distribution-id $DISTRIBUTION_ID \
   --paths "/*" \
   --profile www
 ```
@@ -230,36 +259,62 @@ aws cloudfront create-invalidation \
 ### View Logs
 
 ```bash
+# Set your stack name
+STACK_NAME=micahwalter-www
+
+# Get logs bucket from CloudFormation output
+LOGS_BUCKET=$(aws cloudformation describe-stacks \
+  --stack-name $STACK_NAME \
+  --query 'Stacks[0].Outputs[?OutputKey==`LogsBucketName`].OutputValue' \
+  --output text \
+  --profile www)
+
 # List CloudFront logs
-aws s3 ls s3://micahwalter-www-logs/cloudfront-logs/ \
+aws s3 ls s3://$LOGS_BUCKET/cloudfront-logs/ \
   --profile www \
   --recursive
 
 # List S3 access logs
-aws s3 ls s3://micahwalter-www-logs/s3-access-logs/ \
+aws s3 ls s3://$LOGS_BUCKET/s3-access-logs/ \
   --profile www \
   --recursive
 
 # Download recent CloudFront logs
-aws s3 sync s3://micahwalter-www-logs/cloudfront-logs/ ./logs/cloudfront/ \
+aws s3 sync s3://$LOGS_BUCKET/cloudfront-logs/ ./logs/cloudfront/ \
   --profile www
 ```
 
 ### Delete Stack (Cleanup)
 
 ```bash
-# Empty buckets first
-aws s3 rm s3://micahwalter-www-website --recursive --profile www
-aws s3 rm s3://micahwalter-www-logs --recursive --profile www
+# Set your stack name
+STACK_NAME=micahwalter-www
+
+# Get bucket names from CloudFormation outputs
+WEBSITE_BUCKET=$(aws cloudformation describe-stacks \
+  --stack-name $STACK_NAME \
+  --query 'Stacks[0].Outputs[?OutputKey==`WebsiteBucketName`].OutputValue' \
+  --output text \
+  --profile www)
+
+LOGS_BUCKET=$(aws cloudformation describe-stacks \
+  --stack-name $STACK_NAME \
+  --query 'Stacks[0].Outputs[?OutputKey==`LogsBucketName`].OutputValue' \
+  --output text \
+  --profile www)
+
+# Empty buckets first (required before deleting CloudFormation stack)
+aws s3 rm s3://$WEBSITE_BUCKET --recursive --profile www
+aws s3 rm s3://$LOGS_BUCKET --recursive --profile www
 
 # Delete stacks
 aws cloudformation delete-stack \
-  --stack-name micahwalter-www \
+  --stack-name $STACK_NAME \
   --profile www \
   --region us-east-1
 
 aws cloudformation delete-stack \
-  --stack-name micahwalter-www-github-actions \
+  --stack-name ${STACK_NAME}-github-actions \
   --profile www \
   --region us-east-1
 ```

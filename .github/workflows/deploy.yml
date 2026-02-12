@@ -20,8 +20,9 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
-  S3_BUCKET: micahwalter-www-website
-  CLOUDFRONT_DISTRIBUTION_ID: E1SZIKPZ79BHDU
+  # Update these values with your CloudFormation stack outputs
+  S3_BUCKET: micahwalter-www-website  # From CloudFormation output: WebsiteBucketName
+  CLOUDFRONT_DISTRIBUTION_ID: E1SZIKPZ79BHDU  # From CloudFormation output: CloudFrontDistributionId
 
 jobs:
   deploy:
@@ -79,4 +80,4 @@ jobs:
           echo "✅ Next.js app built successfully"
           echo "✅ Files synced to S3 bucket: ${{ env.S3_BUCKET }}"
           echo "✅ CloudFront cache invalidated"
-          echo "🌐 Website URL: https://d23gkuvfx56704.cloudfront.net"
+          echo "🌐 CloudFront Distribution: ${{ env.CLOUDFRONT_DISTRIBUTION_ID }}"
