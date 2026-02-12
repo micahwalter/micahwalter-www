@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "prebuild": "node scripts/generate-posts-json.js && node scripts/generate-rss.js && node scripts/generate-sitemap.js",
+    "prebuild": "node scripts/copy-images.js && node scripts/generate-posts-json.js && node scripts/generate-rss.js && node scripts/generate-sitemap.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

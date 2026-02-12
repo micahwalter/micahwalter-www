@@ -40,6 +40,13 @@ export function getAllPosts(): Post[] {
       const fileContents = fs.readFileSync(fullPath, "utf8");
       const { data, content } = matter(fileContents);
 
+      // Convert relative cover image paths to public URLs
+      let coverImage = data.coverImage;
+      if (coverImage && coverImage.startsWith("./")) {
+        const imageName = coverImage.replace("./", "");
+        coverImage = `/images/posts/${folder}-${imageName}`;
+      }
+
       return {
         slug,
         title: data.title || "",
@@ -47,7 +54,7 @@ export function getAllPosts(): Post[] {
         excerpt: data.excerpt || "",
         category: data.category || "Writing",
         tags: data.tags || [],
-        coverImage: data.coverImage || undefined,
+        coverImage: coverImage || undefined,
         draft: data.draft || false,
         content,
       } as Post;

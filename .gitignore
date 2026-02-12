@@ -42,6 +42,12 @@ out/
 next-env.d.ts
 .vercel
 
+# Generated public files (created during build)
+public/posts.json
+public/feed.xml
+public/sitemap.xml
+public/images/posts/
+
 # Build outputs
 dist/
 build/
