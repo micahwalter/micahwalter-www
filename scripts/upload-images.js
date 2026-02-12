@@ -7,23 +7,30 @@
  * Usage:
  *   node scripts/upload-images.js                    # Upload all images
  *   node scripts/upload-images.js --dry-run          # Preview what would be uploaded
- *   AWS_PROFILE=myprofile node scripts/upload-images.js  # Use specific AWS profile
+ *   node scripts/upload-images.js --profile www      # Use specific AWS profile
+ *   node scripts/upload-images.js --profile www --dry-run  # Combine options
  *
  * Environment variables:
- *   IMAGES_BUCKET_NAME - S3 bucket name (default: uses main website bucket)
+ *   IMAGES_BUCKET - S3 bucket name (default: micahwalter-www-images)
  *   AWS_REGION - AWS region (default: us-east-1)
+ *   AWS_PROFILE - AWS profile (can also use --profile argument)
  */
 
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// Parse command-line arguments
+const args = process.argv.slice(2);
+const DRY_RUN = args.includes('--dry-run');
+const profileIndex = args.indexOf('--profile');
+const AWS_PROFILE = profileIndex !== -1 && args[profileIndex + 1] ? args[profileIndex + 1] : process.env.AWS_PROFILE;
+
 // Configuration
 const IMAGES_DIR = path.join(process.cwd(), '.optimized-images/posts');
 const BUCKET_NAME = process.env.IMAGES_BUCKET || process.env.IMAGES_BUCKET_NAME || 'micahwalter-www-images';
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 const S3_PREFIX = 'images/posts'; // Path within bucket
-const DRY_RUN = process.argv.includes('--dry-run');
 
 // Cache control for images (1 year, immutable)
 const CACHE_CONTROL = 'public, max-age=31536000, immutable';
@@ -182,6 +189,9 @@ function syncWithAwsCli() {
   console.log(`   Source: ${IMAGES_DIR}`);
   console.log(`   Bucket: s3://${BUCKET_NAME}/${S3_PREFIX}/`);
   console.log(`   Region: ${AWS_REGION}`);
+  if (AWS_PROFILE) {
+    console.log(`   Profile: ${AWS_PROFILE}`);
+  }
 
   if (DRY_RUN) {
     console.log(`   Mode: DRY RUN\n`);
@@ -190,12 +200,14 @@ function syncWithAwsCli() {
   }
 
   const dryRunFlag = DRY_RUN ? '--dryrun' : '';
+  const profileFlag = AWS_PROFILE ? `--profile ${AWS_PROFILE}` : '';
 
   try {
     const cmd = `aws s3 sync "${IMAGES_DIR}" "s3://${BUCKET_NAME}/${S3_PREFIX}/" \
       --region ${AWS_REGION} \
       --cache-control "${CACHE_CONTROL}" \
       --size-only \
+      ${profileFlag} \
       ${dryRunFlag}`;
 
     console.log('Running aws s3 sync...\n');
