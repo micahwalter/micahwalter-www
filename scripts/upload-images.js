@@ -20,7 +20,7 @@ const { execSync } = require('child_process');
 
 // Configuration
 const IMAGES_DIR = path.join(process.cwd(), '.optimized-images/posts');
-const BUCKET_NAME = process.env.IMAGES_BUCKET_NAME || process.env.S3_BUCKET || 'micahwalter-www-website';
+const BUCKET_NAME = process.env.IMAGES_BUCKET || process.env.IMAGES_BUCKET_NAME || 'micahwalter-www-images';
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 const S3_PREFIX = 'images/posts'; // Path within bucket
 const DRY_RUN = process.argv.includes('--dry-run');
