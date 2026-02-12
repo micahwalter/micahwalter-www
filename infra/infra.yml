@@ -24,6 +24,17 @@ Resources:
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerPreferred
+      Tags:
+        - Key: Project
+          Value: micahwalter-www
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: StaticWebsite
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Purpose
+          Value: AccessLogs
 
   # Primary S3 Bucket for website content
   WebsiteBucket:
@@ -49,6 +60,17 @@ Resources:
           - Id: DeleteOldVersions
             Status: Enabled
             NoncurrentVersionExpirationInDays: 365
+      Tags:
+        - Key: Project
+          Value: micahwalter-www
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: StaticWebsite
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Purpose
+          Value: WebsiteContent
 
   # CloudFront Origin Access Control
   CloudFrontOAC:
@@ -131,6 +153,15 @@ Resources:
           Bucket: !GetAtt LogsBucket.DomainName
           Prefix: cloudfront-logs/
           IncludeCookies: false
+      Tags:
+        - Key: Project
+          Value: micahwalter-www
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: StaticWebsite
+        - Key: ManagedBy
+          Value: CloudFormation
 
   # Bucket Policy for Website Bucket
   WebsiteBucketPolicy:
