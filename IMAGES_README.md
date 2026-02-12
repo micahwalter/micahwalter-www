@@ -12,6 +12,8 @@ This project uses an optimized image workflow that:
 
 ### Adding Images to a Blog Post
 
+**Images are managed locally and uploaded manually to S3.**
+
 1. **Place your image** in the post directory:
    ```
    content/posts/2024-01-15-my-post/
@@ -27,14 +29,25 @@ This project uses an optimized image workflow that:
    ---
    ```
 
-3. **Commit and push** (only the MDX file will be committed - images are gitignored)
+3. **Optimize and upload images** (locally):
+   ```bash
+   npm run optimize-images    # Generate optimized variants
+   npm run upload-images      # Upload to S3
+   ```
 
-4. **GitHub Actions will**:
-   - Optimize your image to 6 variants (WebP + JPEG at 400px, 800px, 1200px)
-   - Upload to S3
-   - Deploy your site
+4. **Commit and push** (only the MDX file - images are gitignored):
+   ```bash
+   git add content/posts/2024-01-15-my-post/index.mdx
+   git commit -m "Add new blog post"
+   git push
+   ```
 
-That's it! Your image will be automatically optimized and served via CloudFront.
+5. **GitHub Actions will**:
+   - Build your Next.js site
+   - Deploy to S3
+   - Invalidate CloudFront cache
+
+Your optimized images (already in S3) will be served via CloudFront!
 
 ## Image Specifications
 
@@ -90,23 +103,24 @@ npm run images
 ### 1. Build Pipeline
 
 ```
-Developer adds image
+Developer adds image locally
          ↓
-     Git commit (MDX only, image gitignored)
+   npm run optimize-images
+   (generates 6 variants locally)
          ↓
-     GitHub Actions triggered
+   npm run upload-images
+   (uploads to S3 images bucket)
          ↓
-  scripts/optimize-images.js
-   (generates 6 variants)
+  Git commit (MDX only, image gitignored)
          ↓
-  scripts/upload-images.js
-    (uploads to S3)
+     Push to GitHub
          ↓
-    Next.js build
+   GitHub Actions builds Next.js
          ↓
-   Deploy to S3
+   Deploy static site to S3
          ↓
-   Serve via CloudFront
+ Serve site + images via CloudFront
+ (site from website bucket, images from images bucket)
 ```
 
 ### 2. Image Serving

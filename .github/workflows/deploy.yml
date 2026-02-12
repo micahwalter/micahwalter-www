@@ -45,20 +45,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Optimize images
-        run: node scripts/optimize-images.js
+      - name: Build Next.js app
+        run: npm run build
 
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Upload optimized images to S3
-        run: node scripts/upload-images.js
-
-      - name: Build Next.js app
-        run: npm run build
 
       - name: Sync static files to S3
         run: |
@@ -86,8 +80,8 @@ jobs:
 
       - name: Deployment summary
         run: |
-          echo "✅ Images optimized and uploaded to S3"
           echo "✅ Next.js app built successfully"
           echo "✅ Files synced to S3 bucket: ${{ env.S3_BUCKET }}"
           echo "✅ CloudFront cache invalidated"
           echo "🌐 CloudFront Distribution: ${{ env.CLOUDFRONT_DISTRIBUTION_ID }}"
+          echo "ℹ️  Images are managed locally and uploaded to S3 separately"
