@@ -1,0 +1,18 @@
+export default function Footer() {
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <footer className="mt-24 border-t border-charcoal/10">
+      <div className="max-w-wide mx-auto px-6 py-12">
+        <div className="text-center space-y-4">
+          <p className="text-gray italic text-lg">
+            Investigations in AI, Cloud, and Creativity
+          </p>
+          <p className="text-gray text-sm">
+            &copy; {currentYear} Micah Walter. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </footer>
+  );
+}

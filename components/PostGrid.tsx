@@ -1,0 +1,38 @@
+import PostCard from "./PostCard";
+import type { Post } from "@/lib/content";
+
+interface PostGridProps {
+  posts: Post[];
+  featuredFirst?: boolean;
+}
+
+export default function PostGrid({
+  posts,
+  featuredFirst = false,
+}: PostGridProps) {
+  if (posts.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray text-lg">No posts found.</p>
+      </div>
+    );
+  }
+
+  const [firstPost, ...restPosts] = posts;
+
+  return (
+    <div className="max-w-wide mx-auto px-6 py-12">
+      {featuredFirst && firstPost && (
+        <div className="mb-16">
+          <PostCard post={firstPost} featured />
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {(featuredFirst ? restPosts : posts).map((post) => (
+          <PostCard key={post.slug} post={post} />
+        ))}
+      </div>
+    </div>
+  );
+}

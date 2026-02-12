@@ -3,21 +3,47 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #F8F7F5;
+  --foreground: #191919;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-eb-garamond), Georgia, serif;
+  font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  line-height: 1.7;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-eb-garamond), Georgia, serif;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--foreground);
+}
+
+h1 {
+  font-size: clamp(2rem, 1.5rem + 2vw, 3rem);
+}
+
+h2 {
+  font-size: clamp(1.5rem, 1.25rem + 1vw, 2rem);
+}
+
+h3 {
+  font-size: clamp(1.25rem, 1.125rem + 0.5vw, 1.5rem);
+}
+
+a {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-decoration-color: #F5B684;
+  text-underline-offset: 0.2em;
+  transition: text-decoration-color 0.2s ease;
+}
+
+a:hover {
+  text-decoration-color: var(--foreground);
 }
 
 @layer utilities {
