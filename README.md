@@ -1,12 +1,14 @@
 # Micah Walter's Website
 
-Next.js website hosted on AWS using S3 and CloudFront with automated CI/CD.
+A modern blog built with Next.js and hosted on AWS using S3 and CloudFront with automated CI/CD.
 
 ## Tech Stack
 
 - **Next.js 15**: React framework with App Router
 - **TypeScript**: Type-safe development
-- **Tailwind CSS**: Utility-first styling
+- **Tailwind CSS**: Utility-first styling with custom design system
+- **MDX**: Markdown content with React components
+- **EB Garamond & Beiruti**: Google Fonts for typography
 - **S3 + CloudFront**: Serverless hosting with global CDN
 - **GitHub Actions**: Automated build and deployment
 
@@ -40,12 +42,100 @@ npm run dev
 ### Build for Production
 
 ```bash
-# Create production build
+# Create production build (includes generating posts.json, RSS feed, and sitemap)
 npm run build
 
 # Preview production build locally
 npx serve out/
 ```
+
+## Content Management
+
+### Creating Blog Posts
+
+Posts are written in MDX format and stored in the `content/posts/` directory. Each post has its own folder with the naming convention: `YYYY-MM-DD-slug-name/`.
+
+#### Create a New Post
+
+1. Create a new directory: `content/posts/2024-01-15-my-post-title/`
+2. Create `index.mdx` file with frontmatter:
+
+```mdx
+---
+title: "My Post Title"
+publishedAt: "2024-01-15"
+excerpt: "A brief description of the post that appears in listings and SEO."
+category: "AI" # or "AWS", "Writing"
+tags: ["tag1", "tag2", "tag3"]
+coverImage: "./cover.jpg" # optional
+draft: false
+---
+
+Your post content here in markdown/MDX format.
+
+## Heading 2
+
+Regular markdown features work:
+- Lists
+- **Bold** and *italic*
+- [Links](https://example.com)
+- Code blocks with syntax highlighting
+
+\```javascript
+const example = "code";
+\```
+
+You can also use JSX components if needed.
+```
+
+#### Frontmatter Fields
+
+- **title** (required): Post title displayed in listings and detail page
+- **publishedAt** (required): Publication date in YYYY-MM-DD format
+- **excerpt** (required): Brief summary for listings and SEO
+- **category** (required): One of "AI", "AWS", or "Writing"
+- **tags** (optional): Array of tag strings
+- **coverImage** (optional): Relative path to cover image in post folder
+- **draft** (optional): Set to `true` to exclude from build
+
+#### Adding Images
+
+Place images in the same folder as your post:
+
+```
+content/posts/2024-01-15-my-post/
+  index.mdx
+  cover.jpg       # Cover image (1200x675 recommended)
+  diagram.png     # Additional images
+```
+
+Reference images in your MDX:
+
+```markdown
+![Alt text](./diagram.png)
+```
+
+### Content Structure
+
+```
+content/
+└── posts/
+    ├── 2024-01-15-building-ai-agents/
+    │   ├── index.mdx
+    │   └── cover.jpg
+    ├── 2024-02-03-serverless-architecture-aws/
+    │   └── index.mdx
+    └── ...
+```
+
+### Generated Files
+
+The build process automatically generates:
+- `/public/posts.json` - Search index for client-side search
+- `/public/feed.xml` - RSS feed for all published posts
+- `/public/sitemap.xml` - Sitemap for SEO
+
+These are regenerated on every build.
 
 ## Deployment
 
@@ -159,10 +249,25 @@ This will show:
 
 ## Features
 
+### Blog Features
+- ✅ MDX-based content management
+- ✅ Blog post grid with featured posts
+- ✅ Category filtering (AI, AWS, Writing)
+- ✅ Tag system for organizing content
+- ✅ Client-side search functionality
+- ✅ RSS feed generation
+- ✅ Dynamic sitemap
+- ✅ SEO-optimized metadata
+- ✅ Syntax-highlighted code blocks
+- ✅ Responsive images with lazy loading
+- ✅ Mobile-friendly navigation
+
 ### Frontend
 - ✅ Next.js 15 with App Router
 - ✅ TypeScript for type safety
-- ✅ Tailwind CSS for styling
+- ✅ Tailwind CSS with custom design system
+- ✅ Editorial typography (EB Garamond serif)
+- ✅ Warm neutral color palette
 - ✅ Static export (no server required)
 - ✅ Optimized production builds
 - ✅ Fast development with Turbopack
