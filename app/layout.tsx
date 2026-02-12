@@ -31,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${ebGaramond.variable} antialiased`}>
+      <body className={`${ebGaramond.variable} antialiased`} suppressHydrationWarning>
         <Header />
         <main className="min-h-screen">
           {children}
