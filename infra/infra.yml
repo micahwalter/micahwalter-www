@@ -1,0 +1,176 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Static website hosting with S3 and CloudFront - optimized for cost and security'
+
+Resources:
+  # S3 Bucket for access logs
+  LogsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-logs'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldLogs
+            Status: Enabled
+            ExpirationInDays: 90
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred
+
+  # Primary S3 Bucket for website content
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-website'
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LoggingConfiguration:
+        DestinationBucketName: !Ref LogsBucket
+        LogFilePrefix: s3-access-logs/
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 365
+
+  # CloudFront Origin Access Control
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${AWS::StackName}-OAC'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # CloudFront Function for SPA routing
+  SPARoutingFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub '${AWS::StackName}-spa-routing'
+      AutoPublish: true
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          var uri = request.uri;
+
+          // Check if the URI has a file extension
+          if (!uri.includes('.')) {
+            // No file extension, route to index.html for SPA routing
+            request.uri = '/index.html';
+          }
+
+          return request;
+        }
+      FunctionConfig:
+        Comment: Routes all paths without file extensions to index.html for SPA
+        Runtime: cloudfront-js-1.0
+
+  # CloudFront Distribution
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        HttpVersion: http2and3
+        Comment: !Sub 'Distribution for ${AWS::StackName}'
+        DefaultRootObject: index.html
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+          MinimumProtocolVersion: TLSv1.2_2021
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt WebsiteBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !Ref CloudFrontOAC
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # Managed-CachingOptimized
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt SPARoutingFunction.FunctionARN
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 300
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 300
+        PriceClass: PriceClass_All
+        Logging:
+          Bucket: !GetAtt LogsBucket.DomainName
+          Prefix: cloudfront-logs/
+          IncludeCookies: false
+
+  # Bucket Policy for Website Bucket
+  WebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebsiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontOAC
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${WebsiteBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+
+Outputs:
+  CloudFrontURL:
+    Description: CloudFront Distribution URL - use this to access your website
+    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
+
+  CloudFrontDistributionId:
+    Description: CloudFront Distribution ID (needed for cache invalidation)
+    Value: !Ref CloudFrontDistribution
+
+  WebsiteBucketName:
+    Description: S3 Bucket Name for website content
+    Value: !Ref WebsiteBucket
+
+  LogsBucketName:
+    Description: S3 Bucket Name for access logs
+    Value: !Ref LogsBucket
+
+  DeployCommand:
+    Description: Example AWS CLI command to sync your website files
+    Value: !Sub 'aws s3 sync ./dist s3://${WebsiteBucket}/ --delete'
+
+  InvalidateCacheCommand:
+    Description: Example AWS CLI command to invalidate CloudFront cache after deployment
+    Value: !Sub 'aws cloudfront create-invalidation --distribution-id ${CloudFrontDistribution} --paths "/*"'
