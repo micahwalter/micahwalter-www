@@ -1,3 +1,6 @@
+/* Syntax highlighting theme for code blocks */
+@import 'highlight.js/styles/atom-one-dark.min.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -44,6 +47,66 @@ a {
 
 a:hover {
   text-decoration-color: var(--foreground);
+}
+
+/* Ensure ALL code blocks have readable text color */
+pre code {
+  color: #fafaf2 !important;
+  background-color: transparent !important;
+}
+
+/* Override highlight.js colors for better contrast on dark bg */
+pre .hljs-comment,
+pre .hljs-quote {
+  color: #8fa1b3 !important;
+}
+
+pre .hljs-keyword,
+pre .hljs-selector-tag,
+pre .hljs-addition {
+  color: #b48ead !important;
+}
+
+pre .hljs-number,
+pre .hljs-string,
+pre .hljs-meta .hljs-string,
+pre .hljs-literal,
+pre .hljs-doctag,
+pre .hljs-regexp {
+  color: #a3be8c !important;
+}
+
+pre .hljs-title,
+pre .hljs-section,
+pre .hljs-name,
+pre .hljs-selector-id,
+pre .hljs-selector-class {
+  color: #ebcb8b !important;
+}
+
+pre .hljs-attribute,
+pre .hljs-attr,
+pre .hljs-variable,
+pre .hljs-template-variable,
+pre .hljs-class .hljs-title,
+pre .hljs-type {
+  color: #d08770 !important;
+}
+
+pre .hljs-symbol,
+pre .hljs-bullet,
+pre .hljs-subst,
+pre .hljs-meta,
+pre .hljs-meta .hljs-keyword,
+pre .hljs-selector-attr,
+pre .hljs-selector-pseudo,
+pre .hljs-link {
+  color: #88c0d0 !important;
+}
+
+pre .hljs-built_in,
+pre .hljs-deletion {
+  color: #bf616a !important;
 }
 
 @layer utilities {
