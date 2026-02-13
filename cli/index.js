@@ -8,6 +8,7 @@
  *   images:upload      - Upload both original and processed images to S3
  *   images:download    - Download images from S3 to local
  *   images:sync        - Smart sync between local and S3
+ *   images:copy-local  - Copy optimized images to public/ for dev
  *   build:static       - Generate static files (RSS, sitemap, posts.json)
  *   help               - Show help information
  */
@@ -55,6 +56,13 @@ const commands = {
     examples: [
       'blog images:sync',
       'blog images:sync --profile www'
+    ]
+  },
+  'images:copy-local': {
+    description: 'Copy optimized images to public/ for local development',
+    script: 'scripts/copy-images-local.js',
+    examples: [
+      'blog images:copy-local'
     ]
   },
   'build:static': {
