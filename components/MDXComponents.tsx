@@ -1,4 +1,5 @@
 import type { MDXComponents } from "mdx/types";
+import ZoomableImage from "./ZoomableImage";
 
 export const mdxComponents: MDXComponents = {
   h1: ({ children }) => (
@@ -69,11 +70,10 @@ export const mdxComponents: MDXComponents = {
     </pre>
   ),
   img: ({ src, alt }) => (
-    <img
+    <ZoomableImage
       src={src}
       alt={alt}
       className="rounded-lg my-8 w-full"
-      loading="lazy"
     />
   ),
   hr: () => <hr className="my-12 border-gray/20" />,

@@ -9,16 +9,20 @@
  * - Responsive sizing (400px, 800px, 1200px)
  * - Lazy loading
  * - SEO-friendly alt text
+ * - Optional zoom on click (desktop only)
  *
  * Usage:
  *   <ResponsiveImage
  *     src="/images/posts/slug/cover"
  *     alt="Cover image description"
  *     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 800px, 1200px"
+ *     zoomable={true}
  *   />
  */
 
-import React from 'react';
+"use client";
+
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface ResponsiveImageProps {
   /** Base path to image without extension or size suffix (e.g., "/images/posts/slug/cover") */
@@ -35,6 +39,8 @@ interface ResponsiveImageProps {
   width?: number;
   /** Height for aspect ratio calculation (optional) */
   height?: number;
+  /** Enable zoom on click (desktop only, defaults to false) */
+  zoomable?: boolean;
 }
 
 const SIZES = [400, 800, 1200];
@@ -63,43 +69,129 @@ export default function ResponsiveImage({
   priority = false,
   width,
   height,
+  zoomable = false,
 }: ResponsiveImageProps) {
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile on mount and window resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Handle ESC key to close zoom
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isZoomed) {
+        setIsZoomed(false);
+      }
+    };
+
+    if (isZoomed) {
+      document.addEventListener("keydown", handleEscape);
+      document.body.style.overflow = "hidden";
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "";
+    };
+  }, [isZoomed]);
+
+  const handleClick = useCallback(() => {
+    if (zoomable && !isMobile) {
+      setIsZoomed(!isZoomed);
+    }
+  }, [zoomable, isMobile, isZoomed]);
+
+  const handleOverlayClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.target === e.currentTarget) {
+        setIsZoomed(false);
+      }
+    },
+    []
+  );
+
   // Generate srcsets for WebP and JPEG
   const webpSrcSet = generateSrcSet(src, 'webp');
   const jpegSrcSet = generateSrcSet(src, 'jpg');
 
-  // Fallback src (800px JPEG)
+  // Fallback src (1200px JPEG for zoom, 800px for normal)
   const fallbackSrc = `${CDN_BASE}${src}-800.jpg`;
+  const zoomedSrc = `${CDN_BASE}${src}-1200.jpg`;
 
   // Calculate aspect ratio for placeholder if dimensions provided
   const aspectRatio = width && height ? (height / width) * 100 : undefined;
 
+  const pictureClassName = zoomable && !isMobile
+    ? `${className} cursor-zoom-in hover:opacity-90 transition-opacity`
+    : className;
+
   return (
-    <picture className={className}>
-      {/* WebP source (preferred, smaller file size) */}
-      <source srcSet={webpSrcSet} type="image/webp" sizes={sizes} />
+    <>
+      <picture className={pictureClassName} onClick={handleClick}>
+        {/* WebP source (preferred, smaller file size) */}
+        <source srcSet={webpSrcSet} type="image/webp" sizes={sizes} />
 
-      {/* JPEG source (fallback for older browsers) */}
-      <source srcSet={jpegSrcSet} type="image/jpeg" sizes={sizes} />
+        {/* JPEG source (fallback for older browsers) */}
+        <source srcSet={jpegSrcSet} type="image/jpeg" sizes={sizes} />
 
-      {/* Fallback img element */}
-      <img
-        src={fallbackSrc}
-        alt={alt}
-        loading={priority ? 'eager' : 'lazy'}
-        decoding="async"
-        style={
-          aspectRatio
-            ? {
-                aspectRatio: `${width} / ${height}`,
-                width: '100%',
-                height: 'auto',
-              }
-            : { width: '100%', height: 'auto' }
-        }
-        className="object-cover"
-      />
-    </picture>
+        {/* Fallback img element */}
+        <img
+          src={fallbackSrc}
+          alt={alt}
+          loading={priority ? 'eager' : 'lazy'}
+          decoding="async"
+          style={
+            aspectRatio
+              ? {
+                  aspectRatio: `${width} / ${height}`,
+                  width: '100%',
+                  height: 'auto',
+                }
+              : { width: '100%', height: 'auto' }
+          }
+          className="object-cover"
+        />
+      </picture>
+
+      {/* Zoom overlay */}
+      {isZoomed && zoomable && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/95 cursor-zoom-out animate-fadeIn"
+          onClick={handleOverlayClick}
+        >
+          <div className="relative max-w-[95vw] max-h-[95vh] p-4">
+            <picture>
+              <source srcSet={webpSrcSet} type="image/webp" sizes="95vw" />
+              <source srcSet={jpegSrcSet} type="image/jpeg" sizes="95vw" />
+              <img
+                src={zoomedSrc}
+                alt={alt}
+                className="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl animate-zoomIn"
+                onClick={() => setIsZoomed(false)}
+              />
+            </picture>
+
+            {/* Close button */}
+            <button
+              onClick={() => setIsZoomed(false)}
+              className="absolute top-8 right-8 text-cream hover:text-accent transition-colors text-4xl font-light leading-none"
+              aria-label="Close zoom"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
