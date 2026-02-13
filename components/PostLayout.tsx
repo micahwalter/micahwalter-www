@@ -72,6 +72,7 @@ export default function PostLayout({ post, children }: PostLayoutProps) {
             className="rounded-lg"
             priority={true}
             sizes="(max-width: 768px) 100vw, 645px"
+            zoomable={true}
           />
         </div>
       )}
