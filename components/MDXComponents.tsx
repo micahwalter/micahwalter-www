@@ -1,7 +1,8 @@
 import type { MDXComponents } from "mdx/types";
-import ZoomableImage from "./ZoomableImage";
+import ResponsiveImage from "./ResponsiveImage";
 
-export const mdxComponents: MDXComponents = {
+export function getMDXComponents(folderName?: string): MDXComponents {
+  return {
   h1: ({ children }) => (
     <h1 className="text-4xl font-serif font-semibold mt-12 mb-6 text-charcoal">
       {children}
@@ -69,13 +70,32 @@ export const mdxComponents: MDXComponents = {
       {children}
     </pre>
   ),
-  img: ({ src, alt }) => (
-    <ZoomableImage
-      src={src}
-      alt={alt}
-      className="rounded-lg my-8 w-full"
-    />
-  ),
+  img: ({ src, alt }) => {
+    // Handle relative paths from MDX (e.g., "./image.png")
+    if (src?.startsWith("./") && folderName) {
+      // Extract filename without extension
+      const filename = src.replace("./", "").replace(/\.(jpg|jpeg|png|gif|webp)$/i, "");
+      const imagePath = `/images/posts/${folderName}/${filename}`;
+
+      return (
+        <ResponsiveImage
+          src={imagePath}
+          alt={alt || ""}
+          className="rounded-lg my-8"
+          zoomable={true}
+        />
+      );
+    }
+
+    // For absolute URLs, use regular img tag
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className="rounded-lg my-8 w-full"
+      />
+    );
+  },
   hr: () => <hr className="my-12 border-gray/20" />,
   table: ({ children }) => (
     <div className="overflow-x-auto my-8">
@@ -96,4 +116,8 @@ export const mdxComponents: MDXComponents = {
     <strong className="font-semibold text-charcoal">{children}</strong>
   ),
   em: ({ children }) => <em className="italic">{children}</em>,
-};
+  };
+}
+
+// For backward compatibility
+export const mdxComponents = getMDXComponents();
