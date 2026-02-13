@@ -9,6 +9,7 @@
  *   images:download    - Download images from S3 to local
  *   images:sync        - Smart sync between local and S3
  *   images:copy-local  - Copy optimized images to public/ for dev
+ *   build              - Optimize images and copy to public/ (local dev)
  *   build:static       - Generate static files (RSS, sitemap, posts.json)
  *   help               - Show help information
  */
@@ -65,6 +66,12 @@ const commands = {
       'blog images:copy-local'
     ]
   },
+  'build': {
+    description: 'Optimize images and copy to public/ for local development',
+    examples: [
+      'blog build'
+    ]
+  },
   'build:static': {
     description: 'Generate static files (RSS, sitemap, posts.json)',
     examples: [
@@ -114,6 +121,21 @@ function runCommand(commandName, args) {
 
   if (commandName === 'help') {
     showHelp(args[0]);
+    return;
+  }
+
+  if (commandName === 'build') {
+    // Run image optimization and copy to public
+    const scripts = [
+      'scripts/optimize-images.js',
+      'scripts/copy-images-local.js'
+    ];
+
+    for (const script of scripts) {
+      const scriptPath = path.join(__dirname, '..', script);
+      console.log(`\n🔨 Running ${path.basename(script)}...`);
+      execSync(`node "${scriptPath}"`, { stdio: 'inherit' });
+    }
     return;
   }
 
