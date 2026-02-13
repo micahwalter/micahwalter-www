@@ -82,11 +82,9 @@ async function optimizeImage(postSlug, imageFile) {
   const metadata = await sharp(sourcePath).metadata();
 
   for (const size of SIZES) {
-    // Skip if image is smaller than target size
-    if (metadata.width < size && metadata.height < size) {
-      console.log(`  ⏭️  Skipping ${size}px (original is ${metadata.width}x${metadata.height})`);
-      continue;
-    }
+    // Note: We always generate all sizes, even if original is smaller
+    // This ensures ResponsiveImage component can always find all expected files
+    // The 'withoutEnlargement: true' option prevents upscaling
 
     // Generate WebP
     const webpFilename = `${baseFilename}-${size}.webp`;

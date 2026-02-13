@@ -156,10 +156,10 @@ export default GrowthCalculator;
     
     
         const GrowthCalculator = () => {
-            const &#91;currentRunRate, setCurrentRunRate] = React.useState(1);
-            const &#91;currentGrowth, setCurrentGrowth] = React.useState(20);
-            const &#91;growthChange, setGrowthChange] = React.useState(0);
-            const &#91;unit, setUnit] = React.useState('millions');
+            const [currentRunRate, setCurrentRunRate] = React.useState(1);
+            const [currentGrowth, setCurrentGrowth] = React.useState(20);
+            const [growthChange, setGrowthChange] = React.useState(0);
+            const [unit, setUnit] = React.useState('millions');
 
             const multiplier = {
                 dollars: 1,
@@ -174,12 +174,12 @@ export default GrowthCalculator;
             };
 
             const calculateGrowth = React.useCallback(() => {
-                const baseRunRate = currentRunRate * multiplier&#91;unit];
+                const baseRunRate = currentRunRate * multiplier[unit];
                 const targetRunRate = 10 * baseRunRate;
                 let years = 0;
                 let runRate = baseRunRate;
                 let growth = currentGrowth;
-                const data = &#91;{
+                const data = [{
                     year: years,
                     runRate: runRate
                 }];
@@ -199,7 +199,7 @@ export default GrowthCalculator;
                     data,
                     finalRunRate: runRate
                 };
-            }, &#91;currentRunRate, currentGrowth, growthChange, unit]);
+            }, [currentRunRate, currentGrowth, growthChange, unit]);
 
             const { years, data, finalRunRate } = calculateGrowth();
             const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } = Recharts;
@@ -345,10 +345,10 @@ export default GrowthCalculator;
     
     
         const GrowthCalculator = () => {
-            const &#91;currentRunRate, setCurrentRunRate] = React.useState(1);
-            const &#91;currentGrowth, setCurrentGrowth] = React.useState(20);
-            const &#91;growthChange, setGrowthChange] = React.useState(0);
-            const &#91;unit, setUnit] = React.useState('millions');
+            const [currentRunRate, setCurrentRunRate] = React.useState(1);
+            const [currentGrowth, setCurrentGrowth] = React.useState(20);
+            const [growthChange, setGrowthChange] = React.useState(0);
+            const [unit, setUnit] = React.useState('millions');
             const chartRef = React.useRef(null);
             const chartInstance = React.useRef(null);
 
@@ -365,12 +365,12 @@ export default GrowthCalculator;
             };
 
             const calculateGrowth = () => {
-                const baseRunRate = currentRunRate * multiplier&#91;unit];
+                const baseRunRate = currentRunRate * multiplier[unit];
                 const targetRunRate = 10 * baseRunRate;
                 let years = 0;
                 let runRate = baseRunRate;
                 let growth = currentGrowth;
-                const data = &#91;{
+                const data = [{
                     year: years,
                     runRate: runRate
                 }];
@@ -404,7 +404,7 @@ export default GrowthCalculator;
                     type: 'line',
                     data: {
                         labels: data.map(d => `Year ${d.year}`),
-                        datasets: &#91;{
+                        datasets: [{
                             label: 'Run Rate',
                             data: data.map(d => d.runRate),
                             borderColor: '#3b82f6',
@@ -435,7 +435,7 @@ export default GrowthCalculator;
                         }
                     }
                 });
-            }, &#91;currentRunRate, currentGrowth, growthChange, unit]);
+            }, [currentRunRate, currentGrowth, growthChange, unit]);
 
             const { years, finalRunRate } = calculateGrowth();
 
