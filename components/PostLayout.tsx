@@ -50,7 +50,7 @@ export default function PostLayout({ post, children }: PostLayoutProps) {
                 {post.tags.map((tag) => (
                   <Link
                     key={tag}
-                    href={`/tags/${tag.toLowerCase().replace(/\s+/g, "-")}`}
+                    href={`/tags/${encodeURIComponent(tag.toLowerCase())}`}
                     className="text-xs text-gray border border-gray/30 rounded px-2 py-1 no-underline hover:border-gray hover:bg-gray/10 transition-colors"
                   >
                     {tag}

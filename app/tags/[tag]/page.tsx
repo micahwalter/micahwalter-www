@@ -12,7 +12,7 @@ interface TagPageProps {
 export async function generateStaticParams() {
   const tags = getAllTags();
   return tags.map((tag) => ({
-    tag: tag.toLowerCase().replace(/\s+/g, "-"),
+    tag: encodeURIComponent(tag.toLowerCase()),
   }));
 }
 
@@ -20,7 +20,7 @@ export async function generateMetadata({
   params,
 }: TagPageProps): Promise<Metadata> {
   const { tag } = await params;
-  const tagName = tag.replace(/-/g, " ");
+  const tagName = decodeURIComponent(tag);
 
   return {
     title: `Posts tagged "${tagName}"`,
@@ -30,7 +30,7 @@ export async function generateMetadata({
 
 export default async function TagPage({ params }: TagPageProps) {
   const { tag } = await params;
-  const tagName = tag.replace(/-/g, " ");
+  const tagName = decodeURIComponent(tag);
   const posts = getPostsByTag(tagName);
 
   if (posts.length === 0) {
