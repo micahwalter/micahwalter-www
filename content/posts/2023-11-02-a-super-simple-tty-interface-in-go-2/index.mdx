@@ -1,0 +1,21 @@
+---
+title: "A super simple TTY loop in Go"
+publishedAt: "2023-11-02"
+excerpt: "In yesterday's post I talked about building an Amazon Bedrock powered CLI that allowed for an interactive chat. Below is more or less the code I started with..."
+category: "Writing"
+coverImage: "./cover.jpg"
+tags:
+  - "amazon-bedrock"
+  - "chat-cli"
+  - "go"
+  - "TIL"
+draft: true
+# WordPress ID: 700
+# Original URL: https://www.micahwalter.com/2023/11/a-super-simple-tty-interface-in-go/
+---
+
+In [yesterday's post](https://www.micahwalter.com/building-a-generative-ai-cli-with-amazon-bedrock-and-go/) I talked about building an [Amazon Bedrock](https://aws.amazon.com/bedrock) powered CLI that allowed for an interactive chat. Below is more or less the code I started with to create the command line chat.
+
+As you can see, there is an infinite loop nested within another infinite loop. One of my favorite aspects of Go is the `for` loop, which is the only kind of loop and used to create any kind of other loop. Loops!
+
+The main function kicks off the first infinite `for` loop. This calls the `stringPrompt` function which starts the second infinite loop to capture input via `stdin` and waits for the user to press a `\n`. Then it returns the captured `string` to `main` which prints it out for demo purposes before it starts all over again.

@@ -1,0 +1,142 @@
+---
+title: "Trying out Claude&#8217;s Research Mode"
+publishedAt: "2025-06-04"
+excerpt: "I've long been a fan of Anthropic's Claude. The models keep getting better, and their claude.ai interface is top notch. I've used it for a wide variety of..."
+category: "AI"
+coverImage: "./cover.png"
+tags:
+  - "ai"
+  - "aws"
+  - "genai"
+draft: true
+# WordPress ID: 79306
+# Original URL: https://www.micahwalter.com/2025/06/trying-out-claudes-research-mode/
+---
+
+I've long been a fan of [Anthropic's Claude](https://claude.ai). The models keep getting better, and their claude.ai interface is top notch. I've used it for a wide variety of tasks, and I tend to reach for it first whenever I a want to learn something new, or fix up some text, or write a little code.
+
+Claude's new "Research Mode" is pretty interesting. It will take your prompt, come up with a plan to gather research, analyze sources from all over the internet and produce a report that distills it all down into something understandable and useful.
+
+I recently used it to help me understand how [Amazon Simple Notification Server](https://aws.amazon.com/sns) (Amazon SNS) or any pub/sub style messaging service works. I mean, I already know how SNS works, but I wanted to know how it _works_!
+
+I switched to the latest Claude Opus 4 and enabled Research Mode and entered the following prompt:
+
+> I want to understand, at the protocol level, how a pub/sub system like Amazon SNS works. For example, how does it manage to deliver messages to potentially millions of individual subscribers?
+
+Claude came back with the following and started doing the research right away.
+
+> I'll help you understand the protocol-level workings of pub/sub systems like Amazon SNS. Let me do some research to give you a comprehensive technical explanation of how these systems handle massive scale message delivery.
+
+![](./IMG_9600.png)
+
+As it was doing the research, I could watch Claude come up with a plan and begin gathering documents from sources on the web.
+
+![](./IMG_9601.png)
+
+The plan broke my question down into parts and understood what I was interested in learning about. It then set about downloading over 450 sources. This process took about 6 minutes.
+
+![](./IMG_9602.png)
+
+When it was done, it used all those sources along with the research plan to generate a report.
+
+![](./IMG_9603.png)
+
+The report was comprehensive, yet easy to follow and understand. Each source was cited in the text and I was able to download it as Markdown or a PDF. But, I had a better idea!
+
+![](./IMG_9604.png)
+
+I used to [Obsidian Web Clipper](https://obsidian.md/) to grab the research and paste it directly into a new note in my Obsidian Vault. Nice!
+
+![](./IMG_9605.png)
+
+Now I've got the research handy and linkable within my notebook for future reference or easy reading on my phone.
+
+Here's the research in full. What do you think?
+
+* * *
+
+# Protocol-Level Architecture of Pub/Sub Systems
+
+Amazon SNS and similar publish-subscribe systems represent sophisticated distributed messaging architectures that handle billions of messages daily through carefully designed protocol implementations, scaling mechanisms, and reliability patterns. **At the protocol level, SNS operates as an HTTP/HTTPS-based messaging service that automatically fans out messages to millions of subscribers across multiple delivery channels while maintaining strong durability and delivery guarantees**. This architecture enables modern event-driven applications to achieve massive scale through asynchronous, decoupled communication patterns.
+
+The technical implementation reveals how cloud-native pub/sub systems balance competing requirements of throughput, latency, reliability, and operational simplicity. SNS specifically demonstrates a managed service approach where complex distributed systems concepts are abstracted behind simple APIs, while systems like Apache Kafka prioritize raw performance through custom binary protocols. These architectural choices create distinct performance profiles and operational characteristics that directly impact system design decisions.
+
+## Core protocol foundation and message delivery mechanisms
+
+Amazon SNS implements a **dual-plane architecture** separating control operations from data delivery, built entirely on standard HTTP/HTTPS protocols. The service uses RESTful APIs over HTTPS with AWS Signature Version 4 authentication for all control plane operations, while data plane message delivery employs HTTP POST requests to subscriber endpoints.
+
+**Message delivery protocol specifications** follow a standardized format where SNS sends HTTP POST requests containing JSON-structured payloads with specific headers including `x-amz-sns-message-type`, `x-amz-sns-message-id`, and `x-amz-sns-topic-arn`. The JSON message format includes essential metadata like MessageId (UUID), TopicArn, timestamp, and cryptographic signatures for message authenticity verification. This HTTP-based approach contrasts sharply with systems like Apache Kafka, which implements custom binary protocols over TCP for maximum wire efficiency.
+
+**Protocol diversity across delivery channels** demonstrates SNS's flexibility – while the core service operates over HTTPS, it seamlessly integrates with multiple downstream protocols. SQS integration uses HTTPS POST to the SendMessage API, email delivery leverages SMTP through AWS Simple Email Service, SMS utilizes global carrier networks, and mobile push notifications employ HTTP/2 with platform-specific protocols like APNs and FCM. This protocol abstraction allows publishers to send a single message that automatically transforms into appropriate formats for diverse subscriber types.
+
+The **authentication and security model** implements multiple layers including TLS 1.2+ for all communications, message signature verification using SHA256 algorithms, and comprehensive access control through IAM policies and resource-based permissions. Messages support server-side encryption using AWS KMS with 256-bit AES-GCM, ensuring data protection both in transit and at rest.
+
+## Message routing and distribution at massive scale
+
+**Horizontal scaling architecture** enables SNS to handle over 300,000 messages per second through a globally distributed infrastructure. The system employs multiple forwarder instances that can scale independently, with publishers connecting to multiple forwarders simultaneously and subscribers receiving from distributed forwarders for optimal load balancing. This approach eliminates single points of failure while enabling linear capacity scaling through additional forwarder deployment.
+
+**Geographic distribution strategy** places SNS servers across all AWS regions worldwide, automatically routing publishers to the nearest data center where storage is permitted. Messages are stored in a single region but subscriber delivery is aggregated globally, achieving sub-100ms latencies through strategic geographic positioning. This contrasts with systems like Google Cloud Pub/Sub, which employs a more complex global routing intelligence system based on request origin analysis.
+
+**Fan-out implementation** represents one of SNS's core strengths – unlimited subscribers per standard topic with automatic replication to all subscribed endpoints. The system processes each message independently rather than using partition-based approaches, maximizing subscriber application parallelism and enabling true elastic scaling. **FIFO topics** support up to 100 subscribers with high-throughput mode enabling 30,000 messages per second per account through message grouping that maintains order within groups while enabling parallel processing across groups.
+
+**Intelligent load balancing** incorporates automatic traffic distribution based on geographic proximity, dynamic forwarder assignment based on current load, and cross-zone load balancing for high availability. The system implements circuit breaker patterns for handling endpoint failures and includes jittering to prevent thundering herd effects during high-volume scenarios.
+
+## Performance optimizations for concurrent message delivery
+
+**Message batching capabilities** allow up to 10 messages per PublishBatch API request, reducing overhead and improving throughput while maintaining the 256KB message size limit. The Extended Client Library supports payloads up to 2GB through automatic S3 integration, effectively removing practical size constraints for large message scenarios.
+
+**Replication and persistence mechanisms** write messages to multiple clusters with quorum consensus – messages are considered persisted when written to ⌈N/2⌉ clusters out of N total clusters. This provides immediate acknowledgment to publishers after quorum achievement while asynchronous delivery continues in parallel, optimizing both reliability and performance.
+
+**Content-based filtering** operates at the broker level to reduce unnecessary deliveries through attribute-based and payload-based filtering policies. This significantly reduces bandwidth utilization and processing overhead for subscribers by eliminating irrelevant messages before transmission. Filter policies support complex matching algorithms including exact matching, prefix matching, numeric comparisons, and array containment checks with up to 150 total value combinations per policy.
+
+The **retry and backoff system** implements sophisticated four-phase retry mechanisms with different policies for AWS-managed versus customer-managed endpoints. AWS-managed endpoints receive up to 100,015 retry attempts over 23 days, while customer endpoints get up to 50 attempts over approximately 6 hours. The system supports four configurable backoff algorithms (linear, arithmetic, exponential, geometric) with jittering and throttling controls to optimize delivery success rates while preventing endpoint overload.
+
+## Message persistence and reliability architecture
+
+**Multi-AZ storage redundancy** stores published messages across multiple geographically-separated servers and data centers within AWS Availability Zones. SNS acknowledges receipt only after storing multiple copies to disk across multiple AZs, providing infrastructure-level durability against single AZ failures. However, **standard topics operate with an ephemeral messaging model** – messages are delivered to available subscribers and then deleted, with no long-term persistence at the SNS level.
+
+**FIFO topics enhance durability** through optional message archiving with retention periods from 1 to 365 days, providing in-place storage without requiring external archival resources. This includes message replay functionality where subscribers can initiate timestamp-based replay with filter policy integration for selective message recovery scenarios.
+
+**Delivery semantics vary by endpoint type** – AWS managed endpoints (SQS, Lambda, Kinesis) receive at-least-once delivery guarantees, meaning messages will not be lost during transit but occasional duplicates may occur. Customer-managed endpoints (HTTP/S, SMS, Email) receive best-effort delivery with no persistence guarantees, making them suitable for use cases where occasional message loss is acceptable.
+
+**Dead Letter Queue implementation** uses Amazon SQS queues for failed message deliveries, with queue type matching requirements (FIFO subscriptions require FIFO DLQs). The system classifies errors into client-side errors (no retries) and server-side errors (subject to retry policies), with comprehensive CloudWatch monitoring for DLQ activity detection and alerting.
+
+## Subscription management and filtering capabilities
+
+**Subscription protocol diversity** supports AWS services (SQS, Lambda, Kinesis Data Firehose), HTTP/HTTPS webhooks with configurable delivery policies, mobile push notifications across platforms, and traditional messaging via SMS and email. **Cross-account and cross-region support** enables complex distributed architectures with proper IAM permissions and resource policies, though cross-region topic access requires manual configuration.
+
+**Filter policy implementation** operates through two distinct types – attribute-based filtering (default) that filters on message attributes, and payload-based filtering that filters on JSON message body content. Both support the same operators including exact matching, prefix matching, numeric comparisons, "anything-but" exclusion, and array containment checks. **Filter policy constraints** limit policies to 200 per topic with maximum 5 keys per policy and 150 total value combinations calculated as the product of array sizes.
+
+**Subscription lifecycle management** includes confirmation processes for email and HTTP subscriptions, multiple unsubscription mechanisms, and authentication controls through the `AuthenticateOnUnsubscribe` flag. The system supports complex subscription scenarios including nested filter policies for complex JSON structures and eventual consistency with up to 15-minute propagation delays for policy changes.
+
+## Technical SNS implementation details and optimizations
+
+**FIFO topics provide enhanced capabilities** including exactly-once delivery semantics when paired with FIFO SQS queues, message deduplication using deduplication IDs, and strict FIFO ordering within message groups. These topics support higher throughput through batching (300 messages/second with batching vs. 3,000 messages/second single message) but are limited to SQS queue subscriptions only.
+
+**Raw message delivery** offers performance optimization by enabling the `x-amz-sns-rawdelivery` header, stripping SNS wrapper JSON metadata and delivering original message content unchanged. This reduces processing overhead for subscribers, simplifies message parsing, lowers bandwidth utilization, and enables direct integration with existing systems that don't expect SNS message formatting.
+
+**Security and encryption features** include server-side encryption with AWS KMS Customer Master Keys, immediate encryption upon message receipt before storage, message decryption during delivery to subscribers, and comprehensive access control through resource-based policies and IAM integration. VPC endpoints enable private communication via AWS PrivateLink for enhanced security architectures.
+
+**Mobile push notification implementation** supports platform-specific protocols including HTTP/2 with p12 certificates for Apple Push Notification Service (APNs), Firebase Cloud Messaging with server key or OAuth 2.0 authentication, and legacy GCM to FCM HTTP v1 API migration support. Each platform requires specific payload formatting and authentication mechanisms managed transparently by SNS.
+
+## Comparative analysis with other pub/sub systems
+
+**Protocol efficiency rankings** reveal significant differences – Kafka's custom binary protocol achieves highest throughput at 605 MB/s (15x faster than RabbitMQ), while Redis RESP protocol provides ultra-low latency for real-time scenarios. SNS's HTTP/HTTPS approach prioritizes simplicity and broad compatibility over raw performance, making it suitable for heterogeneous environments requiring protocol diversity.
+
+**Architectural scaling approaches** differ fundamentally – Kafka and Pulsar use horizontal partition-based scaling, Google Pub/Sub and Azure Service Bus employ managed auto-scaling, RabbitMQ relies on cluster-based approaches, and Redis optimizes for single-node performance. **SNS combines managed auto-scaling with unlimited fan-out capabilities**, avoiding partition-based constraints that can limit subscriber parallelism.
+
+**Reliability guarantee comparisons** show Kafka and Pulsar offering the strongest consistency through configurable replication and quorum-based systems, Google Pub/Sub and Azure Service Bus providing managed SLA guarantees, RabbitMQ implementing traditional queue-based reliability, and Redis operating with volatile memory-based storage by default. **SNS provides middle-ground reliability** with multi-AZ durability and at-least-once delivery for managed endpoints while maintaining operational simplicity.
+
+**Performance trade-off analysis** demonstrates clear specialization – Kafka leads in throughput scenarios, Redis dominates low-latency requirements, SNS excels in operational simplicity with reasonable performance, Pulsar focuses on multi-tenancy capabilities, and RabbitMQ provides mature routing complexity. The choice depends entirely on specific architectural requirements and operational constraints.
+
+## Architecture patterns and implementation recommendations
+
+**SNS + SQS fanout pattern** represents the most common and effective architecture, combining SNS's broadcasting capabilities with SQS's persistence and processing guarantees. This pattern provides event publishers with simple SNS topic publishing while event consumers gain reliable SQS queue processing with individual scaling characteristics and failure isolation.
+
+**Multi-region redundancy patterns** require manual configuration through duplicate topics across regions, as SNS doesn't provide automatic cross-region replication. Critical workloads should implement active-active or active-passive multi-region patterns with application-level coordination for comprehensive disaster recovery capabilities.
+
+**FIFO topic usage patterns** work best for scenarios requiring strict ordering within logical message groups while maintaining parallel processing capabilities across groups. Use cases include financial transaction processing, workflow orchestration, and stateful system coordination where message ordering directly impacts business logic correctness.
+
+**Filter policy optimization strategies** should minimize complexity while maximizing filtering effectiveness – use attribute-based filtering for simple scenarios and payload-based filtering for complex JSON message routing. Design filter policies to reduce unnecessary message delivery while maintaining reasonable policy complexity for operational management.
+
+The architectural analysis reveals that modern pub/sub systems like Amazon SNS succeed through careful balance of competing requirements rather than optimizing single dimensions. **SNS's HTTP-based protocol approach trades some raw performance for operational simplicity, broad compatibility, and managed service benefits** – making it particularly effective for cloud-native applications requiring reliable, scalable messaging without operational complexity. Understanding these trade-offs enables architects to select appropriate pub/sub systems based on specific requirements rather than assuming one-size-fits-all solutions.

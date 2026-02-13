@@ -1,0 +1,46 @@
+---
+title: "Rewriting chat-cli, again"
+publishedAt: "2024-07-13"
+excerpt: "I’m in my third rewrite of chat-cli. The first version was really, really wonky. I was just getting started with writing a CLI in Go, and I took a number of..."
+category: "Projects"
+coverImage: "./cover.jpeg"
+tags:
+  - "amazon-bedrock"
+  - "aws"
+  - "chat-cli"
+draft: true
+# WordPress ID: 32
+# Original URL: https://www.micahwalter.com/2024/07/rewriting-chat-cli-again/
+---
+
+I’m in my third rewrite of [chat-cli](https://github.com/go-micah/chat-cli). The first version was really, really wonky. I was just getting started with writing a CLI in Go, and I took a number of twists and turns before I got a working project together that did mostly what I was thinking it should do.
+
+Then, I rewrote it, building out a layer of abstraction that I thought was going to be necessary to support multiple LLM models in the future.
+
+Then AWS released the [Converse API for Amazon Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html), and now I’m rewriting it all over again.
+
+This is the way. Experimentation requires a constant willingness to throw things under the buss, start over multiple times throughout the process, without being afraid to fail and try new things.
+
+Look, I get it, we are all human and we want everything to be perfect from the start. We want our lawns mowed with checkerboard patterns, we want everyone to be smiling in the group photo, but that's just not how life works.
+
+First, we need to screw up. We need to try a thing, fall on our faces, and get back up and try again. And, even when we don't fail, and make a thing that actually works, we need to re-write it, re-code it, re-platform it and keep it breathing and alive. This is how we learn.
+
+For me, this has been my experience with building chat-cli. Chat-cli is a pretty simple command line interface that lets users interact with Amazon Bedrock's stable of Large Language Models. You can do simple things like send a one-liner prompt, load a reference document for context and even generate images based on a text prompt. It has a chat function, and will let you upload images for analysis by LLMs that have that capability.
+
+Importantly, chat-cli lets you easily switch between models. You can specify the model by it's ID as a CLI flag, or you an pick from it's "family name" and the code will pick a default model that is cost effective. It's a nice way to test all the models available via Amazon Bedrock, and it has been really fun to write.
+
+Recently, AWS released a new API as part of the larger Amazon Bedrock SDK called "Converse." This solves a major issue I had to work around in the original code. Here's the thing: Although Amazon Bedrock presents a universal API for interacting with the models it supports, each model still has its own unique set of characteristics and payload.
+
+From a coding perspective, this is fine if you are just working with a single model, but my program was designed to let the user switch between any model. So, this meant that I had to create a lot of logic in my code to deal with the various idiosyncrasies for each model. In Go, this also means creating data structures (types) for each model's input and output parameters.
+
+To do this, I created a package called [go-bedrock](https://github.com/go-micah/go-bedrock), which is basically all the types for each model in Bedrock. It's a pain to have to go in there and update that package every time AWS releases a new model or an update to an existing one.
+
+The Converse API was designed to alleviate this issue, and it's just what I was looking for. It takes all the common attributes of a model and creates a unified type that can be used for any model. Yay!
+
+This sounds really good to me, and I am now hard at work pulling out all the old code and replacing it with the new Converse API based code. I'm still working on this, and although the end-user experience will be exactly the same, it's the right thing to do as it will make my code more maintainable, readable, and easier to update in the future.
+
+Sometimes investing time where the outcome isn't so obvious is still worth it. The whole experience has also taught me that re-writes are a necessary thing. Nothing is ever truly done, and what I was thinking six month ago has likely completely changed because of external advancements, but also my evolved understanding of what I was trying to do in the first place.
+
+I'll leave you with a nice Frank Herbert quote.
+
+> “One learns from books and example only that certain things can be done. Actual learning requires that you do those things.”

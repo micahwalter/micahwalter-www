@@ -1,0 +1,74 @@
+---
+title: "AWS Machine Learning &#8211; Harness the power of MCP servers with Amazon Bedrock Agents"
+publishedAt: "2025-04-02"
+excerpt: "I’ve been digging into this new AWS blog post about Model Context Protocol MCP servers and their integration with Amazon Bedrock Agents, and I have to say, I’m..."
+category: "AI"
+tags:
+  - "agents"
+  - "ai"
+  - "amazon-bedrock"
+  - "aws"
+  - "genai"
+  - "mcp"
+draft: true
+# WordPress ID: 79293
+# Original URL: https://www.micahwalter.com/2025/04/aws-machine-learning-harness-the-power-of-mcp-servers-with-amazon-bedrock-agents/
+---
+
+I've been digging into this new AWS blog post about [Model Context Protocol](https://www.anthropic.com/news/model-context-protocol) (MCP) servers and their integration with [Amazon Bedrock Agents](https://aws.amazon.com/bedrock/agents/), and I have to say, I'm pretty excited about what this means for those of us building with AI.
+
+Harness the power of MCP servers with Amazon Bedrock Agents
+
+[https://aws.amazon.com/blogs/machine-learning/harness-the-power-of-mcp-servers-with-amazon-bedrock-agents](https://aws.amazon.com/blogs/machine-learning/harness-the-power-of-mcp-servers-with-amazon-bedrock-agents)
+
+## What the heck is MCP anyway?
+
+MCP (Model Context Protocol) is Anthropic's open protocol for connecting large language models to basically any data source or tool. Think of it as a standard way for AI models to talk to everything from databases to APIs without needing custom code for every single connection. AWS has now integrated this with Amazon Bedrock Agents.
+
+> However, in the past, connecting these agents to diverse enterprise systems has created development bottlenecks, with each integration requiring custom code and ongoing maintenance—a standardization challenge that slows the delivery of contextual AI assistance across an organization's digital ecosystem. This is a problem that you can solve by using Model Context Protocol (MCP), which provides a standardized way for LLMs to connect to data sources and tools.
+
+I'm always looking for ways to simplify infrastructure. I don't want to write endless custom integrations that I'll have to maintain forever. MCP promises to solve exactly this problem, which means I can focus more on what I want to build and less on the plumbing.
+
+## An ecosystem in the making
+
+What really caught my attention was this bit:
+
+> Today, MCP is providing agents standard access to an expanding list of accessible tools that you can use to accomplish a variety of tasks. In time, MCP can promote better discoverability of agents and tools through marketplaces, enabling agents to share context and have common workspaces for better interaction, and scale agent interoperability across the industry.
+
+This is where things get interesting! It's not just about making individual connections easier—it's about creating an entire ecosystem of interoperable tools. Are MCPs like APIs?
+
+## The right architecture for the job
+
+The post explains that MCP uses a client-server architecture.
+
+> Whether you're connecting to external systems or internal data stores or tools, you can now use MCP to interface with all of them in the same way. The client-server architecture of MCP enables your agent to access new capabilities as the MCP server updates without requiring any changes to the application code.
+
+Ok, I like the separation of concerns. I can update my data sources without touching my application logic, and vice versa.
+
+## Real problems, real solutions
+
+The example AWS gives is all about understanding cloud spending:
+
+> Imagine asking questions like "Help me understand my Bedrock spend over the last few weeks" or "What were my EC2 costs last month across regions and instance types?" and getting a human-readable analysis of the data instead of raw numbers on a dashboard. The system interprets your intent and delivers precisely what you need—whether that's detailed breakdowns, trend analyses, visualizations, or cost-saving recommendations.
+
+I like this. In my work, I am often dealing with complex AWS bills. There's a whole world of innovation around simplifying IT spend (AWS and beyond).
+
+## Simple setup (I hope!)
+
+The blog post claims the setup process is straightforward:
+
+> You're now ready to create an agent that can invoke these MCP servers to provide insights into your AWS spend. You can do this by running the python main.py command.
+
+I think I'm gonna try this walkthrough sometime soon. It looks easy enough, and I have not yet played with Agents enough to fully understand what is going on, so this will be a good way to explore.
+
+## Future possibilities
+
+The post lists some additional ideas:
+
+> A multi-data source agent that retrieves data from different data sources such as Amazon Bedrock Knowledge Bases, Sqlite, or even your local filesystem.
+> 
+> A developer productivity assistant agent that integrates with Slack and GitHub MCP servers.
+> 
+> A machine learning experiment tracking agent that integrates with the Opik MCP server from Comet ML for managing, visualizing, and tracking machine learning experiments directly within development environments.
+
+It's going to be a fun year exploring all the potential of MCPs and Amazon Bedrock. Let's go!

@@ -1,0 +1,109 @@
+---
+title: "Notes on backing up my Mastodon server to S3"
+publishedAt: "2023-01-11"
+excerpt: "📖 You can read more of my posts on running your own Mastodon server right here: https://www.micahwalter.com/tag/mastodon/ I mentioned in my last post on how..."
+category: "Writing"
+coverImage: "./cover.jpg"
+tags:
+  - "aws"
+  - "data"
+  - "Glacier"
+  - "Mastodon"
+  - "s3"
+  - "TIL"
+draft: true
+# WordPress ID: 570
+# Original URL: https://www.micahwalter.com/2023/01/notes-on-backing-up-my-mastodon-server-to-s3/
+---
+
+📖
+
+You can read more of my posts on running your own Mastodon server right here: [https://www.micahwalter.com/tag/mastodon/](https://www.micahwalter.com/tag/mastodon/)
+
+I mentioned in my last post on [how much I’ve spent so far running my own Mastodon server on AWS](https://www.micahwalter.com/how-much-ive-spent-so-far-running-my-own-mastodon-server-on-aws/) that one of my biggest expenses was backups. When I first set up my Mastodon server, I was focused on the server deployment itself, and I just wanted a simple way to provide backups, without thinking about it too much. Because of this, I chose to enable automatic Elastic Block Store (EBS) [Snapshots](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSSnapshots.html) on an hourly, daily, and monthly schedule.
+
+EBS Snapshots are a great way to backup whole volumes of data, but they can be inefficient if you don't need the entire volume. In my case, my EBS volume is 30GB, and I'm using about half of it, but since I moved my static assets to Amazon Simple Storage Service (S3), all I really care about backing up is the PostgresSQL database itself.
+
+So, now that the dust has settled, and I have some time to set up a more efficient method for backing up my Mastodon server, I figured I'd try simply dumping my PostgresSQL database and saving it to S3. With S3, I'll be able to compress the data before uploading it, plus I'll also be able to utilize S3's various storage classes, automatic versioning, and built in lifecycle policies to fine tune my backup strategy to taste.
+
+Here are my notes:
+
+### Dumping PostgresSQL to disk
+
+First of all, I'll need to be the `mastodon` user for all of this to work.
+
+```
+sudo su mastodon -
+```
+
+Next, in the `/home/mastodon` folder, I create a folder to store my backup to the local disk.
+
+```
+mkdir backups
+```
+
+Then, I use the [pg\_dump](https://www.postgresql.org/docs/current/app-pgdump.html) utility to export my Mastodon database to disk. `pg_dump` is already installed on my system, and provides a simple CLI for exporting data out of PostgresSQL. It has a variety of options, depending on what you are trying to accomplish. For my scenario, I am using the following command:
+
+```
+pg_dump mastodon_production | gzip > backups/mastodon_production.gz
+```
+
+Hurray for the [Unix Pipe](https://en.wikipedia.org/wiki/Pipeline_\(Unix\))! Here I am taking the output of `pg_dump` and piping it into `gzip` to turn the 1.4GB of data into a 415MB file (based on the current size of my Mastodon DB).
+
+### Setting up S3
+
+Once I have this file saved to disk, I can simply upload it to an S3 bucket. To do this, I created a new S3 bucket just for the backups with [Versioning](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html) enabled, and created sub-folders within the bucket for each schedule. My bucket now looks like this:
+
+```
+my-backup-bucket/hourlymy-backup-bucket/dailymy-backup-bucket/monthly
+```
+
+With this folder structure, I can create a separate [Amazon S3 Lifecycle](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lifecycle-mgmt.html) policy for each folder (prefix) to manage pruning the backups on the same schedule I had with the EBS Snapshots. All I need to do is use the same filename, and S3's built in versioning and lifecycle management will handle the heavy lifting.
+
+### Uploading to S3
+
+With the bucket set up, I can run the following command to upload my backup:
+
+```
+aws s3 cp backups/mastodon_production.gz s3://my-backup-bucket/hourly/mastodon_production.gz --storage-class STANDARD_IA
+```
+
+This command uploads the backup to the hourly folder and uses the `STANDARD_IA` storage class. For the monthly backups, which I intend to keep for more than 90 days, I'll use `GLACIER_IR` to save a little on cost.
+
+Each time I run the above command, the file on S3 will be replaced with the latest backup as the current version, and a new version will be created from the previous file as part of the file's history. After 24 hours (24 versions) my Lifecycle policy will permanently delete the previous days versions.
+
+### Automating with Cron
+
+To make this all work automatically, all I need to do is create a simple `bash` script with the two commands and then use `crontab` to set up the schedules. Here's what I did:
+
+First I create a file for the hourly backups.
+
+```
+vi backups-hourly.sh
+```
+
+The script looks like this:
+
+```
+#!/bin/bashpg_dump mastodon_production | gzip > backups/mastodon_production.gzaws s3 cp backups/mastodon_production.gz s3://my-backup-bucket/hourly/mastodon_production.gz --storage-class STANDARD_IA
+```
+
+For daily and monthly schedules, I just need to create two additonal files with the same commands, changing the folder and storage class accordingly.
+
+Finally, I'll need to edit the `cron` file (still logged in as the `mastodon` user):
+
+```
+crontab -e
+```
+
+Adding the following schedules to the end of the file:
+
+```
+0 * * * * ./backup-hourly.sh30 0 * * * ./backup-daily.sh45 0 1 * * ./backup-monthly.sh
+```
+
+I set the daily and monthly schedules to happen at different times during the hour, just so I don't have two backups happening at the exact same time.
+
+I'll let this work for a few days before I shut off my current EBS Snapshot schedule and once I've tested a restore.
+
+That's it!

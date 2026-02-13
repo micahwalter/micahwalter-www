@@ -1,0 +1,42 @@
+---
+title: "Calculating Server Capacity for High Availability"
+publishedAt: "2022-11-10"
+excerpt: "Today I was studying for an upcoming AWS Certification and I had a chance to learn a handy method for calculating server capacity for high availability. It’s..."
+category: "Writing"
+coverImage: "./cover.jpg"
+tags:
+  - "aws"
+  - "DevOps"
+  - "ec2"
+  - "TIL"
+draft: true
+# WordPress ID: 430
+# Original URL: https://www.micahwalter.com/2022/11/calculating-server-capacity-for-high-availability/
+---
+
+Today I was studying for an upcoming [AWS Certification](https://aws.amazon.com/certification/) and I had a chance to learn a handy method for calculating server capacity for high availability. It’s easy!
+
+First, you need to know how many [Availability Zones](https://aws.amazon.com/about-aws/global-infrastructure/regions_az/) are available in the region you are working in. And, within that limit, how many of the available availability zones you’d like to utilize. Let’s call this “**Desired AZs**.”
+
+Now, you will also need to know the maximum number of AZ failures you are willing to deal with. This is your “**AZ Buffer**” and is the number of AZs that can go down at once.
+
+Next, you will need to know the minimum number of EC2 instances your application requires to operate. You application might need more capacity if you start to receive lots of traffic, but this formula has to do with the minimum capacity for nominal operation. Let’s call this “**Instances**.”
+
+The formula is in two steps:
+
+1.  **Desired AZs** – **AZ Buffer** = **Nominal AZs**
+2.  **Instances** / **Nominal AZs** = **Instances per AZ**
+
+Example 1: Our application needs 30 instances to operate nominally. We are in the us-east-1 region, which has 6 AZs, and we can tolerate a single AZ failure.
+
+1.  6 **Desired AZs** – 1 **AZ Buffer** = 5 **Nominal AZs**
+2.  30 **Instances** / 5 **Nominal AZs** = 6 **Instances per AZ**
+
+Example 2: Our same application needs 30 instances to operate nominally. But we are only going to operate in 3 AZs with the same tolerance of a single AZ failure.
+
+1.  3 **Desired AZs** – 1 **AZ Buffer** = 2 **Nominal AZs**
+2.  30 **Instances** / 2 **Nominal AZs** = 15 **Instances per AZ**
+
+The point here is of course that by utilizing more AZs, you wind up with a more efficient distribution of compute. In Example 2, we would need to operate 45 instances across the three AZs, but in Example 1, we’d only need to operate 36 with 6 in each AZ.
+
+Special thanks to [Adrian Cantrill](https://cantrill.io) and his excellent online course for helping me prep for my exam!

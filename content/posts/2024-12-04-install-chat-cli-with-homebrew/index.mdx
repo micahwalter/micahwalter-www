@@ -1,0 +1,35 @@
+---
+title: "Install Chat-CLI with Homebrew"
+publishedAt: "2024-12-04"
+excerpt: "This took me a minute to figure out, but you can now easily install Chat-CLI using the popular \"missing package manager for macOS or linux\" called Homebrew...."
+category: "TIL"
+tags:
+  - "amazon-bedrock"
+  - "aws"
+  - "chat-cli"
+  - "genai"
+  - "go"
+  - "TIL"
+draft: true
+# WordPress ID: 78806
+# Original URL: https://www.micahwalter.com/2024/12/install-chat-cli-with-homebrew/
+---
+
+This took me a minute to figure out, but you can now easily install Chat-CLI using the popular "missing package manager for macOS (or linux)" called [Homebrew](https://brew.sh/).
+
+Just do the following:
+
+```
+$ brew tap chat-cli/chat-cli
+$ brew install chat-cli
+```
+
+You will still need to be sure you have active AWS credentials installed on your system, but this is a bit easier than downloading a binary or building from source.
+
+Now you should be able to do `chat-cli chat` from anywhere on your system.
+
+* * *
+
+Notes:
+
+To set this up, I used [GoReleaser](https://goreleaser.com/) to automatically create the Homebrew Tap in a separate repo called [homebrew-chat-cli](https://github.com/chat-cli/homebrew-chat-cli). This essentially builds the tap code and automatically updates this repo, which is used by the `brew tap` command.

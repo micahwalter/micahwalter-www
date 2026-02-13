@@ -78,5 +78,8 @@ build/
 logs/
 *.log
 
+# Migration
+scripts/migration-state.json
+
 # OS
 Thumbs.db

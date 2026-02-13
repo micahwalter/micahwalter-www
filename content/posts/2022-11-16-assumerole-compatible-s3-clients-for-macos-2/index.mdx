@@ -1,0 +1,27 @@
+---
+title: "AssumeRole Compatible S3 Clients for MacOS"
+publishedAt: "2022-11-16"
+excerpt: "There are many, many excellent client applications available for connecting to an Amazon Simple Storage Service S3 Bucket from macOS. Over the years, I’ve used..."
+category: "Writing"
+coverImage: "./cover.jpg"
+tags:
+  - "aws"
+  - "IAM"
+  - "s3"
+  - "TIL"
+draft: true
+# WordPress ID: 450
+# Original URL: https://www.micahwalter.com/2022/11/assumerole-compatible-s3-clients-for-macos/
+---
+
+There are many, many excellent client applications available for connecting to an [Amazon Simple Storage Service](https://aws.amazon.com/s3/) (S3) Bucket from macOS. Over the years, I’ve used plenty of them. But, I haven’t been able to find a good one that is also compatible with connecting via temporary credentials issued by the [AWS Security Token Service](https://docs.aws.amazon.com/STS/latest/APIReference/welcome.html) (STS).
+
+Setting up long term credentials on AWS works, but it’s not advised as most people will forget to rotate their credentials on a reasonable schedule. Long term credentials can easily get passed around, and eventually compromised. So, the best practice is to use [temporary credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html) whenever possible.
+
+Fortunately there is one client for macOS (that I know of) which works in this way. Good old [Cyberduck](https://cyberduck.io)!
+
+Cyberduck has been around for a really long time. It’s now “donation-ware” and open source. You can use Cyberduck to connect to a wide variety of protocols, including Amazon S3.
+
+To connect to S3 with temporary credentials you will need to install a custom profile for Cyberduck, which you can do by [following this documentation](https://docs.cyberduck.io/protocols/s3/#connecting-using-assumerole-from-aws-security-token-service-sts). Once installed, you will need to set up your credentials in `.aws/credentials`, so that Cyberduck can use the `AssumeRole` API. Once you’ve configured this correctly, you’ll be able to connect to all of your S3 buckets from your Mac using the STS service. It means, you’ll need to re-establish your credentials periodically, but that’s the whole point.
+
+Cyberduck also has companion app called [Mountainduck](https://mountainduck.io), which lets you mount your connections as a volume on your Mac. This is really handy because it lets you browse all your S3 Buckets and files as if they were stored locally right alongside your local hard drive. Mountainduck uses the same custom profiles as Cyberduck, so once you have it set up for Cyberduck, it will work with Mountainduck as well!

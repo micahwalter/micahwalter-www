@@ -1,0 +1,55 @@
+---
+title: "Notes on serving images and a brief Mastodon server outage"
+publishedAt: "2022-11-27"
+excerpt: "📖 You can read more of my posts on running your own Mastodon server right here: https://www.micahwalter.com/tag/mastodon/ I’ve been running my own Mastodon..."
+category: "Writing"
+coverImage: "./cover.jpg"
+tags:
+  - "aws"
+  - "cloudfront"
+  - "CloudWatch"
+  - "DevOps"
+  - "ec2"
+  - "Mastodon"
+  - "s3"
+  - "TIL"
+draft: true
+# WordPress ID: 510
+# Original URL: https://www.micahwalter.com/2022/11/notes-on-serving-images-and-a-brief-mastodon-server-outage/
+---
+
+📖
+
+You can read more of my posts on running your own Mastodon server right here: [https://www.micahwalter.com/tag/mastodon/](https://www.micahwalter.com/tag/mastodon/)
+
+I’ve been [running my own Mastodon server](https://www.micahwalter.com/notes-on-running-a-mastodon-server-on-aws/) on Amazon Web Services for less than a week. The first challenge was to get anything working at all. This took me a solid two days to work out, but once I did, I was in business and having fun learning all about the “fediverse.”
+
+Shortly after launch, I [set up Amazon CloudWatch](https://www.micahwalter.com/notes-on-configuring-amazon-cloudwatch-to-monitor-my-mastodon-server/) to give myself a nice dashboard for all my critical server metrics, as well as alerting, so I’d know when my little EC2 instance was struggling. And, I’m glad I did because shortly after setting up my alarms, I had a server outage. These are my notes:
+
+1.  The server outage was caused by my t4g.small instance running out of resources for both CPU and Memory. It lasted for about 30 minutes and I wound up doing a full stop and start to bring it all back online.
+2.  I’m not entirely sure what caused this to happen, but it looks more and more like a long-running process was to blame. After looking through logs and charts, I’ve narrowed the issue down to a periodic job that runs when you have “Trends” turned on. I’ve since switched off that feature temporarily while I do more research.
+3.  This also prompted me to change the threshold for my alerts, since they didn’t trigger, and I only figured out the server was offline when I tried to visit the site and wasn’t able to.
+4.  When running a single user Mastodon instance, [it actually doesn’t really matter if you go offline for periods of time](https://micah.social/@micah/109413114474445584).
+
+All of this also prompted me to get back to figuring out how to properly serve images from [Amazon Simple Storage Service](https://aws.amazon.com/s3) (S3) using [Amazon CloudFront](https://aws.amazon.com/cloudfront) as a Content Delivery Network (CDN). This was harder than it needed to be. Here are my notes:
+
+1.  I had my CDN and S3 bucket properly configured and serving images I manually uploaded as a test. I had used an [Origin Access Identity](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html) to keep the bucket itself locked down, but to allow CloudFront to fetch and serve the images via the CDN.
+2.  I found several write-ups on how to configure Mastodon to use S3, but they were mostly predicated on serving the images directly from S3 using S3’s [Static Website Hosting](https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html) feature, which was not what I wanted to do.
+
+In the end, I needed to turn off the [Block Public Access](https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html) setting on my bucket. Doing this doesn’t mean my bucket is open to the world, but it does allow the Mastodon web service to correctly talk to the S3 API. I’m not entirely sure why it has to be this way, but after [looking through the code](https://github.com/mastodon/mastodon/blob/9d039209cc0791ec09ebdbb93da4d63f815e1b07/config/initializers/paperclip.rb) where Mastodon uses a library called [kt-paperclip](https://github.com/kreeti/kt-paperclip), it became apparent that this was the issue.
+
+Once I made this change, everything started to work. I synced up the existing folder of static assets with my S3 bucket, restarted the mastodon-web service and everything came back to life.
+
+Mastodon appears to be a really good copy machine, and makes cache copies of all kinds of image files, videos, and avatars based on the accounts you follow. There is a setting to clean these up after a certain number of days.
+
+Here is a chart of CPU and Memory for my last three days running a Mastodon server on a single t4g.small instance. (The group of spikes on Thanksgiving are the server outage.)
+
+![](https://www.micahwalter.com/content/images/2022/11/Screen-Shot-2022-11-27-at-1.53.03-PM.png)
+
+For the next month I am going to keep things as is and continue to monitor and learn about how the server operates. Then (when my [t4g.small Free Trial](https://aws.amazon.com/ec2/faqs/#t4g-instances) ends) I am going to decided if this is the best instance type and either buy a Savings Plan or switch to a different type based on my findings.
+
+Wish me luck!
+
+📖
+
+You can read more of my posts on running your own Mastodon server right here: [https://www.micahwalter.com/tag/mastodon/](https://www.micahwalter.com/tag/mastodon/)

@@ -1,0 +1,88 @@
+---
+title: "Amazon AGI &#8211; Introducing Nova Act"
+publishedAt: "2025-04-01"
+excerpt: "I've been keeping a close eye on the evolution of AI agents lately, and this week's announcement from Amazon AGI Labs caught my attention. They've introduced..."
+category: "AI"
+tags:
+  - "ai"
+  - "aws"
+  - "genai"
+draft: true
+# WordPress ID: 79272
+# Original URL: https://www.micahwalter.com/2025/04/amazon-agi-introducing-nova-act/
+---
+
+I've been keeping a close eye on the evolution of AI agents lately, and this week's announcement from Amazon AGI Labs caught my attention. They've introduced Nova Act, and it represents a shift in how we might use AI in creative and technical workflows.
+
+Introducing Nova Act
+
+[https://labs.amazon.science/blog/nova-act](https://labs.amazon.science/blog/nova-act)
+
+Let's take a look.
+
+## Redefining AI Agents
+
+> Today, we're excited to introduce Amazon Nova Act, a new AI model trained to perform actions within a web browser.
+
+This opening line might seem straightforward, but it signals something important. Most AI interactions are about generating content – text, images, code – but not actually _doing_ things in our digital environments. As someone who spends considerable time bouncing between creative tools, this distinction matters.
+
+> Since large language models (LLMs) entered the public consciousness, 'agents' primarily referred to systems that could respond back to the user in natural language or draw on knowledge bases via Retrieval-Augmented Generation (RAG). Instead, we think of agents as systems that can complete tasks and act in a range of digital and physical environments on behalf of the user.
+
+This redefinition is significant. Amazon is essentially saying they're less interested in AI that can talk about things and more focused on AI that can actually do things. For creative professionals and developers, this could be game-changing – imagine assistants that don't just offer suggestions but help implement them across the tools you use.
+
+## The Reliability Challenge
+
+One of the most frustrating aspects of the current AI landscape is the gap between impressive demos and real-world utility. Amazon seems to recognize this pain point:
+
+> Many agent benchmarks measure model performance on high-level tasks, where state-of-the-art models achieve 30% to 60% accuracy on completing tasks in web browsers.
+
+I've experimented with tons of automation tools over the years, and that 30-60% success rate feels about right. It's impressive when it works but too unreliable for production use. A creative or technical tool that fails 40% of the time is going to be pretty frustrating for me.
+
+Amazon claims they've taken a different approach:
+
+> We've focused on scoring >90% on internal evals of capabilities that trip up other models, like date picking, drop downs, and popups, and achieve best-in-class performance on benchmarks like ScreenSpot and GroundUI Web which most directly measure the ability for our model to actuate the web.
+
+I don't have much to add here. Over 90% sounds impressive, but I'm curious to see how Act stacks up against [Anthropic's Computer Use](https://www.anthropic.com/news/3-5-models-and-computer-use) and the rest.
+
+## A Developer-Centric Approach
+
+What really interests me is how Amazon has positioned Nova Act as a developer tool:
+
+> The Nova Act SDK enables developers to break down complex workflows into reliable atomic commands (e.g., search, checkout, answer questions about the screen). It also enables them to add more detailed instructions to those commands where needed (e.g., 'don't accept the insurance upsell'), call APIs, and even alternate direct browser manipulation through Playwright to further strengthen reliability.
+
+The ability to choreograph the interplay between AI capabilities and traditional programming is really interesting. For creative tools, this means the possibility of custom automation that's tailored to specific workflows rather than one-size-fits-all solutions.
+
+> You can interleave Python code, whether it be tests, breakpoints, asserts, or thread pools for parallelization, since even the fastest agents are limited by web page load times.
+
+I really need to get back into Python. Has it changed much?
+
+## Surprising Versatility
+
+One detail that caught my eye:
+
+> We were pleasantly surprised to find that our early Nova Act checkpoints appear to succeed in novel environments–like web games–despite zero video game experience.
+
+This suggests Nova Act's understanding of user interfaces transcends specific training examples. That's promising for creative applications, where tools and interfaces evolve rapidly. It hints at a more general capability for understanding and manipulating graphical interfaces, which could extend to creative software like Adobe's suite or specialized content management systems.
+
+## Looking Forward
+
+> Nova Act is the first step in our vision for building the key capabilities that will enable useful agents at scale. This is an early checkpoint from a much larger training curriculum we are pursuing with Nova models.
+
+I'm particularly intrigued by their methodological statement:
+
+> To truly make agents smart and reliable for increasingly complex multi-step tasks, we think agents need to be trained via reinforcement learning on a wide range of useful environments, not just via supervised fine-tuning with simple demonstrations into an LLM"
+
+This suggests Amazon sees Nova Act not just as a new capability but potentially as a new approach to how AI systems learn to interact with software environments.
+
+## What This Means for Creative and Technical Work
+
+For those of us working at the intersection of creativity and technology, Nova Act represents several exciting possibilities:
+
+1.  **Workflow Automation**: The ability to reliably navigate web interfaces could enable automation of repetitive tasks across creative platforms – from content management systems to digital asset managers.
+2.  **Cross-Platform Integration**: Many creative workflows span multiple tools that don't always play nicely together. Nova Act could potentially serve as the "glue" that connects these systems without requiring formal API integrations.
+3.  **Testing and Quality Assurance**: For developers of creative tools, Nova Act could enable more thorough automated testing of complex web interfaces.
+4.  **Custom Creative Assistants**: We could build domain-specific assistants that understand particular creative workflows and handle the mundane parts, letting creators focus on the aspects that truly require human judgment.
+
+Hmmm … 🤔
+
+Oh, and there's a whole new [Amazon Nova website](https://nova.amazon.com/) too!

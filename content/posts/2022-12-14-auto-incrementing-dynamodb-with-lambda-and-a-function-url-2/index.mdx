@@ -1,0 +1,58 @@
+---
+title: "Auto-Incrementing DynamoDB with Lambda and a Function URL"
+publishedAt: "2022-12-14"
+excerpt: "I worked this out a while back using TypeScript, but for some reason I decided I needed to redo this in Python. So, here it is. This is simply a CDK..."
+category: "Writing"
+coverImage: "./cover.jpg"
+tags:
+  - "1"
+  - "2"
+  - "3"
+  - "4"
+  - "6"
+  - "8"
+  - "aws"
+  - "DynamoDB"
+  - "Lambda"
+  - "serverless"
+  - "TIL"
+draft: true
+# WordPress ID: 530
+# Original URL: https://www.micahwalter.com/2022/12/auto-incrementing-dynamodb-with-lambda-and-a-function-url/
+---
+
+I worked this out a while back using TypeScript, but for some reason I decided I needed to redo this in Python. So, here it is. This is simply a CDK application that deploys an Amazon DynamoDB table called “Tickets” as well as a single AWS Lambda function with a [Lambda Function URL](https://docs.aws.amazon.com/lambda/latest/dg/lambda-urls.html). You hit the URL and you get a new “ticket” which is just an integer incremented by 1.
+
+Of course this is all built off of notes and projects I’ve been keeping tabs on over the years. Here’s a few worth reading!
+
+1.  [Ticket Servers: Distributed Unique Primary Keys on the Cheap](https://code.flickr.net/2010/02/08/ticket-servers-distributed-unique-primary-keys-on-the-cheap/)
+2.  [Brooklyn Integers](https://www.brooklynintegers.com/about/#what)
+3.  [London Artisan Integers; distribution, Hotel Infinity, punk, an excuse & explanation of sorts.](https://revdancatt.com/2012/08/23/london-artisan-integers-distribution-hotel-infinity-punk-an-excuse-explanation-of-sorts/)
+
+The list goes on.
+
+For my project, I thought it would be fun to do this with nothing more than a Lambda, Function URL, and a DynamoDB table.
+
+To do this, I created a simple CDK Stack that looks like this:
+
+```python
+import os.path as pathfrom aws_cdk import (    Stack,    CfnOutput,    aws_dynamodb as dynamodb,    aws_lambda as lambda_,)from constructs import Constructclass TicketsStack(Stack):    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:        super().__init__(scope, construct_id, **kwargs)        # Create a DynamoDB table to store the current ticket        tickets_table = dynamodb.Table(self, "TicketsTable",            partition_key=dynamodb.Attribute(name="partition", type=dynamodb.AttributeType.STRING),            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,            table_name="Tickets",        )        # Create a Lambda function to increment the current ticket        create_ticket = lambda_.Function(            self, 'CreateTicketFunction',            runtime=lambda_.Runtime.PYTHON_3_9,            code=lambda_.Code.from_asset('lambda'),            handler='create_ticket.handler',            function_name='CreateTicketFunction'        )        # Add a Lambda Function URL to allow the Lambda to be invoked        furl = create_ticket.add_function_url(            auth_type=lambda_.FunctionUrlAuthType.NONE        )        # Outout the URL for the Lambda function        CfnOutput(self, "CreateTicketUrl",            value=furl.url        )        # Allow to the Lambda to write to the DynamoDB table        tickets_table.grant_read_write_data(create_ticket)
+```
+
+This creates the DynamoDB table, the Lambda function, and adds the correct permissions so Lambda can write to DynamoDB as well as the configuration for the Lambda Function URL.
+
+The table has a “partition” attribute, which you can set to anything you like. I chose to set it to the region I am working in. Maybe one day I’ll work out “Global Integers.”
+
+Here is the Lambda code:
+
+```python
+import boto3ddb = boto3.resource('dynamodb')table = ddb.Table('Tickets')def handler():    response = table.update_item(        Key={            "partition": "us-east-1"        },                UpdateExpression='SET hand_crafted_int = if_not_exists(hand_crafted_int, :start) + :inc',        ExpressionAttributeValues={            ":inc": 1,            ":start": 0,        },        ReturnValues="UPDATED_NEW"    )    return {        'statusCode': 200,        'headers': {            'Content-Type': 'application/json'        },        'body': response['Attributes']    }
+```
+
+There’s no error handling at the moment.
+
+Basically, this does an update into the DynamoDB table. It creates a `hand_crafted_int` if one doesn’t already exist. It begins at 0, with an increment of 1. You could use these parameters to create an offset and start position, which would allow you to have multiple counters that don’t conflict with one another. Dan gets into this in detail in his [blog post](https://revdancatt.com/2012/08/23/london-artisan-integers-distribution-hotel-infinity-punk-an-excuse-explanation-of-sorts/).
+
+> With a bit of quick thinking the owner figures out a solution, each guest should move to a room number double the one they are currently in. The guest in room [#1](https://www.micahwalter.com/tag/1/) goes to room [#2](https://www.micahwalter.com/tag/2/), the one in [#2](https://www.micahwalter.com/tag/2/) moves to [#4](https://www.micahwalter.com/tag/4/), room [#3](https://www.micahwalter.com/tag/3/) to [#6](https://www.micahwalter.com/tag/6/), room [#4](https://www.micahwalter.com/tag/4/) to room [#8](https://www.micahwalter.com/tag/8/) and so on. Now the infinite number of guests are only in the even numbered rooms, leaving the infinite number of odd rooms empty for the next lot of infinite guest that have just arrived.
+
+That’s it! Serverless Integers!

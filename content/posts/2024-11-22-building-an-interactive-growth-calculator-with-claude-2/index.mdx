@@ -1,0 +1,521 @@
+---
+title: "Building an interactive growth calculator with Claude"
+publishedAt: "2024-11-22"
+excerpt: "I asked Anthropic's Claude to build me a simple, interactive calculator as a static website for looking at year over year growth. It's simple math, but nice to..."
+category: "AI"
+coverImage: "./cover.png"
+tags:
+  - "3b82f6"
+  - "4b5563"
+  - "artifacts"
+  - "claude"
+  - "claude-convos"
+  - "e0f2fe"
+  - "e2e8f0"
+  - "f0f9ff"
+  - "f8fafc"
+  - "genai"
+draft: true
+# WordPress ID: 78758
+# Original URL: https://www.micahwalter.com/2024/11/building-an-interactive-growth-calculator-with-claude/
+---
+
+I asked Anthropic's [Claude](http://claude.ai) to build me a simple, interactive calculator as a static website for looking at year over year growth. It's simple math, but nice to have something that shows a chart and I can easily click on and play with.
+
+This whole process took less than ten minutes, including the adjustments I asked for and fixes I had to have Claude do. It was interesting to see which frameworks and libraries Claude chose. It went with [React](https://react.dev/) and eventually I asked it to consider [chart.js](https://www.chartjs.org/).
+
+It's also interesting that Claude's Artifacts capability often produces just the Javascript you ask for, and embeds that into a web browser behind the scenes, and sometimes it gives you the full HTML, in which case you have to ask it to kindly add that HTML, if you need it.
+
+Here's my conversation with Claude 3.5 Sonnet :
+
+> Me: I'd like to build a simple interactive static website where users can adjust some settings and calculate when a company will reach a desired run rate. Controls should be:
+> 
+> 1.  current run rate
+> 2.  current YoY growth percentage
+> 3.  forecasted increase to YoY growth as percentage increase or decrease
+> 
+> I'd like to show the math and also a chart expressing the overall growth
+
+> Claude: This calculator:
+> 
+> -   Shows time to reach 10x current run rate
+> -   Updates calculations in real-time
+> -   Displays growth trajectory in a line chart
+> -   Formats numbers for readability
+> -   Caps projections at 20 years
+> 
+> Would you like any adjustments to the calculations or visualization?
+
+```
+import React, { useState, useCallback } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+const GrowthCalculator = () => {
+  const [currentRunRate, setCurrentRunRate] = useState(1000000);
+  const [currentGrowth, setCurrentGrowth] = useState(20);
+  const [growthChange, setGrowthChange] = useState(0);
+
+  const calculateGrowth = useCallback(() => {
+    const targetRunRate = 10 * currentRunRate; // 10x current run rate
+    let years = 0;
+    let runRate = currentRunRate;
+    let growth = currentGrowth;
+    const data = [{
+      year: years,
+      runRate: runRate
+    }];
+
+    while (runRate < targetRunRate && years < 20) {
+      years++;
+      growth = growth + growthChange;
+      runRate = runRate * (1 + growth / 100);
+      data.push({
+        year: years,
+        runRate: Math.round(runRate)
+      });
+    }
+
+    return {
+      years,
+      data,
+      finalRunRate: runRate
+    };
+  }, [currentRunRate, currentGrowth, growthChange]);
+
+  const { years, data, finalRunRate } = calculateGrowth();
+
+  return (
+    
+      
+        Company Growth Calculator
+      
+      
+        
+          
+            Current Run Rate ($)
+             setCurrentRunRate(Number(e.target.value))}
+            />
+          
+          
+            Current YoY Growth (%)
+             setCurrentGrowth(Number(e.target.value))}
+            />
+          
+          
+            Annual Growth Change (%)
+             setGrowthChange(Number(e.target.value))}
+            />
+          
+        
+
+        
+          Results:
+          Time to 10x: {years < 20 ? `${years} years` : 'More than 20 years'}
+          Final Run Rate: ${finalRunRate.toLocaleString()}
+        
+
+        
+          
+            
+            
+            
+             `$${value.toLocaleString()}`} />
+            
+          
+        
+      
+    
+  );
+};
+
+export default GrowthCalculator;
+```
+
+![](./Screenshot-2024-11-22-at-12.21.54-E2-80-AFPM.png)
+
+> Me: Please add a control to set current run rate as dollars, millions, and billions
+
+> Claude: Added unit selection with automatic scaling and formatting. Numbers now display in the selected unit across all components. Would you like any adjustments?
+
+> Me: Can you adjust the code so it will run in a web browser?
+
+> Claude: Here's a complete HTML file that will run in a browser:
+
+```
+
+    Growth Calculator
+    
+    
+    
+    
+    
+
+    
+    
+        const GrowthCalculator = () => {
+            const &#91;currentRunRate, setCurrentRunRate] = React.useState(1);
+            const &#91;currentGrowth, setCurrentGrowth] = React.useState(20);
+            const &#91;growthChange, setGrowthChange] = React.useState(0);
+            const &#91;unit, setUnit] = React.useState('millions');
+
+            const multiplier = {
+                dollars: 1,
+                millions: 1000000,
+                billions: 1000000000
+            };
+
+            const formatNumber = (num, unit) => {
+                if (unit === 'dollars') return `$${num.toLocaleString()}`;
+                if (unit === 'millions') return `$${(num/1000000).toFixed(2)}M`;
+                return `$${(num/1000000000).toFixed(2)}B`;
+            };
+
+            const calculateGrowth = React.useCallback(() => {
+                const baseRunRate = currentRunRate * multiplier&#91;unit];
+                const targetRunRate = 10 * baseRunRate;
+                let years = 0;
+                let runRate = baseRunRate;
+                let growth = currentGrowth;
+                const data = &#91;{
+                    year: years,
+                    runRate: runRate
+                }];
+
+                while (runRate < targetRunRate && years < 20) {
+                    years++;
+                    growth = growth + growthChange;
+                    runRate = runRate * (1 + growth / 100);
+                    data.push({
+                        year: years,
+                        runRate: Math.round(runRate)
+                    });
+                }
+
+                return {
+                    years,
+                    data,
+                    finalRunRate: runRate
+                };
+            }, &#91;currentRunRate, currentGrowth, growthChange, unit]);
+
+            const { years, data, finalRunRate } = calculateGrowth();
+            const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } = Recharts;
+
+            return (
+                <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
+                    <h1 className="text-2xl font-bold mb-6">Company Growth Calculator</h1>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div>
+                            <label className="block text-sm font-medium mb-2">
+                                Current Run Rate
+                            </label>
+                            <input
+                                type="number"
+                                value={currentRunRate}
+                                onChange={e => setCurrentRunRate(Number(e.target.value))}
+                                className="w-full p-2 border rounded"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-2">
+                                Unit
+                            </label>
+                            <select 
+                                value={unit}
+                                onChange={e => setUnit(e.target.value)}
+                                className="w-full p-2 border rounded"
+                            >
+                                <option value="dollars">Dollars</option>
+                                <option value="millions">Millions</option>
+                                <option value="billions">Billions</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-2">
+                                Current YoY Growth (%)
+                            </label>
+                            <input
+                                type="number"
+                                value={currentGrowth}
+                                onChange={e => setCurrentGrowth(Number(e.target.value))}
+                                className="w-full p-2 border rounded"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-2">
+                                Annual Growth Change (%)
+                            </label>
+                            <input
+                                type="number"
+                                value={growthChange}
+                                onChange={e => setGrowthChange(Number(e.target.value))}
+                                className="w-full p-2 border rounded"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mb-6">
+                        <p className="font-medium mb-2">Results:</p>
+                        <p>Time to 10x: {years < 20 ? `${years} years` : 'More than 20 years'}</p>
+                        <p>Final Run Rate: {formatNumber(finalRunRate, unit)}</p>
+                    </div>
+
+                    <div className="w-full h-64">
+                        <LineChart width={800} height={250} data={data}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="year" />
+                            <YAxis tickFormatter={(value) => formatNumber(value, unit)} />
+                            <Tooltip formatter={(value) => formatNumber(value, unit)} />
+                            <Line type="monotone" dataKey="runRate" stroke="#8884d8" />
+                        </LineChart>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<GrowthCalculator />, document.getElementById('root'));
+    
+
+```
+
+> Claude: Save this as index.html and open it in a browser. All dependencies are loaded from CDN.
+
+> Me: OK, but I no longer see the nice interactive chart. Can you please add that back in? Perhaps use chart.js for the charting?
+
+> Claude: This version includes an interactive Chart.js line chart that updates when you change the inputs. The tooltips and axis labels are properly formatted based on the selected unit.
+
+> Me: Awesome. Now lets clean up the input boxes to add a cleaner style and look.
+
+```
+
+    Growth Calculator
+    
+    
+    
+    
+    
+    
+        .input-group {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            background-color: #f8fafc;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            outline: none;
+        }
+        .input-group input:focus, .input-group select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background-color: white;
+        }
+        .input-group label {
+            position: absolute;
+            left: 0.75rem;
+            top: -0.5rem;
+            padding: 0 0.25rem;
+            background-color: white;
+            color: #4b5563;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+            pointer-events: none;
+        }
+        .results-card {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+    
+
+    
+    
+        const GrowthCalculator = () => {
+            const &#91;currentRunRate, setCurrentRunRate] = React.useState(1);
+            const &#91;currentGrowth, setCurrentGrowth] = React.useState(20);
+            const &#91;growthChange, setGrowthChange] = React.useState(0);
+            const &#91;unit, setUnit] = React.useState('millions');
+            const chartRef = React.useRef(null);
+            const chartInstance = React.useRef(null);
+
+            const multiplier = {
+                dollars: 1,
+                millions: 1000000,
+                billions: 1000000000
+            };
+
+            const formatNumber = (num, unit) => {
+                if (unit === 'dollars') return `$${num.toLocaleString()}`;
+                if (unit === 'millions') return `$${(num/1000000).toFixed(2)}M`;
+                return `$${(num/1000000000).toFixed(2)}B`;
+            };
+
+            const calculateGrowth = () => {
+                const baseRunRate = currentRunRate * multiplier&#91;unit];
+                const targetRunRate = 10 * baseRunRate;
+                let years = 0;
+                let runRate = baseRunRate;
+                let growth = currentGrowth;
+                const data = &#91;{
+                    year: years,
+                    runRate: runRate
+                }];
+
+                while (runRate < targetRunRate && years < 20) {
+                    years++;
+                    growth = growth + growthChange;
+                    runRate = runRate * (1 + growth / 100);
+                    data.push({
+                        year: years,
+                        runRate: Math.round(runRate)
+                    });
+                }
+
+                return {
+                    years,
+                    data,
+                    finalRunRate: runRate
+                };
+            };
+
+            React.useEffect(() => {
+                const { data } = calculateGrowth();
+
+                if (chartInstance.current) {
+                    chartInstance.current.destroy();
+                }
+
+                const ctx = chartRef.current.getContext('2d');
+                chartInstance.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => `Year ${d.year}`),
+                        datasets: &#91;{
+                            label: 'Run Rate',
+                            data: data.map(d => d.runRate),
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return formatNumber(context.raw, unit);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                ticks: {
+                                    callback: function(value) {
+                                        return formatNumber(value, unit);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }, &#91;currentRunRate, currentGrowth, growthChange, unit]);
+
+            const { years, finalRunRate } = calculateGrowth();
+
+            return (
+                <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
+                    <h1 className="text-3xl font-bold mb-8 text-gray-800">Growth Calculator</h1>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div className="input-group">
+                            <label>Current Run Rate</label>
+                            <input
+                                type="number"
+                                value={currentRunRate}
+                                onChange={e => setCurrentRunRate(Number(e.target.value))}
+                            />
+                        </div>
+
+                        <div className="input-group">
+                            <label>Unit</label>
+                            <select 
+                                value={unit}
+                                onChange={e => setUnit(e.target.value)}
+                            >
+                                <option value="dollars">Dollars</option>
+                                <option value="millions">Millions</option>
+                                <option value="billions">Billions</option>
+                            </select>
+                        </div>
+
+                        <div className="input-group">
+                            <label>Current YoY Growth (%)</label>
+                            <input
+                                type="number"
+                                value={currentGrowth}
+                                onChange={e => setCurrentGrowth(Number(e.target.value))}
+                            />
+                        </div>
+
+                        <div className="input-group">
+                            <label>Annual Growth Change (%)</label>
+                            <input
+                                type="number"
+                                value={growthChange}
+                                onChange={e => setGrowthChange(Number(e.target.value))}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="results-card">
+                        <h2 className="text-xl font-semibold mb-4 text-gray-800">Results</h2>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-sm text-gray-600">Time to 10x</p>
+                                <p className="text-2xl font-bold text-gray-800">
+                                    {years < 20 ? `${years} years` : 'More than 20 years'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600">Final Run Rate</p>
+                                <p className="text-2xl font-bold text-gray-800">
+                                    {formatNumber(finalRunRate, unit)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-lg p-6">
+                        <canvas ref={chartRef}></canvas>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<GrowthCalculator />, document.getElementById('root'));
+    
+
+```
+
+> Claude: Added floating labels, improved input styling, gradient background for results, and refined the overall layout and colors.
+
+![](./Screenshot-2024-11-22-at-11.11.30-E2-80-AFAM.png)
+
+And here is the final version included in my growing list of "Claude Sketches" – [https://sketches.micahwalter.com/growth-calculator](https://sketches.micahwalter.com/growth-calculator)

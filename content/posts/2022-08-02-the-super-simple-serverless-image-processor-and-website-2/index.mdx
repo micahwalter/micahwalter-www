@@ -1,0 +1,73 @@
+---
+title: "The Super Simple Serverless Image Processor and Website"
+publishedAt: "2022-08-02"
+excerpt: "Last week I had an idea for a small project that I needed to get out of my head and into reality. The little idea was bugging me—nagging me, and so rather than..."
+category: "Writing"
+coverImage: "./cover.jpg"
+tags:
+  - "aws"
+  - "Experiments"
+  - "Projects"
+  - "tech"
+  - "Updates"
+draft: true
+# WordPress ID: 330
+# Original URL: https://www.micahwalter.com/2022/08/the-super-simple-serverless-image-processor-and-website/
+---
+
+Last week I had an idea for a small project that I needed to get out of my head and into reality. The little idea was bugging me—nagging me, and so rather than sitting on it and allowing it to control my life, I decided to build it as quickly as I could. This would mean learning a few new things, and wandering outside my comfort zone. It would mean asking for help and collecting feedback to guide my pursuit until I was happy with the result. I did all that, and it worked out quite nicely, so I thought I’d share what I made here!
+
+## The Idea
+
+The idea was for a simple [photos website](https://photos.micahwalter.com). I’ve been wanting something like this for a really long time. I know there are plenty of off-the-shelf solutions out there like Flickr or [SmugMug](https://www.smugmug.com) or even Instagram (I’ve tried many others over the years—who remembers Digital Railroad?!), which all try to do the same sort of thing, but I really wanted to make something on my own, that worked the way I wanted it to work and allowed me a place to experiment.
+
+I wanted my thing to be super simple, and cheap, and easy to use, but smart and opinionated. So, I embarked on a little project I am now calling the “Super Simple Serverless Image Processor and Website.” (I’m getting better at naming things.)
+
+The idea behind the project would be that I could upload any photo from my Adobe Lightroom collection, or from Apple Photos, or really any photo software I prefer to an [Amazon Simple Storage Service (S3)](https://aws.amazon.com/s3/) bucket, and my backend system would process the files automatically and build out a front-end website for me.
+
+## Paper and Pen
+
+![](https://www.micahwalter.com/content/images/2022/08/IMG_3199.JPG)
+_My hand drawn initial sketch for the backend image processor_
+
+So, I drew up this basic diagram to start to bring my idea to life. I really like sketching things on paper. There’s nothing quite like the free-flowing nature of a hand drawn sketch that allows you to get an idea that’s bouncing around in your brain onto something tangible like a piece of paper in the fastest way possible. As you can see, there’s some doodles there that are just me daydreaming in between thoughts. Eventually, I had something that resembled what I wanted to build.
+
+## A Real Diagram
+
+I knew I wouldn’t be able to use my bar-napkin style sketch to communicate my idea to a wider audience. It might have worked in real time, like on a white-board, but this is 2022 and I am working from home, so I needed something a little more clear to present to some colleagues for feedback. For this, I turned to [draw.io](https://draw.io) which is a tool I like for diagramming these sorts of projects in a web browser. There’s lots of ways to do this, but I like draw.io because it’s pretty simple and easy to use, with zero learning curve required.
+
+![](https://www.micahwalter.com/content/images/2022/08/FY6vetYX0AEDpI-.jpeg)
+_A much better skecth created in draw.io_
+
+This version of the diagram left a component or two out, but it got the general idea across and allowed me to share it with some teammates who I knew could use it to have a discussion around some of the unknowns I was thinking about. I sent it to them in Slack and after a short Huddle I had the feedback I was looking for and was ready to get to work.
+
+## Building Quickly
+
+I firmly believe in the power of building things quickly and failing forward and often. I had a good deal of background and experience going into this little project, but there were a bunch of areas I was worried I’d have trouble with. But, that was the whole point. So, once I decided on a direction and reviewed it with my friends, I took to building it within a single weekend as a self-imposed time constraint. In my world this means a few hours over a weekend when the little one is napping, or late at night when everyone has gone to bed. In reality, this was a weekend project which consumed maybe 6 hours total—but who’s keeping track?
+
+For this project, I really wanted to learn more about several key concepts.
+
+1.  How to better use the [AWS Cloud Development Kit (CDK)](https://aws.amazon.com/cdk/) to build a backend application like this in code
+2.  How to better make use of [Node.js](https://nodejs.org) and [TypeScript](https://www.typescriptlang.org)
+3.  How to use [Amazon EventBridge](https://aws.amazon.com/eventbridge/) to wire everything together
+4.  How to use [Amazon DynamoDB](https://aws.amazon.com/dynamodb/) to persist data and to trigger builds for my website
+
+I started by building out the backend infrastructure using the CDK. It was pretty simple to do once I got the hang of the syntax. I went through each component and created resources, and connected things together where it made sense. I decided to wait on any functional logic until later and depended on spoofing things to get basic my ideas across quickly.
+
+Along the way I found out about a really nice image processing library for Node.js called [Sharp](https://sharp.pixelplumbing.com) that looked like it could do all the heavy lifting for me. This caused me to learn about [Amazon Lambda Layers](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html), which is something I had not yet encountered, but made perfect sense in the end. Once all the components were in place, and I had my Lambda Layers working, I was able to write up the logic for each function and start testing.
+
+## Getting More Sophisticated
+
+Once I had the basic functionality working, and the backend infrastructure doing its thing, I knew I needed to make it a little smarter and a little more useful, so I dug into how to parse the image IPTC and EXIF data. This was actually pretty easy with the help of some existing libraries I found, and I was able to easily add the results to my little API.
+
+I quickly wrote up a basic front-end application and started connecting it to my API when I had another idea. Maybe I could generate all the pages as static HTML pages. This would improve the site’s performance and give my API and database a break. Since the data wasn’t going to be changing that often, it sounded like a perfect fit. I had to dig into how to do all that, and weigh some of the pros against the cons. I also needed to learn how to use Amazon [DynamoDB Streams](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Streams.html) to trigger builds on my front-end. This was really easy to set up and amazingly worked without much trouble at all.
+
+Now the application can process any image, resize it into a handful of predetermined sizes, capture all of the IPTC and EXIF metadata and store it in the database. And, it does all of this automatically whenever I upload or change a file on S3. Since it’s all event driven, it can handle hundreds or even thousands of new uploads at once, and my front-end will automatically get updated as new images become ready.
+
+## Sharing It
+
+At some point over the weekend, I decided to share my progress with [Twitter](https://twitter.com/micahwalter/status/1553371869897805826). I got lots of feedback and ideas for future improvements. I also decided to share the code so others could benefit from my journey, and now I am here, writing this little blog post to capture what I did so I can look back on this some day in the future.
+
+To me, this is a great way to learn, a great way to experiment, and to try new things. This has been, in general, been my go to methodology for getting the clutter in my head un-stuck and my ideas flowing again.
+
+If you are interested in the code, please have a look [here](https://github.com/micahwalter/photos). And keep an eye on this [website](https://photos.micahwalter.com) as I work on making some visual updates in the weeks ahead.

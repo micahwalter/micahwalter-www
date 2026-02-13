@@ -1,0 +1,58 @@
+---
+title: "I&#8217;m gonna learn Go!"
+publishedAt: "2023-01-20"
+excerpt: "I'm gonna learn Go! Not the 2500 year old Chinese board game, the 13 year old programming language developed at Google. I have a little experience with Go, but..."
+category: "Writing"
+coverImage: "./cover.jpg"
+tags:
+  - "aws"
+  - "go"
+  - "Lambda"
+  - "TIL"
+draft: true
+# WordPress ID: 590
+# Original URL: https://www.micahwalter.com/2023/01/im-gonna-learn-go/
+---
+
+I'm gonna learn Go! Not the [2500 year old Chinese board game](https://en.wikipedia.org/wiki/Go_\(game\)), the [13 year old programming language](https://en.wikipedia.org/wiki/Go_\(programming_language\)) developed at Google.
+
+I have a little experience with Go, but not much. Years ago I wanted to learn Go, but my efforts stalled. Eventually, I learned enough to build a few AWS Lambda functions, and later I even contributed code to an open source project I care about. But, to be honest, it was all mostly copy and paste, and I never felt like I really "learned" Go.
+
+So now, I'd like to try again, and learn it properly, from scratch.
+
+## Why Go ?
+
+I've been interested in Go for a long time. It appeals to me for a number of reasons.
+
+1.  It's pretty easy to read. I like the structure of the language, and the consistency and style that programmers are encouraged to utilize. It's clean, and pretty readable, once you learn all the various shorthand.
+2.  It's fast! Go is a compiled language, which means you compile your code into a binary file for the underlying operating system ahead of running the code. This offers lots of efficiencies and performance benefits. I like fast.
+3.  It's statically typed? – OK, .. I admit, this seems like one of those things I may not directly benefit from at first. I mean, I get what it means to be a statically typed language, and I understand how that could be beneficial down the road. For now though, I am guessing it will just feel like more work and could be conceptually more difficult to understand. But, this is one of those "[Why Go?](https://go.dev/solutions/#case-studies)" reasons you will read about.
+4.  Dependency management seems good. Go has a really pleasant way of dealing with dependencies. I don't yet fully understand how it works, but there's no need for `pip` of `npm` or `yarn` and all that noise. It's just built in and uses `git` repos. Seems nice!
+5.  It's a supported runtime on [AWS Lambda](https://docs.aws.amazon.com/lambda/latest/dg/lambda-golang.html). I'm keen to use Go on Lambda, so that's also nice.
+6.  It's one of the [supported languages](https://docs.aws.amazon.com/cdk/v2/guide/work-with-cdk-go.html) you can use to write [CDK](https://docs.aws.amazon.com/cdk/index.html) code in. I'm a huge fan of the CDK. You can of course mix and match your CDK language with your Lambda language, but it's comforting to know you could do it all in Go!
+7.  I'm a curious person who wants to learn something new.
+
+That last one is really my main reason for continuing to explore Go. I'm pretty confident with Python, which is the language I run into most of the time at my job. I can find my way around a JavaScript or even a TypeScript program pretty easily. Don't get me started on PHP, and I'd probably have to break out the college text books to talk about C++. I'm genuinely just curious to try something new, something outside my comfort zone, and I think the statically typed aspect of Go might help reinforce some concepts I haven't had much exposure to.
+
+## Where to start?
+
+Even though I've got some experience with Go, I'm gonna set out on this journey as if I'd just learned of Go today. To get myself started, I have a few ideas.
+
+1.  The [Go website](https://go.dev) has loads of tutorials and getting started resources. I'm gonna go through all that to begin learning the core concepts of the language. In other words, I'm gonna read about Go.
+2.  I'm also gonna learn by doing. I'm gonna spend some time each day hacking on some simple projects. These will likely be very AWS focused, since that's my main area of interest.
+3.  I'm gonna share my learning with you all via this website, and I'll publish all my code on GitHub. A while back I created a GitHub Organization just for my Go code. I've resurrected it, and I'll use it as a place to share my notes, my code, and anything else that comes my way. It's called "[go-micah](https://github.com/go-micah)", naturally!
+4.  I'm also planning to make more contributions to a few open source projects I love.
+
+## What I've learned so far
+
+Here are a handful of notes on what I've learned so far.
+
+1.  The online tutorials a super good. The "[Tour of Go](https://go.dev/tour/)" is interactive and thorough, and a great way to learn basic concepts. I already learned that Go only has one looping construct in the form of a `for` loop. That makes total sense!
+2.  There is something called `fmt`. I'm just starting to explore the standard library. I keep saying `fmt` like "fumpt." That can't be right.
+3.  There is a [Playground](https://go.dev/play/) to try things quickly.
+4.  You can explore and publish your own packages via [pkg.go.dev](https://pkg.go.dev). One thing I noticed is you don't need to upload your code here. You just make it aware of your code on GitHub or other places and it pulls it in.
+5.  Getting set up to code isn't too hard anymore. I recall Go being a little difficult to install and configure. That no longer seems to be the case, and in fact, if you use [GitHub Codespaces](https://github.com/features/codespaces) it's already installed and ready to go.
+6.  There is something called `go mod` and although I know it's about managing dependancies, I don't really understand how it works just yet. I mean, it works, but how?!
+7.  Today I wrote up a simple [Hello World](https://github.com/go-micah/hello-lambda) application in Go and deployed it to Lambda. I'll write up my notes on this in my next post. The short version is…it worked!
+
+I have to say, I'm excited to learn something new, purely for my own enjoyment. I hope you'll follow my progress, and if you are also learning Go, please feel free to reach out!

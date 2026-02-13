@@ -1,0 +1,34 @@
+---
+title: "A SAM Starter Template for Serverless Go Projects on AWS"
+publishedAt: "2023-11-06"
+excerpt: "A while back I created a repo on GitHub that was simply the output of doing sam init and choosing the AWS Quick Start Template for a Hello World Example. From..."
+category: "Writing"
+coverImage: "./cover.jpg"
+tags:
+  - "aws"
+  - "go"
+  - "SAM"
+  - "serverless"
+  - "TIL"
+draft: true
+# WordPress ID: 740
+# Original URL: https://www.micahwalter.com/2023/11/a-sam-starter-template-for-serverless-go-projects/
+---
+
+A while back I created a repo on GitHub that was simply the output of doing `sam init` and choosing the AWS Quick Start Template for a Hello World Example.
+
+From there, I simplified the [SAM](https://aws.amazon.com/serverless/sam/) `template.yml` file a little, restructured the folder where all my Go code lives, and added a `.devcontainer` file to help with getting things working on GitHub Codespaces.
+
+To start a new project locally, all you need to do is the following:
+
+```
+> mkdir your-project> cd your-project> sam init
+```
+
+From here, choose option 2 "Custom Template Location" and enter the repository URL – [https://github.com/go-micah/go-serverless-sam-template](https://github.com/go-micah/go-serverless-sam-template)
+
+![](https://www.micahwalter.com/content/images/2023/11/Screenshot-2023-11-06-at-5.04.40-PM.png)
+
+All this does is it downloads the files to your local machine, without cloning the repo, to be used as a starting point for a new project.
+
+Did you know you can easily create your own templates for AWS SAM? Nice!

@@ -1,0 +1,52 @@
+---
+title: "Deploying Serverless Go projects with AWS SAM Pipelines and GitHub Actions"
+publishedAt: "2023-11-07"
+excerpt: "Wow, that title is a mouthful. Here's what it means: You can use AWS SAM to easily construct at Serverless Application on AWS where the AWS Lambda code is..."
+category: "Writing"
+coverImage: "./cover.jpg"
+tags:
+  - "aws"
+  - "CICD"
+  - "go"
+  - "SAM"
+  - "TIL"
+draft: true
+# WordPress ID: 760
+# Original URL: https://www.micahwalter.com/2023/11/deploying-serverless-go-projects-with-aws-sam-pipelines-and-github-actions/
+---
+
+Wow, that title is a mouthful. Here's what it means:
+
+-   You can use [AWS SAM](https://aws.amazon.com/serverless/sam/) to easily construct at Serverless Application on AWS where the [AWS Lambda](https://aws.amazon.com/lambda) code is written in Go
+-   You can deploy your app to AWS from the CLI with `sam deploy` which is nice when you are building something on your own, or just getting started
+-   Once your project grows and begins to involve others, you will likely want to incorporate some kind of CI/CD pipeline
+-   [AWS SAM Pipelines](https://aws.amazon.com/blogs/compute/introducing-aws-sam-pipelines-automatically-generate-deployment-pipelines-for-serverless-applications/) and [GitHub Actions](https://github.com/features/actions) make this all work really nicely!
+-   These are my notes so far
+
+An AWS SAM Pipeline consists of two major components:
+
+1.  The _bootstrap command_ – This command ( `sam pipeline bootstrap`) needs to be done for each stage in your pipeline (test, prod, etc.). The end result is a handful of resources deployed in your AWS account that will be required by the pipeline itself. These are things like Roles, Policies and an Amazon S3 Bucket.
+2.  The _init command_ – This command ( `sam pipeline init` ) will walk you through a little wizard to help craft a GitHub Action template. This file will appear in your repository at `.github/workflows/pipeline.yml` and contains all the configuration GitHub Actions will need to build, test and deploy your application whenever you push new changes to GitHub.
+
+For my project I chose to use GitHub Actions for my CI/CD tooling, but you can choose from a number of other popular tools like Jenkins, GitLab or AWS CodePipeline. I really like GitHub Actions.
+
+One thing I noticed was that the `pipeline.yml` file contained a number of fields that included my AWS account number and a few ARNs. In a private/corporate repository, this might be fine, but for my public repo, I chose to change these to use GitHub's repository variables. Here's what my final list of fields looked like:
+
+Once you set these up, you just need to create the actual variables in the GitHub settings page for your repo.
+
+Another issue I ran into was building a Go program with GitHub Actions wasn't working right out of the box. When I do a `sam build` and `sam deploy` from the command line, everything works just fine, but that's because I am building with the installation of Go on my laptop. On GitHub, it will need to have Go installed as part of the build process. The template I started with didn't know about this, so I had to modify it to look like this:
+
+You can see here that instead of just doing `sam build` I first need to install Go and add it to the `$PATH`.
+
+Once I made these changes and made sure all my variables and secrets were setup in the repo settings, I was able to push my code and watch it deploy to AWS.
+
+![](https://www.micahwalter.com/content/images/2023/11/Screenshot-2023-11-07-at-11.21.11-AM.png)
+
+This pipeline has a couple interesting … features:
+
+1.  You can use feature branches like `feature-new-gizmo` to deploy from a separate feature branch. It will also clean these up as you delete old feature branches.
+2.  It has two stages for "testing" and "production." In this current setup, it will just deploy both of them on every new push to `main`. But, you can utilize GitHub Environments to add a manual intervention or approval step for the production branch.
+
+Here's my [demo application](https://github.com/go-micah/go-sam-pipes) on GitHub including the SAM Pipeline.
+
+That's it!

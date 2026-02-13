@@ -1,0 +1,55 @@
+---
+title: "Notes on Building Conversations Support for Chat-CLI"
+publishedAt: "2024-12-12"
+excerpt: "I've spent a bit of time over the past couple of days thinking more critically about how I'd like to evolve my Chat-CLI project. One of the capabilities I've..."
+category: "AI"
+coverImage: "./cover.png"
+tags:
+  - "amazon-bedrock"
+  - "aws"
+  - "chat-cli"
+  - "genai"
+  - "go"
+  - "Lambda"
+  - "notes"
+  - "serverless"
+  - "TIL"
+draft: true
+# WordPress ID: 78902
+# Original URL: https://www.micahwalter.com/2024/12/notes-on-building-conversations-support-for-chat-cli/
+---
+
+I've spent a bit of time over the past couple of days thinking more critically about how I'd like to evolve my [Chat-CLI](https://www.micahwalter.com/tag/chat-cli/) project. One of the capabilities I've been thinking about for some time now is the ability to save chats and reload them in the future. This seems to be pretty common for most of the major LLMs applications out there like [claude.ai](http://claude.ai).
+
+There's a number of ways to do this. I could create a local database using SQLite, and store log data there. I could also create a remote/cloud based database and an API for it. I could just write code to query and parse Amazon Bedrock's log data via the CloudWatch API.
+
+Eventually I sort of landed on a mix of all of the above.
+
+![](./Screenshot-2024-12-12-at-1.37.44-E2-80-AFPM.png)
+
+### Here's my current thinking:
+
+1.  I'd like people to be able to just download the CLI program and start chatting with LLMs on Amazon Bedrock. You can do this right now (as long as you have enabled Model Access and permissions correctly), and I don't want this to change.
+2.  I figure, if you have already gone through the trouble to create an AWS account, set up Model Access and Permissions it's probably not a huge leap to open up access to other things.
+3.  Amazon Bedrock has built-in support for logging model invocations to CloudWatch and/or Amazon Simple Storage Service (S3)
+4.  I like event driven architectures, so…
+
+### Here is my current plan:
+
+1.  Build an easily deployable serverless/event driven architecture that leverages Amazon Bedrock's Invocation Logs stored on S3. (I'll do this first)
+2.  Build it as a separate, optional architecture anyone can download and configure. (There's gonna be a few pre-reqs)
+3.  Have a fallback of using SQLite for local storage (But, I should probably build this first.)
+
+As you can see there are several roadblocks to fruition here. I need to figure out how to deal with local storage for a command line program in Go. I need to learn how to deal with persistent local config in Go, and I need to work out how to build the arch on AWS as described above. The last bit is actually the easiest for me.
+
+### Things I've learned so far:
+
+1.  There is a property called "[requestMetadata](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_ConverseStream.html#bedrock-runtime_ConverseStream-request-requestMetadata)" for all the Amazon Bedrock Invoke and Converse APIs. It lets you add any number of key-value pairs to the request body. These get stored in the logs, and I can use them to tie together logs from the same chat sessions.
+2.  I really love [AWS Infrastructure Composer](https://aws.amazon.com/infrastructure-composer/) for quickly prototyping ideas right in VS Code.
+3.  I really like using claude.ai alongside my code editor. I dunno why, but it seems like having an AI assistant in a separate application is a nice thing. I get the Conversation history, and can pick up where I left off on my iPhone. I've had several instances where an idea popped in my head, and I used claude.ai on my phone to get something started, which I expanded on later at my desk.
+4.  There is a nice feature of the claude.ai desktop app for macOS where you can hit a hotkey to get a small input window quickly.
+5.  Claude is getting better at admitting mistakes and having an actual discussion with me vs. just taking orders and making things.
+
+![](./Screenshot-2024-12-12-at-2.29.59-E2-80-AFPM.png)
+
+More soon!

@@ -1,0 +1,171 @@
+---
+title: "A quick sketch of the Aurora Borealis with Claude"
+publishedAt: "2024-11-25"
+excerpt: "There's been so much chat online about people generating fake images of the Northern Lights using diffusion models, so I thought I'd see what Claude and I..."
+category: "AI"
+coverImage: "./cover.png"
+tags:
+  - "000"
+  - "ai"
+  - "claude"
+  - "claude-convos"
+  - "sketches"
+draft: true
+# WordPress ID: 78774
+# Original URL: https://www.micahwalter.com/2024/11/a-quick-sketch-of-the-aurora-borealis-with-claude/
+---
+
+There's been so much chat online about people generating [fake images](https://www.theverge.com/2024/10/12/24268441/meta-ai-generated-northern-lights-images-threads-users-upset) of the Northern Lights using diffusion models, so I thought I'd see what Claude and I could do. The end result was [this very lovely animation](https://sketches.micahwalter.com/aurora-animation), which started on my iPhone.
+
+Here's my convo with Claude:
+
+> Me: Can you use p5.js or another graphics library for JavaScript to create a static website that displays a full screen image inspired by aurora borealis?
+
+> Claude: I'll create a simple HTML page with an animated aurora borealis effect using pure HTML Canvas and JavaScript. Since p5.js would require external dependencies, I'll create this using native Canvas API for better portability.
+
+```
+
+    
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    
+
+    
+    
+        const canvas = document.getElementById('auroraCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size to window size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Aurora parameters
+        const waves = &#91;];
+        const numWaves = 3;
+        const colors = &#91;
+            'rgba(97, 233, 129, 0.3)',  // Green
+            'rgba(72, 149, 239, 0.3)',  // Blue
+            'rgba(165, 95, 238, 0.3)'   // Purple
+        ];
+
+        // Create initial waves
+        for (let i = 0; i < numWaves; i++) {
+            waves.push({
+                points: &#91;],
+                color: colors&#91;i],
+                speed: 0.002 + (Math.random() * 0.001),
+                offset: Math.random() * Math.PI * 2
+            });
+        }
+
+        // Generate points for each wave
+        function initWavePoints() {
+            const numPoints = Math.ceil(canvas.width / 20);
+            waves.forEach(wave => {
+                wave.points = &#91;];
+                for (let i = 0; i <= numPoints; i++) {
+                    wave.points.push({
+                        x: (canvas.width * i) / numPoints,
+                        y: canvas.height / 2
+                    });
+                }
+            });
+        }
+        initWavePoints();
+
+        // Animation
+        let time = 0;
+        function animate() {
+            ctx.fillStyle = '#000B1F';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw stars
+            for (let i = 0; i < 200; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const size = Math.random() * 2;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.fillRect(x, y, size, size);
+            }
+
+            // Update and draw waves
+            waves.forEach((wave, waveIndex) => {
+                ctx.beginPath();
+                wave.points.forEach((point, i) => {
+                    const normalizedX = i / wave.points.length;
+                    const frequencyX = 2 + waveIndex;
+                    const frequencyY = 1.5;
+
+                    // Calculate y position with multiple sine waves
+                    const y = canvas.height * 0.3 + 
+                            Math.sin(time * wave.speed + normalizedX * frequencyX + wave.offset) * 50 +
+                            Math.sin(time * wave.speed * 2 + normalizedX * frequencyY) * 30;
+
+                    point.y = y;
+
+                    if (i === 0) {
+                        ctx.moveTo(point.x, point.y);
+                    } else {
+                        ctx.lineTo(point.x, point.y);
+                    }
+                });
+
+                // Complete the path
+                ctx.lineTo(canvas.width, canvas.height);
+                ctx.lineTo(0, canvas.height);
+                ctx.closePath();
+
+                // Fill with gradient
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, wave.color);
+                gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            });
+
+            time += 1;
+            requestAnimationFrame(animate);
+        }
+
+        // Start animation
+        animate();
+    
+
+```
+
+> I've created an animated aurora borealis effect using HTML Canvas. The visualization includes:
+> 
+> 1.  A dark night sky background
+> 2.  Randomly generated stars
+> 3.  Multiple overlapping waves with different colors (green, blue, and purple)
+> 4.  Smooth wave animation using sine functions
+> 5.  Semi-transparent gradients to create the aurora effect
+> 6.  Responsive design that fills the entire screen
+> 
+> The animation creates waves using multiple sine functions with different frequencies and phases to create a more organic, flowing movement. The waves are semi-transparent and layered, which creates depth and mimics the ethereal quality of the real aurora borealis.
+> 
+> Would you like me to modify anything about the visualization? I could:
+> 
+> -   Adjust the colors or add more color variations
+> -   Change the animation speed
+> -   Modify the wave patterns
+> -   Add more interactive elements
+
+We then went back and forth a bit on tweaking things to my taste and fixing errors. I always find it funny that Claude winds up suggesting code that has errors and then if I ask will attempt to fix the errors.
+
+The end result is here. [https://sketches.micahwalter.com/aurora-animation](https://sketches.micahwalter.com/aurora-animation)

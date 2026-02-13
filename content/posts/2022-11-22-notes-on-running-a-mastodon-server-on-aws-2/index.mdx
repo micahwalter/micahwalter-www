@@ -1,0 +1,93 @@
+---
+title: "Notes on running a Mastodon server on AWS"
+publishedAt: "2022-11-22"
+excerpt: "📖 You can read more of my posts on running your own Mastodon server right here: https://www.micahwalter.com/tag/mastodon/ It’s been a few weeks now since..."
+category: "Writing"
+coverImage: "./cover.jpg"
+tags:
+  - "aws"
+  - "ec2"
+  - "Mastodon"
+  - "Projects"
+draft: true
+# WordPress ID: 470
+# Original URL: https://www.micahwalter.com/2022/11/notes-on-running-a-mastodon-server-on-aws/
+---
+
+📖
+
+You can read more of my posts on running your own Mastodon server right here: [https://www.micahwalter.com/tag/mastodon/](https://www.micahwalter.com/tag/mastodon/)
+
+It’s been a few weeks now since Twitter started to [burn to the ground](https://www.wsj.com/articles/how-elon-musks-twitter-faces-mountain-of-debt-falling-revenue-and-surging-costs-11669042132). Since it all started, there’s been a rapid exodus to alternative platforms, including [Mastodon](https://joinmastodon.org), the decentralized, federated, social network, which seems to be one of the more popular options. I’m still on Twitter, but trying to ignore it as much as I can, and have been very happy to see a community of real friends and online acquaintances, forming all over again. It feels new, and makes me nostalgic for the days of the BBS, and early blogging.
+
+Pretty quickly I noticed several of my friends setting up their own Mastodon servers, and especially, Dan Hon’s [super interesting take](https://newsletter.danhon.com/archive/s13e17-a-proposal-for-news-organization-mastodon/) on how this approach could be beneficial from an identity verification standpoint.
+
+I’ve been pretty Mastodon-curious for a couple weeks now, and after spending some time tinkering with an account I set up back in 2018 on [mastodon.social](https://mastodon.social), I decided to explore setting up my own instance. These are my notes.
+
+Firstly, I wanted my instance to run entirely on Amazon Web Services. I work at AWS, so this makes sense. My initial thought of course was to use [best practices](https://aws.amazon.com/architecture/well-architected/) and make my instance highly available, fault tolerant, resilient, etc., but I quickly realized that would be a little expensive for a single user Mastodon server. I also really wanted to learn the ins and outs of the Mastodon service, and go through the paces (a few times) of installing everything from source.
+
+I settled on the following for an approach:
+
+1.  Run everything on a single [Amazon EC2 instance](https://aws.amazon.com/ec2). This will include the PostgreSQL database, the web front-end and the three Rails based services. Also, Redis.
+2.  Pick an instance type that offers a decent amount of performance, but won’t break the bank. I settled on a `t4g.small` instance type. (Careful readers will note the little “g” which stands for [Graviton](https://aws.amazon.com/ec2/graviton/).)
+3.  Host images and static assets on [Amazon Simple Storage Service](https://aws.amazon.com/s3) (S3) and serve them via [Amazon CloudFront](https://aws.amazon.com/cloudfront).
+4.  Utilize [Amazon Route 53](https://aws.amazon.com/route53) for registering a new domain and hosting DNS.
+5.  Utilize [Amazon Simple Email Service](https://aws.amazon.com/ses) (SES) for transactional emails.
+
+## Setting up AWS
+
+For personal projects, I use [AWS Organizations](https://aws.amazon.com/organizations/) and [AWS ControlTower](https://aws.amazon.com/controltower). This makes provisioning a new account for a new project very simple and encourages me to do so vs. dumping everything into a single account. It also allows me to easily see how much money I spend on each project without having to worry about carefully applying cost allocations tags across every resource.
+
+Once I had my new account, I used AWS Route 53 to purchase a new domain. I chose [micah.social](https://micah.social) — for obvious reasons. One nice side effect of purchasing a domain through AWS Route 53 is it automatically creates a Public Hosted Zone with the NS records already in place.
+
+Next, I set up an [Amazon Virtual Private Cloud](https://aws.amazon.com/vpc/) (Amazon VPC) for my project. There are many strategies for doing this, but since I was only going to be running a single instance, all I really needed was a single subnet with an Internet Gateway (IGW) to route traffic to the public internet. The VPC wizard tool was recently re-designed, and makes it a snap to configure your VPC in any way that you’d like via the AWS console. Even though I only needed a single public subnet for this project, I chose to create a more complex VPC in case I decide to scale things out a bit in the future. I ended up with three private subnets, and three public subnets, across three Availability Zones. I also added an S3 Gateway Endpoint and decided to not launch any AWS Managed NAT Gateways for now, since they incur a cost per hour, and I don’t need them at this point. The end result was an overly complex VPC that I don’t need today, but might like some day in the future.
+
+Before thinking about provisioning a new EC2 instance, I wanted to get a couple more things set up. I created an Amazon S3 bucket for hosting static assets and images. With my best practices hat on, I chose to set the bucket to block all public access, and created an Amazon CloudFront CDN with the bucket as its origin using an [Origin Access Identity](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html). There are now two ways to do this. I chose the older method, but it still works just fine. Once the CF distribution was deployed, I created two more DNS records to point [files.micah.social](https://files.micah.social) at the CDN. This also required provisioning an SSL certificate, which I did through [AWS Certificate Manager](https://aws.amazon.com/certificate-manager). I used an A record with the alias setting, and an AAAA record, also with the alias setting. The UI for this in the console makes this config pretty obvious.
+
+As a last step before creating my EC2 instance, I hopped over to Amazon Simple Email Service to configure SES for sending transactional emails. It’s important to do this as soon as possible, since the final step in configuration requires you to request a production instance, and that can take up to 24 hours to process.
+
+## Setting up the server itself
+
+Now that I had most of the AWS pieces configured and ready to go, I was ready to provision an EC2 instance. The console wizard to launch an EC2 instance has also been updated recently. Here are (more or less) the options I chose.
+
+1.  A single `t4g.small` instance. I am really curious to test this all out on Graviton2, our ARM based chipset. The t4g.small instance size gives me 2GB of RAM and 2 vCPU for about $12 per month using on-demand pricing. If this setup works well, I can opt for a 3 year “All Up Front” savings plan, which would work out to be the equivalent of about $5 per month, but we shall see!
+2.  For storage I went for the newer GP3 EBS volume type. I chose to start with 30GB and 3000 IOPS. This volume will cost about $2.50 a month before snapshots. I set this volume to be encrypted using AWS managed keys.
+3.  I placed the instance in one of the public subnets I created, and set Termination Protection to enabled.
+4.  Lately, I have been using Amazon Linux 2 as my base AMI, but I read that for Mastodon, it really prefers Ubuntu, so I decided to make my life easier and chose Ubuntu as the operating system.
+5.  Once the EC2 instance was up and running, I created an Elastic IP and associated it with my new server. I then created a new A record in Route 53 to point micah.social at the EIP.
+6.  Finally I turned on automatic snapshots for my EBS volume. This is now super easy to set up with [Amazon Data Lifecycle Manager](https://aws.amazon.com/blogs/storage/automating-amazon-ebs-snapshot-and-ami-management-using-amazon-dlm/) and means I have hourly, daily, and monthly backups of all my data.
+
+## Setting up Mastodon
+
+Now that all my infrastructure was in place, it was time to install the software and get things working. I mainly followed the [documentation on this website](https://docs.joinmastodon.org), along with the help of a couple good blogs and discussion topics that I found helpful along the way.
+
+Here are some links to explore:
+
+1.  [https://www.zerotohero.dev/mastodon-101/](https://www.zerotohero.dev/mastodon-101/)
+2.  [https://github.com/mastodon/mastodon/discussions/21294](https://github.com/mastodon/mastodon/discussions/21294)
+3.  [https://github.com/mastodon/mastodon/discussions/20257](https://github.com/mastodon/mastodon/discussions/21294)
+4.  [https://cloudonaut.io/mastodon-on-aws/](https://cloudonaut.io/mastodon-on-aws/)
+5.  [https://rcrowley.org/2022/mastodon.html](https://rcrowley.org/2022/mastodon.html)
+
+The docs were pretty good, but I noticed a couple of little details that stopped things from working right away. Here are some notes on all of that.
+
+-   The docs have a section called “[Preparing your machine](https://docs.joinmastodon.org/admin/prerequisites/).” This has mostly to do with setting up a firewall on the server itself. It’s not really necessary since with AWS you can just create a security group. My security group only allows SSH traffic from my home IP address and HTTP/HTTPS traffic from the public internet. There’s no harm in adding a server-level firewall as well, but I just don’t think it’s necessary.
+-   There is a step toward the end of the config where the docs tell you to create an SSL certificate using the command line tools for [Let’s Encrypt](https://letsencrypt.org). As Richard Crowley points out in his blog, there’s no trivial way to do this with AWS, so just use Let’s Encrypt, which is easy and free.
+-   However, the steps in the docs create a little bit of a chicken and egg situation. They tell you to load up the NGINX config, and then run the tool to provision a certificate, but this fails, since the config is invalid without the certificate in place. To get around this, I just disabled all the configurations in NGINX, created the cert, and then added the config back in afterward, editing the config files to point to my new domain name and the new cert files.
+-   There is a key permissions issue omitted in the docs. NGINX by default runs as user `www-data`, but Mastodon runs as user `mastodon`. This means when you get things up and running, you’ll have many file permissions errors, since all the files are owned by the mastodon user on the system. You can get around this in two ways. Either, add the mastodon user to the www-data group and vice-versa, or re-configure NGINX to run as the mastodon user. I chose the former.
+
+## Everything is running, but…
+
+Once I had gone through the config, I was able to navigate to [micah.social](https://micah.social) and could see the Mastodon instance. However, I noticed a number of issues right away. I wasn’t able to upload images, and I couldn’t follow people or do much else on the site. After some research I narrowed what felt like a handful of separate problems down to one key issue. My S3 bucket configuration was incorrect. It’s not entirely clear what the configuration should look like for S3 when using CloudFront and a private bucket. I decided to not worry about it for now, and opted for local file storage. This is not advisable, as it means my 30GB EBS volume will quickly fill up, and site performance might not be optimal all the time, but I wanted to get things working and figured I’d leave the images issue for another day.
+
+## Migrating all the things
+
+With the images issue temporarily resolved, my new Mastodon instance came to life. I was able to easily import my existing followers and follows from mastodon.social. I was also able to “move” to my new instance so others could find me there. I used [Fedifinder](https://fedifinder.glitch.me) to follow more people who have advertised their new accounts on Twitter. All of the sudden, “The Little Mastodon That Could” seems like a fun place to hang out. There’s no ads, I own my own data, and I have complete control over all of it. Plus, I learned more than a few things in the process.
+
+## Final thoughts
+
+I got all the way to the end of this article and completely forgot to mention that I did this whole thing in the AWS Console, without any [Infrastructure as Code](https://en.wikipedia.org/wiki/Infrastructure_as_code) tooling. I am a HUGE proponent of IaC, and especially the AWS CDK, but I chose to go through the motions of using the AWS Console for this project in order to get a good sense of what others might experience, and to keep things experimental at this stage of the project. IaC is great, but I find it winds up prohibiting me from making mistakes that lead to discovery when I am just tinkering with something new. For now, this blog post will serve as my documentation, and maybe some day in the future, I’ll work up a CDK script for the whole thing. Until then, Toot Toot!
+
+📖
+
+You can read more of my posts on running your own Mastodon server right here: [https://www.micahwalter.com/tag/mastodon/](https://www.micahwalter.com/tag/mastodon/)

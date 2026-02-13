@@ -1,0 +1,51 @@
+---
+title: "Processing Amazon Bedrock log data with Go"
+publishedAt: "2024-12-13"
+excerpt: "Yesterday I wrote about an idea to allow users of my Chat-CLI program to save their chats and load them up again. My idea led me to design and build a..."
+category: "AI"
+tags:
+  - "ai"
+  - "amazon-bedrock"
+  - "aws"
+  - "chat-cli"
+  - "genai"
+  - "go"
+  - "Lambda"
+  - "serverless"
+  - "TIL"
+draft: true
+# WordPress ID: 78912
+# Original URL: https://www.micahwalter.com/2024/12/processing-amazon-bedrock-log-data-with-go/
+---
+
+[Yesterday I wrote](https://www.micahwalter.com/2024/12/notes-on-building-conversations-support-for-chat-cli/) about an idea to allow users of my Chat-CLI program to save their chats and load them up again. My idea led me to design and build a serverless, event driven architecture that leverages the logs produced by every invocation to Amazon Bedrock. I got it all working today, but now I'm reconsidering what I've done.
+
+### Here's what I did
+
+Firstly, I spent some time learning about how to connect the idea of a "conversation" together. This is pretty straight-forward, but I wanted this to all work asynchronously and offline, in the cloud, behind the scenes, you get it.
+
+To do this, I learned about the "requestMetadata" property, which lets you add any number of key-value pairs to your request to invoke a LLM via Amazon Bedrock. My thinking was, I'd create a new UUID when a user starts a chat, and assign this UUID to each invocation. This way, each invocation log would have the UUID, which I could use later to distill the logs.
+
+Amazon Bedrock logs are pretty robust. Each log shows the full turn by turn conversation that was sent as input to the model. It then shows the output from that invoke, as well as the number of tokens consumed for the request. With a chat scenario, these logs grow bigger and bigger over time, and they contain everything you need to reconstruct a chat later. In fact, you only need the most recent log, as it has the full conversation within the input context. So, the UUID is really a way for me to easily filter out all the old logs for the same conversation. It's a quick code update to the CLI client.
+
+To process the logs, I built a very simply serverless, event driven architecture that does the following:
+
+1.  An Amazon EventBridge Rule listens for new events whenever Amazon Bedrock writes a new log file to an Amazon Simple Storage Service (S3) bucket (the log bucket you configure in Bedrock's settings).
+2.  The Rule then sends this event notification message to an AWS Lambda function, which processes the event and stores the relevant data in an Amazon DynamoDB table.
+
+There were some nuances I needed to work out:
+
+1.  Log files can contain multiple logs. So the code needed to be able to parse them appropriately.
+2.  The log files are gzipped JSON files.
+3.  Each log has a timestamp, which is nice, but which timestamp should I keep?
+4.  I spent a while just thinking through DynamoDB table design, and this can be a rabbit hole.
+
+### It works, but
+
+![](./Screenshot-2024-12-13-at-1.49.17-E2-80-AFPM-1.png)
+
+After tinkering and chatting with Claude about all kinds of things, I had a working prototype. I can see my chat messages in DynamoDB, and query them. Nice, but.
+
+The thing is, I don't know if this is really what I wanted in the first place. It's elegant, and works, and leverages things that already exist, but why not just store the data locally in an SQLite database or something on the file system? I mentioned this in yesterday's post. I wound up working on the part of the project I was most comfortable with, and not the part that was actually the simpler and more efficient thing. Now I have this data processing pipeline, but who is actually going to use it? Who is gonna go through all the steps and pre-reqs to get it deployed and working?
+
+Back to the drawing board I guess. The code and architecture I created is still a good thing though, and I think it will come in handy in the future, but right now I need to rethink a few things!

@@ -1,0 +1,99 @@
+---
+title: "Getting going with Go"
+publishedAt: "2023-01-27"
+excerpt: "I've been getting going with Go for about a week now and I've already learned so much! I realized last weekend that I had two primary interests I want to focus..."
+category: "Writing"
+coverImage: "./cover.jpg"
+tags:
+  - "aws"
+  - "go"
+  - "Lambda"
+  - "TIL"
+draft: true
+# WordPress ID: 610
+# Original URL: https://www.micahwalter.com/2023/01/getting-going-with-go/
+---
+
+I've been getting going with [Go](https://go.dev) for about a week now and I've already learned so much! I realized last weekend that I had two primary interests I want to focus on throughout my journey. The first is that I really want to learn the language itself, and get to a point where I can confidently type code and work through my ideas a reasonable pace. The second is that I am really interested in how developers can use Go on AWS.
+
+So here's what I've been working on.
+
+I spent more time going through the [Tour of Go](https://go.dev/tour) on the Go website. There are some things about Go that feel a little awkward at first, so I'm trying my best to rewire my brain a little.
+
+For example, when declaring a variable in Go, you put the name of the variable first, and then its type.
+
+```
+var familyName string = "Walter"
+```
+
+Also, when declaring a function, you put the return type at the end, like this:
+
+```
+func getName(familyName string) string {	return "Walter"}
+```
+
+I also learned that if you capitalize the first letter of anything (variable names or function names, etc.) Go makes that object available (exported) to other packages and programs.
+
+```
+var FamilyName stringvar familyName string
+```
+
+The other big thing I see in Go is that there's all kinds of shorthand expressions. This seems handy, but I'm sure it's gonna take some time to learn all of them before I can really read someone else's Go program.
+
+For example, instead of this:
+
+```
+var familyName string = "Walter"
+```
+
+You could just type this:
+
+```
+familyName := "Walter"
+```
+
+Go will decide what the correct data type is on its own.
+
+## Playgrounds
+
+It's pretty easy to create a folder and start hacking in Go on your laptop, but I really like having a browser based playground to try things out quickly. There is a nice, official, [Playground](https://go.dev/play/) on the Go website, where you can run code easily enough, but I also found this "[Better Go Playground](https://goplay.tools)" which has some additional features that I find pretty handy–the main one being the ability to save and share snippets.
+
+For example, I decided to try my hand at solving "[FizzBuzz](https://en.wikipedia.org/wiki/Fizz_buzz)" in Go and saved the [snippet here.](https://goplay.tools/snippet/Kcd9slXvlLy)
+
+The "Go Better Playground" is a great tool for learning as it makes it super easy to try things out without the overhead of thinking about your local developer setup, or creating a repository. I can even see it being useful if I'm working on a larger project and just need a space to test some code, without having to compile the entire project.
+
+## As for FizzBuzz …
+
+FizzBuzz is one of the most common white-boarding exercises that technical interviewers use to weed out candidates in interviews. I first came across FizzBuzz when interviewing for a job about 10 years ago. When the interviewer brought it up, I had zero idea what she was talking about. I proceeded to work through the challenge, using a mix bag of languages and syntax, but ultimately solved the puzzle.
+
+It's a fun challenge, but I have opinions about white boarding during interviews. More on that in another post I guess! And, in case you’re wondering, they offered me the job, but I ended up turning it down for other reasons.
+
+FizzBuzz in Go was pretty easy to work through. It helped reinforce how to create a simple `for` loop and how to write a basic function. I had to think about converting data types from one to another, and I also learned about the `strconv` library, which came in handy when I needed to convert integers to strings. Yay, FizzBuzz!
+
+## Go on AWS
+
+I work at AWS, so it makes sense I'd want to learn about running Go on AWS. To get started, I figured I'd try and build a simple "Hello Lambda" function in Go. I wound up making two.
+
+### Hello, Lambda
+
+The first function I made was as bare bones as I could do. I mainly wanted to go through the process of creating a [AWS Lambda](https://aws.amazon.com/lambda/) function in Go, and deploying it to Lambda via the AWS Console. It was pretty easy.
+
+1.  A Lambda function in Go needs to import the AWS Lambda Go package.
+2.  The `main` function in your `package main` needs to start a handler function. This can be called whatever you want (I called my handler `hello`) and it's what Lambda will run when you invoke your function.
+3.  Once your function is ready, it needs to be compiled to run on Linux using the following command: `GOOS=linux GOARCH=amd64 go build -o`
+4.  After you've compiled your function, it needs to be zipped.
+5.  Then you just create a new Lambda function in the console, selecting Go as the runtime, and upload your Zip file.
+6.  Finally, you will need to change the setting for the handler to the name of the executable file (not the handler function name)
+7.  I've got a few additional notes and code [here](https://github.com/go-micah/hello-lambda).
+
+### Hello, Serverless Application Model
+
+Dealing with Go in the AWS Console works, but there are some limitations. You can't live-edit a Go function in the AWS Lambda console. This means that you need to write, edit, and test your Go code somewhere else before deploying it to AWS. This is ok at first, but once you get into the weeds of developing something complex, the development lifecycle might get pretty tiresome. To alleviate this concern, I started to explore the various infrastructure as code frameworks available (there's a bunch now!) for AWS Lambda and Go.
+
+After some quick research, I decided to explore the [AWS Serverless Application Model](https://aws.amazon.com/serverless/sam/) (SAM). I've used SAM in the past with other languages. It was super easy.
+
+SAM provides a very nice toolset for Go, and even has a built in template for setting up a basic API with a Lambda function. You just install the SAM CLI and run `sam init` and follow the prompts, selecting Go as your runtime. The CLI will then build you a project with a SAM template, a basic `Hello, Lambda` function, and a Makefile to automate the build process. You can then use the SAM CLI to deploy your Lambda function and API Gateway to your AWS account.
+
+[Here](https://github.com/go-micah/hello-lambda-api-sam/tree/bafbb2c4bf9a659649b1ea5b7575dd54d4de2c4d) is what the SAM CLI built for me. I haven't really made any changes so far. I just ran through the deploy process and got my simple API to work. This is fun! Now I have a way to build out a Go based API on AWS Lambda, and I can use SAM to test and debug my code locally.
+
+That's all for now. Now Go away!

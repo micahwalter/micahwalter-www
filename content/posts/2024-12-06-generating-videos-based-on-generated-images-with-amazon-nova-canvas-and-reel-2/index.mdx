@@ -1,0 +1,41 @@
+---
+title: "Generating videos based on generated images with Amazon Nova Canvas and Reel"
+publishedAt: "2024-12-06"
+excerpt: "I've been experimenting a little with the new Nova models on Amazon Bedrock. I'm currently just doing this all through the AWS Console. Nova Reel has the..."
+category: "AI"
+coverImage: "./cover.png"
+tags:
+  - "ai"
+  - "amazon-bedrock"
+  - "aws"
+  - "genai"
+  - "nova"
+  - "video"
+draft: true
+# WordPress ID: 78834
+# Original URL: https://www.micahwalter.com/2024/12/generating-videos-based-on-generated-images-with-amazon-nova-canvas-and-reel/
+---
+
+I've been experimenting a little with the new Nova models on Amazon Bedrock. I'm currently just doing this all through the AWS Console.
+
+Nova Reel has the ability to upload a reference image, so I used Nova Canvas to generate a few variations to use as seed images for Nova Reel.
+
+Here are the prompts and results of a first pass.
+
+**Nova Canvas Prompt**: Generate an image of waves in the ocean from the perspective of someone swimming in the water. There should be nothing in the distance or the background, just endless ocean under a blue sky. There should NOT be any people or animals visible, just the water and the waves.
+
+**Nova Canvas Negative Prompt**: people, animals, structures, boats, man made objects
+
+I generated a few image variations and chose this one to use as the reference image in Nova Reel.
+
+![](./waves-1.png)
+
+**Nova Reel Video Prompt**: Generate video of waves in the ocean from the perspective of someone swimming in the water. There should be nothing in the distance or the background, just endless ocean under a blue sky. There should NOT be any people or animals visible, just the water and the waves. The wave should be moving in real-time motion.
+
+And here is the final resulting video clip from Nova Reel.
+
+There's some pretty unsettling things going on with arms and bodies in the water! I needed to adjust my prompt a bit.
+
+**Nova Reel Video Prompt 2**: Generate video of waves in the ocean based on the reference image. There should be nothing in the distance or the background, just endless ocean under a blue sky. There should NOT be any people or animals visible, just the water and the waves. The wave should be moving in real-time motion.
+
+This result was much closer to what I had imagined! Albeit, there are some issues with the waves moving in different directions and not really crashing naturally, but wow, this is cool. Not bad for a first pass!

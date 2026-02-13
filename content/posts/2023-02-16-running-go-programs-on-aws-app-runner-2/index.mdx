@@ -1,0 +1,82 @@
+---
+title: "Running Go Programs on AWS App Runner"
+publishedAt: "2023-02-16"
+excerpt: "I spent some time this week thinking about deploying Go programs and decided to learn how to containerize Go and in that process also decided to take a look at..."
+category: "Writing"
+coverImage: "./cover.jpg"
+tags:
+  - "aws"
+  - "AWS App Runner"
+  - "Docker"
+  - "go"
+  - "TIL"
+draft: true
+# WordPress ID: 650
+# Original URL: https://www.micahwalter.com/2023/02/running-go-programs-on-aws-app-runner/
+---
+
+I spent some time this week thinking about deploying Go programs and decided to learn how to containerize Go and in that process also decided to take a look at other ways to run Go on AWS. It turns out there are many options.
+
+When I think about compute, there's basically three main categories of how I can run my code:
+
+1.  On a server
+2.  On a container, on one of the many ways to run containers, including on servers
+3.  On AWS Lambda
+
+In my [second post](https://www.micahwalter.com/getting-going-with-go/) I talked briefly about running Go on AWS Lambda. I got it working pretty quickly, and it's likely a topic I'll come back to in more detail as I progress with the language. But, serverless compute isn't always the right choice, and so I thought I'd have a look at containerizing a Go program. (Interestingly, you can run a container on AWS Lambda–something I'm sure to experiment with in the future.)
+
+Containerizing a Go program is pretty simple. I created a basic [hello-docker](https://github.com/go-micah/hello-docker) repository and added the following code:
+
+```
+package mainimport (	"fmt"	"net/http")func hello(w http.ResponseWriter, req *http.Request) {	fmt.Fprintf(w, "Hello, Docker.\n")}func main() {	http.HandleFunc("/", hello)	http.ListenAndServe(":3000", nil)}
+```
+
+This is a super simple program that creates a web server using Go's [net/http](https://pkg.go.dev/net/http) package found in the standard library. The main function adds a handler for the `/` route and sets up a listener on port 3000.
+
+To containerize this, I just created a Dockerfile that looks like this:
+
+```
+FROM golang:1.19-alpineWORKDIR /appCOPY go.mod ./COPY go.sum ./RUN go mod downloadCOPY *.go ./RUN go build -o /hello-dockerEXPOSE 3000CMD [ "/hello-docker" ]
+```
+
+This Dockerfile tells docker how to build my program, how to run it, and opens port 3000. Now I can build my docker image and ship it to whatever container platform I'd like.
+
+## AWS App Runner
+
+The first container service that came to mind was [AWS App Runner](https://aws.amazon.com/apprunner). AWS App Runner was launched in 2021, and offers developers an incredibly easy way to deploy web applications. It handles all the load balancing, auto-scaling, logging and monitoring for you. No servers to manage, no provisioning or configuring software packages. It just works.
+
+It turns out, there are two ways to deploy a Go app on AWS App Runner–from a container or from your source code.
+
+Creating an app from source code just requires you to connect AWS App Runner to your GitHub repo, configure a few settings and your'e done. You don't even need the Dockerfile!
+
+Here are some notes on deploying my `hello-docker` web application on AWS App Runner.
+
+### Deploying from source code
+
+1.  The console will help you connect to GitHub, link your repo, and select your branch
+2.  Your repo doesn't need a Dockerfile
+3.  You can choose to use an `apprunner.yml` config file, or set the basic config within the console for build and start commands.
+4.  My build command looked like `go build -o /hello-docker`
+5.  My start command looked like `/hello-docker`
+6.  You can set up automatic builds on every update to your GitHub branch or update manually
+
+### Deploying from a container
+
+1.  First you need to build the container locally and push it to [Amazon Elastic Container Registry](https://aws.amazon.com/ecr/) (ECR)
+2.  You can choose from ECR private or ECR public repositories when setting up your service
+3.  Your source code won't require an `apprunner.yml` config file
+4.  You will need a Dockerfile similar to the one I pasted above to build your container image
+5.  One benefit is that your container on ECR can be re-used on various other container infrastructure like ECS, EKS, Beanstalk, and more. This seems very appealing since you can easily switch services in the future.
+6.  You can choose to do automatic deployments whenever you push a new image to ECR or update manually
+
+I went through the paces of deploying both scenarios and they both worked equally well. I'm not entirely sure which is better, however I am leaning toward the docker based version since it seems more flexible and less concerned with the specifics of AWS App Runner itself (no need for additional config files, etc.)
+
+Here's some additional nice things I noticed when poking at AWS App Runner.
+
+-   You can pause and resume an AWS App Runner service to save money while in development
+-   You can set up a [VPC Endpoint](https://docs.aws.amazon.com/apprunner/latest/dg/network.html) to connect your AWS App Runner service to resources inside a VPC like an Amazon RDS database or an Amazon EC2 Instance.
+-   You can set up private endpoints and use AWS App Runner to host an internal API
+-   AWS App Runner handles auto-scaling, load balancing and custom domains
+-   You get built in observability with X-Ray as well as logging and metrics with Amazon CloudWatch
+
+Overall I think AWS App Runner is a great way to host Go programs. I'm eager to continue working with it and see what else it can do. But, my favorite thing about AWS App Runner so far is the simplicity. The ability to point at a GitHub repo and launch a web app is super nice and a great way to rapidly prototype ideas on the Go.

@@ -1,0 +1,20 @@
+---
+title: "Lightweight LLM for converting text to structured data"
+publishedAt: "2025-02-10"
+excerpt: "In two recent papers we published at the Conference on Empirical Methods in Natural Language Processing EMNLP and on ArXiv, we presented a native approach to..."
+category: "AI"
+tags:
+  - "ai"
+  - "amazon-science"
+  - "aws"
+  - "genai"
+draft: true
+# WordPress ID: 79145
+# Original URL: https://www.micahwalter.com/2025/02/lightweight-llm-for-converting-text-to-structured-data/
+---
+
+> In two recent papers we published at the Conference on Empirical Methods in Natural Language Processing ([EMNLP](https://www.amazon.science/conferences-and-events/emnlp-2024)) and on ArXiv, we presented a native approach to this problem in the form of a specialized lightweight structured-object language model (SoLM). Unlike general-purpose LLMs, SoLM is trained to generate objects only in a specific schema. SoLM’s contributions include a special training method called [self-supervised denoising](https://www.amazon.science/publications/structured-object-language-modeling-solm-native-structured-objects-generation-conforming-to-complex-schemas-with-self-supervised-denoising) and a special decoding method for use at inference time called [confidence-aware substructure beam search](https://arxiv.org/abs/2406.00069) (CABS), which mitigates hallucination risks.
+> 
+> In experiments, we found that SoLM’s output accuracy matched or exceeded that of state-of-the-art LLMs, while its cost efficiency was an order of magnitude better. We also found that, on the problem of product attribute generation, the CABS decoding approach improved recall by 16.7% relative to conventional beam search decoding, when precision was fixed at 90%.
+
+[Lightweight LLM for converting text to structured data](https://www.amazon.science/blog/lightweight-llm-for-converting-text-to-structured-data)

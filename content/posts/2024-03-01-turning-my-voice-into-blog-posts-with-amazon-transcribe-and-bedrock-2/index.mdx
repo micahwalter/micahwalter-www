@@ -1,0 +1,54 @@
+---
+title: "Turning my voice into blog posts with Amazon Transcribe and Bedrock"
+publishedAt: "2024-03-01"
+excerpt: "Finding My Creative Voice I've always felt a tension between my technical side and my artistic side. For years, I've compartmentalized these interests, keeping..."
+category: "AI"
+coverImage: "./cover.png"
+tags:
+  - "amazon-bedrock"
+  - "aws"
+  - "genai"
+  - "nlp"
+draft: true
+# WordPress ID: 72
+# Original URL: https://www.micahwalter.com/2024/03/turning-my-voice-into-blog-posts-with-amazon-transcribe-and-bedrock/
+---
+
+**Finding My Creative Voice**
+
+I've always felt a tension between my technical side and my artistic side. For years, I've compartmentalized these interests, keeping my creative pursuits separate from my professional work in technology. Recently, however, I've started questioning that approach. I believe there is power in integrating all aspects of myself into one cohesive identity.
+
+**Early Exploration at the Intersection of Art and Tech**
+
+My first foray into blending technology and artistic creativity was with a 2015 project called Curatorial Poetry. While working at the Cooper Hewitt Smithsonian Design Museum, I created a system that automatically generated "poems" by remixing object descriptions from the museum's open API. The resulting poetic fragments highlighted the artistry in the original catalog descriptions. This project showed me the potential in using code to power creative expression.
+
+**Revisiting Generative AI Art**
+
+With the recent explosion in generative AI, I decided to revisit the intersection of technology and creativity. I'm currently building a system that uses a large language model to generate original poetry inspired by museum artifacts. Through livestreams and blog posts, I'm documenting the process of constructing the project on AWS services like Lambda and Bedrock. My goal is twofold: to experiment with cutting-edge AI capabilities, and to share technical knowledge with others.
+
+**Finding My Unified Creative Voice**
+
+While fun, my how-to AWS articles have catered to a narrow audience. In focusing so much on technical tips, I've lost sight of the bigger picture: expressing who I am as a creative builder. I aim to change that. Moving forward, I want to fully merge my artistic and engineering sides under one umbrella. I plan to infuse more creativity into my technical writing and connect my personal projects back to professional skills. Rather than keeping these worlds separate, I will integrate all my multifaceted interests into one unified voice.
+
+At my core, I'm a builder who loves making things. Whether I'm crafting sculptures, designing APIs, or training neural networks, creation energizes me. By embracing this identity wholeheartedly, I hope to evolve a blog and brand that fully represents my passions. My creative output will encompass technology, yes, but also poetry, generative art, and whatever else inspires me. I don't need to compartmentalize anymore. I can simply create as my integrated self: builder, engineer, artist, and lifelong learner.
+
+* * *
+
+The above blog was written by [Anthropic's Claude](https://www.anthropic.com/product). It's not bad. It doesn't really sound like me (I'm not a sculptor). But, that's because it's not me. It's Claude! To generate this post, I recorded my voice with my iPhone, uploaded the audio file to [Amazon Simple Storage Service (S3)](https://aws.amazon.com/s3) and then used [Amazon Transcribe](https://aws.amazon.com/transcribe/) to turn the audio into text.
+
+On it's own, Transcribe works great, but it's very much a word for word transcription of everything I said, including the "um" and "uh" filler words. The text is also more of a discussion vs. an actual blog post. So, I took that output from Transcribe and put it into [Amazon Bedrock](https://aws.amazon.com/bedrock) and asked Claude to convert it to something closer to a blog format.
+
+Below is the raw input to Claude including my prompt asking Claude to re-imagine my voice recording as a blog.
+
+What do you think?
+
+* * *
+
+```
+Human: 
+Cool. Yeah, I'm uh in this little phone booth at work. So it's a little weird in here. The audio is very funny, but we'll see how it goes. Uh So, yeah, I'm trying to think of this blog post. I wanna write. Uh And maybe this is this is the post. So I started working on a project uh years ago called Curatorial poetry. Uh This was when I was at the um Cooper Hewitt Smithsonian Design Museum in New York. We had just published a open access API and I was looking for uh a way to demo the API and, and learn about it myself. So I created a project um that would pull um descriptions from the database of objects in the API and turn them into uh at the time Tumblr posts, but also tweets eventually. Uh And I called it curatorial poetry. So every two hours or so something like that, uh it would automatically find a random object in the collection and post this little description as a new Tumblr Post. Uh There was not much else in terms of context. There was a um uh URL, you could click to go to the actual object itself. Uh But it was kind of fun because it was pulling these visual descriptions. Uh They were handwrit by some curator somewhere years ago. Uh and sort of repurposing them as a way to describe uh an artwork and they had this sort of poetic uh or I felt this sort of poetic nature to them. Um That was years ago, that was 2015, I think. And recently, with all the kind of focus around generative A, I, uh I decided to try another little project um where I would do something similar basically using the open access database of some museum uh to inspire poetry written by a generative A I large language model. Um So I built kind of a prototype for this project um back in December, um shared it with a few friends and got some feedback on it. And then during the course of the last couple of uh live streams I've been doing, I've been sort of recreating that project and thinking through all the nuances in terms of how to actually make it work uh as a way to kind of uh teach people how to use Aws lambda, um Amazon Bedrock and some other services. So that's been going pretty well. I've been enjoying building that project. I'm gonna continue working on it in the next couple of uh live streams until the point where, you know, we've, it's actually working uh and it's time to do something else. But in the meantime, and kind of parallel with that all that, uh it's caused me to really think a lot about, um you know, myself and my website and my livestream, my work at Aws uh and the things that I'm interested in creatively. Um and this has always been a kind of a struggle, I think internally in my mind, I guess, in terms of how I um uh kind of merge those kinds of things together. So there's, I, I've always felt there's this sort of, you know, technical side to myself and this artistic side to myself. And for some reason, they don't always overlap or they don't always intersect and I have to kind of separate them mentally somehow. And recently I've been starting to think or maybe rethink that, that maybe that's not the best way to think about it and maybe in fact, merging them together completely, like integrating those thoughts into one idea uh is what I need to lean into. Um And so it's sort of manifested in this uh confusion over what my blog is all about, what this website is all about, uh what the newsletter is and that sort of stuff. And so, um you know, as, as you probably have noticed most of my posts in the last, I don't know, six months or so, have been focused on kind of like tips and tricks around doing stuff on Aws, which is fun, but it's you know, I think there's a specific audience that's interested in that sort of thing. And so I wanna get back to applying those ideas to the, you know, the, the things I like to make personally and my kind of uh creative outlets if you will. And so that's kind of what I'm thinking about going forward is how I can start to, you know, merge those ideas together and think of myself as, you know, one person, you know, one person with many interests, that kind of thing. Um, and one person who likes to build stuff, like, I think that's sort of the, like the focus of what this all comes down to. Like, that's kind of the, um, you know, the moral of the story if you will is that regardless of all the different things that I find interesting or things that I've spent time thinking about, um, or activities that I do or um, projects that I build at the end of the day, I'm just one person and I think I'm one person who likes to make things. Uh And so maybe if I kind of, you know, lean into that or, um figure out a way to talk about that more broadly, that will kind of satisfy what I'm trying to understand, I guess. I don't know. That's what I have so far.
+```
+
+```
+The above  is a transcription from an audio recording. Use this as the basis for a new blog post about creativity and creative process. The post should be about 1000 words long and should have section headers and be written in the first person.
+```

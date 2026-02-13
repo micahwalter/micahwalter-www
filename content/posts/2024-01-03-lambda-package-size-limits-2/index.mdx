@@ -1,0 +1,37 @@
+---
+title: "Dealing with AWS Lambda deployment package size limits"
+publishedAt: "2024-01-03"
+excerpt: "UPDATE: Package Size Limits via the AWS Console have been updated since the writing of this blog post. I've added the new limits in the parenthesis below. I..."
+category: "AWS"
+coverImage: "./cover.jpg"
+tags:
+  - "aws"
+  - "Lambda"
+  - "serverless"
+  - "TIL"
+draft: true
+# WordPress ID: 810
+# Original URL: https://www.micahwalter.com/2024/01/lambda-package-size-limits/
+---
+
+**UPDATE: Package Size Limits via the AWS Console have been updated since the writing of this blog post. I've added the new limits in the parenthesis below.**
+
+I had an interesting conversation at work today around package size limits for AWS Lambda and it got me thinking about a number of strategies for dealing with these limits.
+
+### The limits
+
+First, here are the limits. As per the [documentation](https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html), your Lambda function, including all its source code, layers, and any custom runtime must fit within the size limits listed below:
+
+-   In the AWS Console Editor – 3MB (**Upped to 50MB in 2024**)
+-   Zipped for direct upload – 50MB
+-   Unzipped (using an S3 bucket) – 250MB
+-   Container image – 10GB
+
+### How to deal with the limits
+
+Here's a few ideas I came up with on how to deal with these limitations.
+
+1.  First, optimize the code as much as possible to shrink the dependency size and make sure you aren't importing unnecessary libraries. You can do this by [building dependencies from source](https://avilpage.com/2020/02/reduce-python-package-footprint.html), and by making sure you are only importing the parts of the library you actually need vs. a global import.
+2.  Consider splitting the lambda into separate steps and use [AWS Step Functions](https://aws.amazon.com/step-functions/) to orchestrate. For example, a Lambda that fetches data from MySQL using [PyMySQL](https://pypi.org/project/pymysql/), and then another Lambda that processes that data using [Pandas](https://pypi.org/project/pandas/) would mean your package size could be split across two separate functions, where each function only loads the libraries required.
+3.  Use a container – This will up the size limit to 10GB from 250MB. That's a big difference!
+4.  Use [Amazon Elastic File System](https://aws.amazon.com/efs/) (EFS) – You will need a VPC and an EC2 instance to write the initial data to the EFS volume, but [this configuration](https://towardsdatascience.com/deploying-large-packages-on-aws-lambda-using-efs-3a707f83d918) can give your Lambda plenty of room to breathe.

@@ -1,0 +1,44 @@
+---
+title: "Hosting my books on AWS with Writebook"
+publishedAt: "2025-03-18"
+excerpt: "There are now several ways to read the short story I wrote earlier this year. You can of course always re-read the serialized \"blog style\" story on Substack...."
+category: "AWS"
+coverImage: "./cover.png"
+tags:
+  - "aws"
+  - "ec2"
+  - "fiction"
+  - "writing"
+draft: true
+# WordPress ID: 79227
+# Original URL: https://www.micahwalter.com/2025/03/hosting-writebook-on-aws/
+---
+
+![](./Screenshot-2025-03-18-at-3.22.56-E2-80-AFPM.png)
+
+There are now several ways to read the [short story](https://www.micahwalter.com/2025/01/happy-new-year-and-1000-words/) I wrote earlier this year. You can of course always re-read the serialized "blog style" story on [Substack](https://micahwalter.substack.com). But, if you want a more traditional book style format, I have a couple options for you.
+
+1.  You can buy the book on [Amazon Kindle](https://a.co/74hq4Bq) for $5.00. Or, if you are a KindleUnlimited subscriber, you can read it for free. Nice!
+2.  I installed the very lovely [Writebook software](https://once.com/writebook) from 37Signals' ONCE on AWS, so you can [read it there](https://books.micahwalter.com) as well, for free.
+
+Why all the formats? Well, I guess I just believe that people should be able to access what I create in whatever medium/format/device they are comfortable with. I began with Substack, because it felt like a good way to send out live updates as I created the story. I'll keep doing this for the next project. But, once it's all out the door, reading it on Substack one chapter at a time is kind of clunky.
+
+But, that's not what I want to write about. What I want to write about is how I set up Writebook on AWS. It was just about the easiest install I've done of any kind of web app. Just seamless and simple thanks to 37Signals and their "single line" install code.
+
+## What is Writebook?
+
+I don't know, really? 37Signals launched it as a 100% free software you can host on our own. I think it was a pet project of theirs to help promote their [ONCE](https://once.com/) platform/store idea. The thesis being, in some circumstances, paying a subscription for a cloud based SaaS might not make total sense, and maybe an alternative is something like ONCE.
+
+Their docs contained some nice, detailed instructions for hosting on Hetzner and DigitalOcean, but I prefer AWS, if you haven't already noticed.
+
+So here's all I had to do.
+
+1.  Configure my VPC – This is already done with a new AWS account.
+2.  Spin up an EC2 instance in a public subnet. I chose a [t4g.small](https://aws.amazon.com/ec2/instance-types/t4/) instance.
+3.  Associate an Elastic IP with said instance.
+4.  Point a domain record to my new EIP. I used [Amazon Route53](https://aws.amazon.com/route53) for this.
+5.  Log into the instance via SSH, and paste the ONCE command and press return. (37Signals will email you the command and code when you sign up)
+
+That was it! The whole process took me less than 15 minutes. I now have a web application [running on a subdomain](https://books.micahwalter.com) where I can keep a growing archive of all the "books" I write. Writebook is simple and easy to use, and best of all, it automatically pings 37Signals servers to fetch periodic updates.
+
+Hosting a web app like this on a single instance and in a public subnet isn't a best practice for production workloads, but it's the best practice for my situation, where I just want to get something up and running, and I know it won't be getting a ton of traffic. For now.

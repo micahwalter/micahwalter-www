@@ -1,0 +1,67 @@
+---
+title: "Reaching for Claude"
+publishedAt: "2024-12-19"
+excerpt: "More and more I am finding myself reaching for Claude to answer simple questions or help me better understand complex topics. I really love the Claude Desktop..."
+category: "AI"
+tags:
+  - "ai"
+  - "claude"
+  - "claude-convos"
+  - "genai"
+draft: true
+# WordPress ID: 78934
+# Original URL: https://www.micahwalter.com/2024/12/reaching-for-claude/
+---
+
+More and more I am finding myself reaching for [Claude](http://claude.ai) to answer simple questions or help me better understand complex topics. I really love the Claude Desktop app and the handy Option-Spacebar hotkey I've been using to open this little panel shown here.
+
+![](./Screenshot-2024-12-19-at-3.09.50-E2-80-AFPM.png)
+
+I'm surprised by how good Claude is for helping me think through problems, or learn new concepts. Up until recently I had been thinking of Claude as a "make me this thing" machine, where I'd ask it to generate me a new blog post template, or get me started with a new coding project, but not anymore. Now, I am asking Claude questions that are more conceptual or require some introspection.
+
+Here's a good example:
+
+> Me: When building a CLI, should the –help command show default values or pull current settings from a persistent config?
+
+This is sort of an open ended question with no definitive answer. I'm really asking about design and style here. Claude came back with the following:
+
+* * *
+
+Let me think through this from a CLI design perspective.
+
+For a CLI tool, I recommend showing both the default values in –help AND indicating if those defaults can be overridden by configuration files. This gives users complete information while setting correct expectations. Here's why:
+
+1.  Default values in –help serve as essential documentation:
+
+-   Users can quickly understand expected behavior without checking config files
+-   It establishes the baseline functionality of the tool
+-   New users can run the tool immediately without configuration
+
+1.  However, you should also indicate when defaults can be overridden:
+
+```
+Usage: mytool [OPTIONS]
+  --port PORT     Port to listen on (default: 8080, can be set in config.yaml)
+  --host HOST     Host address (default: localhost, can be set in config.yaml)
+```
+
+3.  For hierarchical configuration (increasing precedence):
+
+```
+CLI flag > Environment variable > Config file > Built-in default
+```
+
+This approach solves several problems:
+
+-   Users know what will happen with no configuration
+-   Users can see which values are configurable
+-   Documentation stays accurate even when users customize settings
+-   Helps avoid confusion when behavior differs from documented defaults
+
+You could also consider adding a separate command like –show-config to display current effective settings from all sources. This helps users understand exactly how their tool is configured.
+
+Would you like me to elaborate on any of these points or discuss specific implementation approaches?
+
+* * *
+
+This reply helped me come to a conclusion about what approach I wanted to take. I didn't copy and paste content, I actually learned something and made up my own mind. Nice!

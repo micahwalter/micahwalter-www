@@ -1,0 +1,47 @@
+---
+title: "Use models from Amazon Bedrock Marketplace in Chat-CLI"
+publishedAt: "2024-12-05"
+excerpt: "In a previous post I talked about getting up and running with LLMs via the new Amazon Bedrock Marketplace. So, naturally I have added functionality to Chat-CLI..."
+category: "AI"
+coverImage: "./cover.png"
+tags:
+  - "ai"
+  - "amazon-bedrock"
+  - "aws"
+  - "chat-cli"
+  - "genai"
+  - "go"
+draft: true
+# WordPress ID: 78831
+# Original URL: https://www.micahwalter.com/2024/12/use-models-from-amazon-bedrock-marketplace-in-chat-cli/
+---
+
+In a [previous post](https://www.micahwalter.com/2024/12/experimenting-with-arcee-lite-on-amazon-bedrock-marketplace/) I talked about getting up and running with LLMs via the new Amazon Bedrock Marketplace. So, naturally I have added functionality to Chat-CLI to allow you to access these models as well.
+
+With v0.3.5 of [Chat-CLI](https://github.com/chat-cli/chat-cli) there is a new `--custom-arn` flag available for both the `chat` and `prompt` commands. This allows you to use any Endpoint ARN from a marketplace model or even a [Cross-Region Inference](https://docs.aws.amazon.com/bedrock/latest/userguide/cross-region-inference.html) model. Once your model is ready and you have your Endpoint ARN, it's pretty easy to do
+
+Here's an example where I am chatting with the Acree Lite model via the Amazon Bedrock Marketplace:
+
+`$ chat-cli chat --custom-arn`
+
+![](./Screenshot-2024-12-05-at-1.46.42-E2-80-AFPM.png)
+
+This also works in the `prompt` command in the same way.
+
+Note: This is an experimental feature (as is this entire project) so there may be some unexpected behavior I haven't thought of yet.
+
+To install Chat-CLI via Homebrew just do this:
+
+```
+$ brew tab chat-cli/chat-cli
+$ brew install chat-cli
+```
+
+Or, if you just need to upgrade, do this:
+
+```
+$ brew update
+$ brew upgrade
+```
+
+You can do `$ chat-cli version` to make sure you are on v0.3.5 and you should be good to go.

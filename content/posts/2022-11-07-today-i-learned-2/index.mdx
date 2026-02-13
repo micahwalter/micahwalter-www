@@ -1,0 +1,45 @@
+---
+title: "Today I Learned"
+publishedAt: "2022-11-07"
+excerpt: "I’m starting a new mini-series on here. It’s called “Today I Learned.” I was recently reading “What to blog about” by Simon Willison, where he talks about..."
+category: "Writing"
+coverImage: "./cover.jpg"
+tags:
+  - "Athena"
+  - "aws"
+  - "tech"
+  - "TIL"
+draft: true
+# WordPress ID: 390
+# Original URL: https://www.micahwalter.com/2022/11/today-i-learned/
+---
+
+I’m starting a new mini-series on here. It’s called “Today I Learned.” I was recently reading “[What to blog about](https://simonwillison.net/2022/Nov/6/what-to-blog-about/)” by Simon Willison, where he talks about writing his own TIL posts, and it occurred to me that this is what I should also be doing. Like Simon, I feel like I learn something new just about every day, so writing down some of these in short form blog posts might be a nice way to help crystalize things as I go.
+
+It’s also a really nice way to keep things moving with my writing. I often find myself waiting to write because the topic has gotten too big in my mind and I never feel like I have the time to sit down and work through it all. With the TIL format, it’s much lower friction to get something written and published.
+
+I used to do this in the form of a daily journal. That practice has changed dramatically over the course of the last two years. These days, I tend to keep more of a daily log of what I am working on and who I am working with. It’s more of a way to remind myself where I am in various conversations throughout the year.
+
+What I am thinking is, TIL will be short form, usually less than 500 words, and will typically be more tech focused. Because of the higher frequency of these posts, I’ve set up a second newsletter in case you don’t want to receive every one of these in your inbox. If you already receive my newsletter, you’ve been opted-in already, but you can easily opt out by going to your [account settings](https://www.micahwalter.com/#/portal/account) and unsubscribing. The choice is yours!
+
+All my TIL posts will be permanently open to the public, and you will be able to read them all [right here](https://www.micahwalter.com/tag/til/) as well. And yes, there will usually be an unrelated photo at the top!
+
+Here’s the first one!
+
+## Experimenting with Amazon Athena
+
+Lately I’ve been working on a project that makes extensive use of [Amazon Athena](https://aws.amazon.com/athena). Before this project, I didn’t have much experience with Athena, but now I do, and I have to say, Athena is awesome!
+
+Athena basically allows anyone to query data stored directly on [Amazon Simple Storage Service](https://aws.amazon.com/s3) with [SQL](https://en.wikipedia.org/wiki/SQL). This is really nice, because you don’t need to worry about loading your data into a database, or spinning up servers and compute resources at all. Athena is completely [Serverless](https://en.wikipedia.org/wiki/Serverless_computing), so it’s just sitting there, waiting to be used.
+
+What I really love about Athena is that it can easily connect to a wide variety of common data sources. Besides data sitting in an S3 bucket, Athena can pull data from [Amazon DynamoDB](https://aws.amazon.com/dynamodb/), [Amazon Redshift](https://aws.amazon.com/redshift/), [PostgresSQL](https://en.wikipedia.org/wiki/PostgreSQL), [MySQL](https://en.wikipedia.org/wiki/MySQL) and many other sources.
+
+For my project, I used Athena to connect directly to a [TPC-DS](https://www.tpc.org/tpcds/) data generator. TPC-DS is a “decision support benchmark” which can be used to generate millions of rows of sample data for a wide variety of purposes. Since TPC-DS is pre-configured as a third-party connector for Athena, it’s [super easy to set up](https://docs.aws.amazon.com/athena/latest/ug/connectors-tpcds.html).
+
+Once configured, TPC-DS simply uses an [AWS Lambda](https://aws.amazon.com/lambda) function to generate data and run queries right from within Athena.
+
+For example I used the`TABLESAMPLE` SQL function to sample 10% of the rows of the customer table in the TPC-DS-10 dataset. This resulted in a sample database of 50,000 fake email addresses that I could use as part of another overlapping dataset for my project.
+
+```sql
+SELECT * FROM "tpcds10"."customer" TABLESAMPLE BERNOULLI(10)
+```
