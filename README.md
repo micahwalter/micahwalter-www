@@ -1,73 +1,195 @@
 # Micah Walter's Website
 
-A modern blog built with Next.js and hosted on AWS using S3 and CloudFront with automated CI/CD.
-
-## Tech Stack
-
-- **Next.js 15**: React framework with App Router
-- **TypeScript**: Type-safe development
-- **Tailwind CSS**: Utility-first styling with custom design system
-- **MDX**: Markdown content with React components
-- **EB Garamond & Beiruti**: Google Fonts for typography
-- **S3 + CloudFront**: Serverless hosting with global CDN
-- **GitHub Actions**: Automated build and deployment
+A modern, statically-exported blog built with Next.js 15 and hosted on AWS S3 + CloudFront with automated CI/CD deployment.
 
 ## Architecture
 
-- **S3 Bucket**: Static file storage with versioning enabled
-- **CloudFront**: Global CDN with HTTPS
-- **CloudFront Function**: SPA routing support
-- **Access Logging**: Both S3 and CloudFront logs enabled
-- **GitHub Actions**: Automated build and deployment pipeline with OIDC authentication
+```mermaid
+graph TB
+    subgraph "Content Creation"
+        A[Developer] -->|Write MDX| B[content/posts/]
+        A -->|Add Images| C[Original Images]
+    end
 
-## Local Development
+    subgraph "Blog CLI Tool"
+        D[blog images:optimize] -->|Resize & Convert| E[.optimized-images/]
+        C --> D
+        E --> F[blog images:upload]
+        F -->|AWS CLI| G[S3 Images Bucket]
+    end
+
+    subgraph "Build & Deploy"
+        B -->|npm run build| H[Next.js Build]
+        H -->|Prebuild Scripts| I[Generate RSS/Sitemap/posts.json]
+        H -->|Static Export| J[/out directory]
+        J -->|GitHub Actions| K[S3 Website Bucket]
+    end
+
+    subgraph "AWS Infrastructure"
+        G -->|Origin 2| L[CloudFront Distribution]
+        K -->|Origin 1| L
+        L -->|HTTPS| M[End Users]
+        N[Route 53] -->|DNS| L
+        O[ACM Certificate] -->|TLS| L
+        P[CloudFront Function] -->|SPA Routing| L
+    end
+
+    subgraph "Storage & Security"
+        K -.Logs.-> Q[S3 Logs Bucket]
+        L -.Logs.-> Q
+        R[Origin Access Control] -->|Secure Access| K
+        R -->|Secure Access| G
+    end
+
+    style A fill:#f9f,stroke:#333
+    style M fill:#9f9,stroke:#333
+    style L fill:#99f,stroke:#333
+    style D fill:#ff9,stroke:#333
+    style H fill:#ff9,stroke:#333
+```
+
+## Tech Stack
+
+### Frontend
+- **Next.js 15**: React framework with App Router and static export
+- **TypeScript**: Type-safe development
+- **Tailwind CSS**: Utility-first styling with custom design system
+- **MDX**: Markdown content with React components via next-mdx-remote
+- **EB Garamond & Beiruti**: Google Fonts for editorial typography
+- **Rehype Highlight**: Syntax highlighting for code blocks
+
+### Infrastructure
+- **AWS S3**: Static file storage with versioning and encryption
+- **CloudFront**: Global CDN with HTTP/2, HTTP/3, and edge caching
+- **CloudFront Function**: SPA routing and path rewriting
+- **Route 53**: DNS management (optional)
+- **ACM**: SSL/TLS certificates
+- **GitHub Actions**: CI/CD with OIDC authentication (no stored credentials)
+
+### Image Processing
+- **Sharp**: High-performance image optimization
+- **WebP + JPEG**: Modern format with fallback support
+- **Responsive Images**: Multiple sizes (400px, 800px, 1200px)
+- **S3 Dual Storage**: Originals and optimized versions backed up
+
+## Quick Start
 
 ### Prerequisites
 
-- Node.js 20+ installed
-- npm or yarn
+- Node.js 20+
+- AWS CLI configured with profile `www`
+- Git and GitHub CLI (optional, for deployments)
 
-### Getting Started
+### Local Development
 
 ```bash
+# Clone the repository
+git clone <repository-url>
+cd micahwalter-www
+
 # Install dependencies
 npm install
 
-# Run development server
+# Link the blog CLI globally
+npm link
+
+# Download images from S3 (first time setup)
+blog images:download --profile www
+
+# Start development server
 npm run dev
 
-# Open http://localhost:3000 in your browser
+# Open http://localhost:3000
 ```
 
-### Build for Production
+### Production Build
 
 ```bash
-# Create production build (includes generating posts.json, RSS feed, and sitemap)
+# Build static site (includes prebuild scripts)
 npm run build
 
-# Preview production build locally
+# Preview production build
 npx serve out/
+```
+
+## Blog CLI Tool
+
+The unified `blog` CLI manages all content and image operations. It must be linked globally once with `npm link`.
+
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `blog help` | Show all commands and usage |
+| `blog help <command>` | Get help for specific command |
+| `blog post:new` | Create new post with template |
+| `blog post:new "Title"` | Create post with title (skip prompt) |
+| `blog images:optimize` | Process images (400/800/1200px WebP+JPEG) |
+| `blog images:upload` | Upload originals + processed to S3 |
+| `blog images:download` | Download from S3 to local |
+| `blog images:sync` | Optimize + Upload (one command) |
+| `blog images:copy-local` | Copy optimized images to public/ for dev |
+| `blog build` | Optimize images + copy to public/ (local dev) |
+| `blog build:static` | Generate RSS, sitemap, posts.json |
+
+### Common Flags
+
+- `--dry-run` - Preview operations without executing
+- `--profile <name>` - Use specific AWS profile (e.g., `www`)
+- `--originals-only` - Only work with original images
+- `--processed-only` - Only work with optimized images
+
+### Examples
+
+```bash
+# Create a new blog post
+blog post:new "Building Modern Web Apps"
+
+# Preview what would be uploaded
+blog images:upload --dry-run --profile www
+
+# Complete workflow: optimize + upload
+blog images:sync --profile www
+
+# Download only original images
+blog images:download --originals-only --profile www
 ```
 
 ## Content Management
 
 ### Creating Blog Posts
 
-Posts are written in MDX format and stored in the `content/posts/` directory. Each post has its own folder with the naming convention: `YYYY-MM-DD-slug-name/`.
+Posts are MDX files stored in `content/posts/` with date-prefixed folder names.
 
-#### Create a New Post
+#### Using the CLI (Recommended)
 
-1. Create a new directory: `content/posts/2024-01-15-my-post-title/`
-2. Create `index.mdx` file with frontmatter:
+```bash
+# Interactive mode (prompts for all fields)
+blog post:new
 
-```mdx
+# With title argument
+blog post:new "My Awesome Blog Post"
+```
+
+This creates:
+- `content/posts/YYYY-MM-DD-slug/index.mdx` with frontmatter template
+- Post starts with `draft: true` by default
+- Visible in dev mode, hidden in production builds
+
+#### Manual Creation
+
+Create a folder: `content/posts/2024-01-15-my-post-title/`
+
+Create `index.mdx` with frontmatter:
+
+```yaml
 ---
 title: "My Post Title"
 publishedAt: "2024-01-15"
-excerpt: "A brief description of the post that appears in listings and SEO."
-category: "AI" # or "AWS", "Writing"
+excerpt: "A brief description that appears in listings and SEO."
+category: "AI"  # or "AWS", "Writing"
 tags: ["tag1", "tag2", "tag3"]
-coverImage: "./cover.jpg" # optional
+coverImage: "./cover.jpg"  # optional
 draft: false
 ---
 
@@ -81,39 +203,24 @@ Regular markdown features work:
 - [Links](https://example.com)
 - Code blocks with syntax highlighting
 
-\```javascript
+```javascript
 const example = "code";
-\```
+```
 
 You can also use JSX components if needed.
 ```
 
-#### Frontmatter Fields
+### Frontmatter Fields
 
-- **title** (required): Post title displayed in listings and detail page
-- **publishedAt** (required): Publication date in YYYY-MM-DD format
-- **excerpt** (required): Brief summary for listings and SEO
-- **category** (required): One of "AI", "AWS", or "Writing"
-- **tags** (optional): Array of tag strings
-- **coverImage** (optional): Relative path to cover image in post folder
-- **draft** (optional): Set to `true` to exclude from build
-
-#### Adding Images
-
-Place images in the same folder as your post:
-
-```
-content/posts/2024-01-15-my-post/
-  index.mdx
-  cover.jpg       # Cover image (1200x675 recommended)
-  diagram.png     # Additional images
-```
-
-Reference images in your MDX:
-
-```markdown
-![Alt text](./diagram.png)
-```
+| Field | Required | Description |
+|-------|----------|-------------|
+| `title` | ✅ | Post title for display and SEO |
+| `publishedAt` | ✅ | Publication date (YYYY-MM-DD) |
+| `excerpt` | ✅ | Brief summary for listings and SEO |
+| `category` | ✅ | One of "AI", "AWS", or "Writing" |
+| `tags` | ❌ | Array of tag strings |
+| `coverImage` | ❌ | Relative path to cover image |
+| `draft` | ❌ | Set `true` to hide in production |
 
 ### Content Structure
 
@@ -123,50 +230,226 @@ content/
     ├── 2024-01-15-building-ai-agents/
     │   ├── index.mdx
     │   └── cover.jpg
-    ├── 2024-02-03-serverless-architecture-aws/
-    │   └── index.mdx
+    ├── 2024-02-03-serverless-architecture/
+    │   ├── index.mdx
+    │   ├── cover.jpg
+    │   └── diagram.png
     └── ...
 ```
 
-### Generated Files
+### Draft Posts
 
-The build process automatically generates:
-- `/public/posts.json` - Search index for client-side search
-- `/public/feed.xml` - RSS feed for all published posts
-- `/public/sitemap.xml` - Sitemap for SEO
+Posts with `draft: true` behave differently in dev vs production:
 
-These are regenerated on every build.
+- **Development** (`npm run dev`): Drafts visible with "DRAFT" badge
+- **Production** (`npm run build`): Drafts completely excluded
+
+Set `draft: false` when ready to publish.
+
+## Image Workflow
+
+This project uses a dual-storage system for images to support multi-machine workflows without bloating the Git repository.
+
+### Storage Architecture
+
+**Local:**
+- Originals: `content/posts/{slug}/*.{jpg,png}`
+- Processed: `.optimized-images/posts/{slug}/*-{size}.{webp,jpg}`
+
+**S3:**
+- Originals: `s3://bucket/images/originals/posts/{slug}/`
+- Processed: `s3://bucket/images/posts/{slug}/`
+
+### Image Processing
+
+Each image is optimized into 6 files:
+- `image-400.webp` (small, modern format)
+- `image-400.jpg` (small, fallback)
+- `image-800.webp` (medium, modern)
+- `image-800.jpg` (medium, fallback)
+- `image-1200.webp` (large, modern)
+- `image-1200.jpg` (large, fallback)
+
+**File Size Comparison:**
+
+| Size | Format | Typical Size | Savings |
+|------|--------|--------------|---------|
+| Original | JPEG | 800 KB | - |
+| 1200px | WebP | 160 KB | 80% |
+| 800px | WebP | 80 KB | 90% |
+| 400px | WebP | 20 KB | 97% |
+
+Mobile users downloading 400px WebP save **97%** bandwidth!
+
+### Daily Workflow
+
+#### Adding Images to a Post
+
+```bash
+# 1. Add image to post directory
+cp ~/photo.jpg content/posts/2024-01-15-my-post/cover.jpg
+
+# 2. Reference in frontmatter
+# coverImage: "./cover.jpg"
+
+# 3. Optimize and upload everything
+blog images:sync --profile www
+
+# 4. Commit (only MDX, images are gitignored)
+git add content/posts/2024-01-15-my-post/index.mdx
+git commit -m "Add new blog post"
+git push
+```
+
+#### Setting Up on a New Machine
+
+```bash
+# Clone repository
+git clone <repo-url>
+cd micahwalter-www
+
+# Install dependencies
+npm install
+
+# Link CLI globally
+npm link
+
+# Download all images from S3
+blog images:download --profile www
+
+# Now you have originals + processed images!
+```
+
+### Image Recommendations
+
+**Cover Images:**
+- Dimensions: 1200px wide (or tall for portraits)
+- Format: JPEG or PNG (will be converted)
+- Quality: High quality (optimization is automatic)
+- Max file size: 2MB before optimization
+- Aspect ratio: 16:9 or 4:3 recommended
+
+**File naming:**
+- Use descriptive names: `cover.jpg`, `diagram.png`, `screenshot.jpg`
+- Avoid generic: `img1.jpg`, `photo.png`
+
+### How Images Are Served
+
+Browser receives responsive `<picture>` elements:
+
+```html
+<picture>
+  <source
+    srcset="
+      https://cdn.example.com/images/posts/slug/cover-400.webp 400w,
+      https://cdn.example.com/images/posts/slug/cover-800.webp 800w,
+      https://cdn.example.com/images/posts/slug/cover-1200.webp 1200w
+    "
+    type="image/webp"
+  />
+  <source
+    srcset="
+      https://cdn.example.com/images/posts/slug/cover-400.jpg 400w,
+      https://cdn.example.com/images/posts/slug/cover-800.jpg 800w,
+      https://cdn.example.com/images/posts/slug/cover-1200.jpg 1200w
+    "
+    type="image/jpeg"
+  />
+  <img src="https://cdn.example.com/images/posts/slug/cover-800.jpg" alt="..." loading="lazy" />
+</picture>
+```
+
+**Browser intelligently chooses:**
+- Format: WebP if supported (97%+ browsers), otherwise JPEG
+- Size: Based on viewport width (mobile: 400px, tablet: 800px, desktop: 1200px)
+
+## Development
+
+### NPM Scripts
+
+```bash
+npm run dev              # Start dev server with Turbopack
+npm run build            # Production build (runs prebuild automatically)
+npm run start            # Start production server
+npm run lint             # ESLint check
+
+# Image scripts (prefer blog CLI)
+npm run optimize-images  # Legacy: use blog images:optimize
+npm run upload-images:www # Legacy: use blog images:upload --profile www
+npm run images:dev       # Optimize + copy to public/ for dev
+```
+
+### Environment Variables
+
+**Production (GitHub Actions):**
+Already configured via secrets.
+
+**Local Development:**
+Create `.env.local` (optional):
+
+```bash
+# S3 bucket name for images
+IMAGES_BUCKET=micahwalter-www-images
+
+# AWS region
+AWS_REGION=us-east-1
+
+# AWS profile (alternative to --profile flag)
+AWS_PROFILE=www
+```
+
+## Build Process
+
+The build runs in this order:
+
+### 1. Prebuild Scripts (Automatic)
+
+Triggered by `prebuild` in package.json before `next build`:
+
+- `generate-posts-json.js` → `/public/posts.json` (search index)
+- `generate-rss.js` → `/public/feed.xml`
+- `generate-sitemap.js` → `/public/sitemap.xml`
+
+### 2. Next.js Build
+
+- Generates static HTML for all routes
+- Uses `generateStaticParams()` for dynamic routes
+- Outputs to `/out` directory
+- No API routes (static export mode)
+
+### 3. Deployment (GitHub Actions)
+
+- Syncs `/out` to S3 with optimized cache headers
+- Invalidates CloudFront cache
+- Takes ~3-4 minutes total
 
 ## Deployment
 
 ### Automated Deployment (Recommended)
 
-Simply push changes to the `main` branch and GitHub Actions will automatically build and deploy:
+Push to `main` branch triggers automatic deployment:
 
 ```bash
-# Make changes to your Next.js app
-# Edit files in app/ directory
-
-# Commit and push
+# Make changes
 git add .
 git commit -m "Update website"
 git push
-```
 
-GitHub Actions will:
-1. Install dependencies
-2. Build Next.js static export
-3. Sync files to S3 with optimized caching headers
-4. Invalidate CloudFront cache
-5. Deploy changes globally in ~3-4 minutes
+# GitHub Actions will:
+# 1. Install dependencies
+# 2. Build Next.js static export
+# 3. Sync to S3 with cache headers
+# 4. Invalidate CloudFront cache
+# 5. Deploy globally in ~3-4 minutes
+```
 
 ### Manual Deployment Trigger
 
 ```bash
-# Trigger deployment manually via GitHub CLI
+# Via GitHub CLI
 gh workflow run deploy.yml
 
-# Or via the GitHub web interface:
+# Or via GitHub web interface
 # https://github.com/micahwalter/micahwalter-www/actions/workflows/deploy.yml
 ```
 
@@ -183,18 +466,26 @@ gh run watch
 gh run view --log
 ```
 
-## Infrastructure Setup
+## Infrastructure
 
-### Prerequisites
+### AWS Resources
 
-- AWS CLI installed and configured
-- AWS profile `www` set up with appropriate permissions
-- GitHub CLI (optional, for workflow management)
+**Main Stack (CloudFormation):**
+- S3 Website Bucket (static HTML/JS/CSS)
+- S3 Images Bucket (optimized images)
+- S3 Logs Bucket (access logs)
+- CloudFront Distribution (CDN)
+- CloudFront Function (SPA routing)
+- Origin Access Control (secure S3 access)
 
-### Initial Infrastructure Deployment
+**GitHub Actions Stack:**
+- IAM Role with OIDC provider
+- Least-privilege permissions for S3 and CloudFront
+
+### Initial Infrastructure Setup
 
 ```bash
-# Deploy main infrastructure (S3, CloudFront)
+# Deploy main infrastructure
 aws cloudformation create-stack \
   --stack-name micahwalter-www \
   --template-body file://infra/infra.yml \
@@ -215,7 +506,7 @@ aws cloudformation wait stack-create-complete \
   --profile www \
   --region us-east-1
 
-# Get the IAM role ARN for GitHub Actions
+# Get IAM role ARN for GitHub Actions
 aws cloudformation describe-stacks \
   --stack-name micahwalter-www-github-actions \
   --profile www \
@@ -223,13 +514,11 @@ aws cloudformation describe-stacks \
   --query 'Stacks[0].Outputs[?OutputKey==`RoleArn`].OutputValue' \
   --output text
 
-# Add the role ARN as a GitHub secret
-gh secret set AWS_ROLE_ARN --body "<role-arn-from-above>"
+# Add role ARN as GitHub secret
+gh secret set AWS_ROLE_ARN --body "<role-arn>"
 ```
 
-## Get Your Deployment Info
-
-After deploying the CloudFormation stack, get your deployment details:
+### Get Deployment Info
 
 ```bash
 # Get all stack outputs
@@ -239,87 +528,26 @@ aws cloudformation describe-stacks \
   --region us-east-1 \
   --query 'Stacks[0].Outputs' \
   --output table
+
+# Shows:
+# - CloudFront URL
+# - Distribution ID
+# - Website Bucket Name
+# - Images Bucket Name
+# - Logs Bucket Name
 ```
-
-This will show:
-- **CloudFront URL**: Your website URL
-- **Distribution ID**: For cache invalidation
-- **Website Bucket**: S3 bucket name for content
-- **Logs Bucket**: S3 bucket name for logs
-
-## Features
-
-### Blog Features
-- ✅ MDX-based content management
-- ✅ Blog post grid with featured posts
-- ✅ Category filtering (AI, AWS, Writing)
-- ✅ Tag system for organizing content
-- ✅ Client-side search functionality
-- ✅ RSS feed generation
-- ✅ Dynamic sitemap
-- ✅ SEO-optimized metadata
-- ✅ Syntax-highlighted code blocks
-- ✅ Responsive images with lazy loading
-- ✅ Mobile-friendly navigation
-
-### Frontend
-- ✅ Next.js 15 with App Router
-- ✅ TypeScript for type safety
-- ✅ Tailwind CSS with custom design system
-- ✅ Editorial typography (EB Garamond serif)
-- ✅ Warm neutral color palette
-- ✅ Static export (no server required)
-- ✅ Optimized production builds
-- ✅ Fast development with Turbopack
-
-### Infrastructure
-- ✅ HTTPS enabled (TLS 1.2+)
-- ✅ HTTP/2 and HTTP/3 support
-- ✅ Global edge locations (PriceClass_All)
-- ✅ SPA routing (paths without extensions route to index.html)
-- ✅ Gzip/Brotli compression
-- ✅ S3 versioning (365-day retention)
-- ✅ AES256 encryption at rest
-- ✅ Access logging for S3 and CloudFront
-- ✅ Optimized caching policy
-
-### CI/CD
-- ✅ Automated build and deployment on push to `main`
-- ✅ GitHub Actions workflow with OIDC authentication
-- ✅ Smart caching: static assets cached for 1 year, HTML revalidated
-- ✅ Automatic CloudFront cache invalidation
-- ✅ Manual deployment trigger option
-- ✅ No long-lived AWS credentials stored
-
-## Security
-
-- Origin Access Control (OAC) for secure S3 access
-- Public access blocked on all buckets
-- CloudFront serves all content over HTTPS
-- Viewer protocol policy redirects HTTP to HTTPS
-- GitHub Actions uses OIDC (no stored credentials)
-- IAM role with least-privilege permissions
-
-## Cost Optimization
-
-- Standard S3 replication removed (simplified architecture)
-- Log lifecycle policy (90-day retention)
-- Version lifecycle policy (365-day retention)
-- AES256 encryption (no KMS costs)
-
-## Management Commands
 
 ### Update Infrastructure
 
 ```bash
-# Update main infrastructure stack
+# Update main stack
 aws cloudformation update-stack \
   --stack-name micahwalter-www \
   --template-body file://infra/infra.yml \
   --profile www \
   --region us-east-1
 
-# Update GitHub Actions role stack
+# Update GitHub Actions role
 aws cloudformation update-stack \
   --stack-name micahwalter-www-github-actions \
   --template-body file://infra/github-actions-role.yml \
@@ -330,13 +558,12 @@ aws cloudformation update-stack \
 
 ### Manual Deployment (Advanced)
 
-If you need to deploy directly without GitHub Actions:
+If you need to deploy without GitHub Actions:
 
 ```bash
-# Set your stack name
 STACK_NAME=micahwalter-www
 
-# Get bucket and distribution ID from CloudFormation outputs
+# Get bucket and distribution ID
 S3_BUCKET=$(aws cloudformation describe-stacks \
   --stack-name $STACK_NAME \
   --query 'Stacks[0].Outputs[?OutputKey==`WebsiteBucketName`].OutputValue' \
@@ -349,81 +576,232 @@ DISTRIBUTION_ID=$(aws cloudformation describe-stacks \
   --output text \
   --profile www)
 
-# Upload files to S3
+# Upload files
 aws s3 sync out/ s3://$S3_BUCKET/ \
   --delete \
   --profile www
 
-# Invalidate CloudFront cache
+# Invalidate cache
 aws cloudfront create-invalidation \
   --distribution-id $DISTRIBUTION_ID \
   --paths "/*" \
   --profile www
 ```
 
-### View Logs
+## Design System
+
+Defined in `tailwind.config.ts`:
+
+**Colors:**
+- Cream: `#fafaf2` (background)
+- Charcoal: `#191919` (text)
+- Gray: `#5F5F5F` (metadata)
+- Accent: `#F5B684` (links, highlights)
+
+**Typography:**
+- EB Garamond: Serif for body text and headings
+- System fonts: Sans-serif for UI elements
+
+**Layout:**
+- Max width (reading): 645px
+- Max width (wide): 1340px
+- Mobile-first responsive breakpoints
+
+## Features
+
+### Blog Features
+- ✅ MDX-based content management
+- ✅ Blog post grid with featured layout
+- ✅ Category filtering (AI, AWS, Writing)
+- ✅ Tag system for content organization
+- ✅ Client-side search functionality
+- ✅ RSS feed generation
+- ✅ Dynamic sitemap
+- ✅ SEO-optimized metadata
+- ✅ Syntax-highlighted code blocks
+- ✅ Responsive images with lazy loading
+- ✅ Mobile-friendly navigation
+- ✅ Draft post support (dev vs production)
+
+### Infrastructure Features
+- ✅ HTTPS enabled (TLS 1.2+)
+- ✅ HTTP/2 and HTTP/3 support
+- ✅ Global edge locations
+- ✅ SPA routing (CloudFront Function)
+- ✅ Gzip/Brotli compression
+- ✅ S3 versioning (365-day retention)
+- ✅ AES256 encryption at rest
+- ✅ Access logging for S3 and CloudFront
+- ✅ Origin Access Control (OAC)
+- ✅ Smart caching (1 year static, revalidate HTML)
+
+### CI/CD Features
+- ✅ Automated build and deployment
+- ✅ OIDC authentication (no stored credentials)
+- ✅ Automatic CloudFront invalidation
+- ✅ Manual deployment trigger option
+- ✅ Build-time image optimization
+- ✅ Separate image and content buckets
+
+## Security
+
+- Origin Access Control (OAC) for secure S3 access
+- Public access blocked on all buckets
+- CloudFront serves all content over HTTPS
+- HTTP to HTTPS redirect enforced
+- GitHub Actions uses OIDC (no stored AWS credentials)
+- IAM roles with least-privilege permissions
+- S3 versioning for content recovery
+- AES256 encryption at rest
+
+## Cost Optimization
+
+**Storage:**
+- Standard S3 (no replication)
+- Log lifecycle: 90-day retention
+- Version lifecycle: 365-day retention
+- AES256 encryption (no KMS costs)
+
+**Estimated Monthly Costs:**
+
+For a blog with 100 posts, 1 cover image each, 10K pageviews/month:
+
+| Service | Usage | Cost |
+|---------|-------|------|
+| S3 Storage | 60 MB images + 10 MB site | $0.002 |
+| S3 Requests | Minimal (CI uploads only) | $0.001 |
+| CloudFront | 1 GB transfer (optimized images) | $0.085 |
+| **Total** | | **~$0.09/month** |
+
+Without optimization: ~$0.70/month (87% savings)
+
+## Troubleshooting
+
+### Images not loading after deploy
+
+1. **Check S3**: Verify images uploaded
+   ```bash
+   aws s3 ls s3://micahwalter-www-images/images/posts/{slug}/ --profile www
+   ```
+
+2. **Check CloudFront**: May take a few minutes. Try invalidating:
+   ```bash
+   aws cloudfront create-invalidation \
+     --distribution-id <DISTRIBUTION_ID> \
+     --paths "/images/*" \
+     --profile www
+   ```
+
+3. **Check browser console**: Look for 404 errors
+
+### Build fails during image optimization
+
+1. **Rebuild sharp** (platform-specific binaries):
+   ```bash
+   npm rebuild sharp
+   ```
+
+2. **Check image format**: Ensure JPEG, PNG, or WebP
+
+3. **Check file size**: Very large images (>10MB) may cause issues
+
+### Images not uploading to S3
 
 ```bash
-# Set your stack name
-STACK_NAME=micahwalter-www
+# Check AWS credentials
+aws s3 ls --profile www
 
-# Get logs bucket from CloudFormation output
-LOGS_BUCKET=$(aws cloudformation describe-stacks \
-  --stack-name $STACK_NAME \
-  --query 'Stacks[0].Outputs[?OutputKey==`LogsBucketName`].OutputValue' \
-  --output text \
-  --profile www)
+# Try dry-run first
+blog images:upload --dry-run --profile www
 
-# List CloudFront logs
-aws s3 ls s3://$LOGS_BUCKET/cloudfront-logs/ \
-  --profile www \
-  --recursive
-
-# List S3 access logs
-aws s3 ls s3://$LOGS_BUCKET/s3-access-logs/ \
-  --profile www \
-  --recursive
-
-# Download recent CloudFront logs
-aws s3 sync s3://$LOGS_BUCKET/cloudfront-logs/ ./logs/cloudfront/ \
-  --profile www
+# Check bucket name in environment
+echo $IMAGES_BUCKET
 ```
 
-### Delete Stack (Cleanup)
+### Need to re-optimize all images
 
 ```bash
-# Set your stack name
-STACK_NAME=micahwalter-www
-
-# Get bucket names from CloudFormation outputs
-WEBSITE_BUCKET=$(aws cloudformation describe-stacks \
-  --stack-name $STACK_NAME \
-  --query 'Stacks[0].Outputs[?OutputKey==`WebsiteBucketName`].OutputValue' \
-  --output text \
-  --profile www)
-
-LOGS_BUCKET=$(aws cloudformation describe-stacks \
-  --stack-name $STACK_NAME \
-  --query 'Stacks[0].Outputs[?OutputKey==`LogsBucketName`].OutputValue' \
-  --output text \
-  --profile www)
-
-# Empty buckets first (required before deleting CloudFormation stack)
-aws s3 rm s3://$WEBSITE_BUCKET --recursive --profile www
-aws s3 rm s3://$LOGS_BUCKET --recursive --profile www
-
-# Delete stacks
-aws cloudformation delete-stack \
-  --stack-name $STACK_NAME \
-  --profile www \
-  --region us-east-1
-
-aws cloudformation delete-stack \
-  --stack-name ${STACK_NAME}-github-actions \
-  --profile www \
-  --region us-east-1
+rm -rf .optimized-images
+blog images:optimize
 ```
+
+### GitHub Actions deployment failing
+
+1. **Check Actions logs**: View detailed error messages
+2. **Verify IAM permissions**: Ensure role has S3 and CloudFront access
+3. **Check secrets**: Verify `AWS_ROLE_ARN` is set correctly
+4. **Review CloudFormation**: Ensure stacks are in good state
+
+### CloudFront returns 403 errors
+
+1. **Check bucket policy**: Verify OAC has access
+2. **Check origin configuration**: Ensure CloudFront is using OAC
+3. **Wait**: OAC changes take 5-10 minutes to propagate
+
+## Performance Metrics
+
+### Expected Improvements
+
+**Before optimization:**
+- Cover image: ~800 KB
+- Mobile load time: 1-2s on 3G
+- Lighthouse Performance: 70-80
+
+**After optimization:**
+- Cover image: 20-160 KB (depending on device)
+- Mobile load time: 0.3-0.6s on 3G
+- Lighthouse Performance: 90-100
+
+### WebP Browser Support
+
+WebP is supported by 97%+ of browsers:
+- ✅ Chrome 32+
+- ✅ Firefox 65+
+- ✅ Safari 14+
+- ✅ Edge 18+
+- ❌ IE 11 (falls back to JPEG)
+
+## Static Export Limitations
+
+Because `output: "export"` is enabled:
+
+- **No API routes**: Cannot use `/app/api/*` routes
+- **No server-side rendering**: Everything is pre-rendered at build time
+- **No server actions**: No runtime server code
+- **Dynamic routes**: Must use `generateStaticParams()`
+- **Generated files**: Must be created at build time via prebuild scripts
+
+## Important Patterns
+
+### Next.js 15 Async Params
+
+Dynamic route params are Promises and must be awaited:
+
+```typescript
+export default async function Page({ params }: Props) {
+  const { slug } = await params; // Must await!
+  // ...
+}
+```
+
+### Content Filtering
+
+- `getAllPosts()` - Returns all posts, filtering drafts in production
+- `getSortedPosts()` - Posts sorted by publishedAt (newest first)
+- `getPostsByCategory(category)` - Filter by category
+- `getPostsByTag(tag)` - Filter by tag
+
+### Code Syntax Highlighting
+
+Uses `rehype-highlight` with custom theme:
+- Import `highlight.js/styles/atom-one-dark.min.css` first in `globals.css`
+- Custom CSS overrides ensure readable contrast
+- All code blocks use cream text on charcoal background
 
 ## License
 
 Private
+
+---
+
+**For detailed developer guidance, see [CLAUDE.md](./CLAUDE.md)**
