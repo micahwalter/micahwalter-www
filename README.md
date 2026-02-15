@@ -6,46 +6,47 @@ A modern, statically-exported blog built with Next.js 15 and hosted on AWS S3 + 
 
 ```mermaid
 graph TB
-    subgraph "Content Creation"
-        A[Developer] -->|Write MDX| B["content/posts/"]
-        A -->|Add Images| C[Original Images]
+    Developer[Developer] -->|git push| GitHub[GitHub Actions]
+
+    subgraph AWS["AWS Cloud"]
+        subgraph Storage["Amazon S3"]
+            Website[Website Bucket<br/>HTML/JS/CSS]
+            Images[Images Bucket<br/>Optimized Images]
+            Logs[Logs Bucket<br/>Access Logs]
+        end
+
+        subgraph CDN["Amazon CloudFront"]
+            Distribution[CloudFront Distribution<br/>Global Edge Network]
+            Function[CloudFront Function<br/>SPA Routing]
+        end
+
+        subgraph Security["Security & Access"]
+            OAC[Origin Access Control]
+            TLS[ACM Certificate<br/>TLS/HTTPS]
+        end
+
+        GitHub -->|Deploy Static Files| Website
+        GitHub -->|Upload Images| Images
+
+        OAC -->|Secure Access| Website
+        OAC -->|Secure Access| Images
+
+        Website -->|Origin 1| Distribution
+        Images -->|Origin 2| Distribution
+
+        Function -->|Attached to| Distribution
+        TLS -->|Encrypts| Distribution
+
+        Website -.Logs.-> Logs
+        Distribution -.Logs.-> Logs
     end
 
-    subgraph "Blog CLI Tool"
-        D["blog images:optimize"] -->|Resize & Convert| E[".optimized-images/"]
-        C --> D
-        E --> F["blog images:upload"]
-        F -->|AWS CLI| G[S3 Images Bucket]
-    end
+    Distribution -->|HTTPS| Users[End Users]
 
-    subgraph "Build & Deploy"
-        B -->|npm run build| H[Next.js Build]
-        H -->|Prebuild Scripts| I[Generate RSS/Sitemap/posts.json]
-        H -->|Static Export| J["out/ directory"]
-        J -->|GitHub Actions| K[S3 Website Bucket]
-    end
-
-    subgraph "AWS Infrastructure"
-        G -->|Origin 2| L[CloudFront Distribution]
-        K -->|Origin 1| L
-        L -->|HTTPS| M[End Users]
-        N[Route 53] -->|DNS| L
-        O[ACM Certificate] -->|TLS| L
-        P[CloudFront Function] -->|SPA Routing| L
-    end
-
-    subgraph "Storage & Security"
-        K -.Logs.-> Q[S3 Logs Bucket]
-        L -.Logs.-> Q
-        R[Origin Access Control] -->|Secure Access| K
-        R -->|Secure Access| G
-    end
-
-    style A fill:#f9f,stroke:#333
-    style M fill:#9f9,stroke:#333
-    style L fill:#99f,stroke:#333
-    style D fill:#ff9,stroke:#333
-    style H fill:#ff9,stroke:#333
+    style Developer fill:#f9f,stroke:#333
+    style Users fill:#9f9,stroke:#333
+    style Distribution fill:#99f,stroke:#333
+    style GitHub fill:#ff9,stroke:#333
 ```
 
 ## Tech Stack
