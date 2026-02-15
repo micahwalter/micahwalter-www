@@ -162,7 +162,6 @@ const example = "code";
 ```
 
 You can also use JSX components if needed.
-```
 
 ### Frontmatter Fields
 
