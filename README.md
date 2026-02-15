@@ -7,21 +7,21 @@ A modern, statically-exported blog built with Next.js 15 and hosted on AWS S3 + 
 ```mermaid
 graph TB
     subgraph "Content Creation"
-        A[Developer] -->|Write MDX| B[content/posts/]
+        A[Developer] -->|Write MDX| B["content/posts/"]
         A -->|Add Images| C[Original Images]
     end
 
     subgraph "Blog CLI Tool"
-        D[blog images:optimize] -->|Resize & Convert| E[.optimized-images/]
+        D["blog images:optimize"] -->|Resize & Convert| E[".optimized-images/"]
         C --> D
-        E --> F[blog images:upload]
+        E --> F["blog images:upload"]
         F -->|AWS CLI| G[S3 Images Bucket]
     end
 
     subgraph "Build & Deploy"
         B -->|npm run build| H[Next.js Build]
         H -->|Prebuild Scripts| I[Generate RSS/Sitemap/posts.json]
-        H -->|Static Export| J[/out directory]
+        H -->|Static Export| J["out/ directory"]
         J -->|GitHub Actions| K[S3 Website Bucket]
     end
 
