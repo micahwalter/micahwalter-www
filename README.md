@@ -2,53 +2,6 @@
 
 A modern, statically-exported blog built with Next.js 15 and hosted on AWS S3 + CloudFront with automated CI/CD deployment.
 
-## Architecture
-
-```mermaid
-graph TB
-    Developer[Developer] -->|git push| GitHub[GitHub Actions]
-
-    subgraph AWS["AWS Cloud"]
-        subgraph Storage["Amazon S3"]
-            Website[Website Bucket<br/>HTML/JS/CSS]
-            Images[Images Bucket<br/>Optimized Images]
-            Logs[Logs Bucket<br/>Access Logs]
-        end
-
-        subgraph CDN["Amazon CloudFront"]
-            Distribution[CloudFront Distribution<br/>Global Edge Network]
-            Function[CloudFront Function<br/>SPA Routing]
-        end
-
-        subgraph Security["Security & Access"]
-            OAC[Origin Access Control]
-            TLS[ACM Certificate<br/>TLS/HTTPS]
-        end
-
-        GitHub -->|Deploy Static Files| Website
-        GitHub -->|Upload Images| Images
-
-        OAC -->|Secure Access| Website
-        OAC -->|Secure Access| Images
-
-        Website -->|Origin 1| Distribution
-        Images -->|Origin 2| Distribution
-
-        Function -->|Attached to| Distribution
-        TLS -->|Encrypts| Distribution
-
-        Website -.Logs.-> Logs
-        Distribution -.Logs.-> Logs
-    end
-
-    Distribution -->|HTTPS| Users[End Users]
-
-    style Developer fill:#f9f,stroke:#333
-    style Users fill:#9f9,stroke:#333
-    style Distribution fill:#99f,stroke:#333
-    style GitHub fill:#ff9,stroke:#333
-```
-
 ## Tech Stack
 
 ### Frontend
