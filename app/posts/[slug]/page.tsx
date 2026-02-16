@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import { getAllPosts, getPostBySlug } from "@/lib/content";
 import PostLayout from "@/components/PostLayout";
+import PhotoLayout from "@/components/PhotoLayout";
 import { getMDXComponents } from "@/components/MDXComponents";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -53,18 +54,23 @@ export default async function PostPage({ params }: PostPageProps) {
     notFound();
   }
 
-  return (
-    <PostLayout post={post}>
-      <MDXRemote
-        source={post.content}
-        components={getMDXComponents(post.folderName)}
-        options={{
-          mdxOptions: {
-            remarkPlugins: [remarkGfm],
-            rehypePlugins: [rehypeHighlight],
-          },
-        }}
-      />
-    </PostLayout>
+  const mdxContent = (
+    <MDXRemote
+      source={post.content}
+      components={getMDXComponents(post.folderName)}
+      options={{
+        mdxOptions: {
+          remarkPlugins: [remarkGfm],
+          rehypePlugins: [rehypeHighlight],
+        },
+      }}
+    />
   );
+
+  // Use PhotoLayout for photo posts, PostLayout for blog posts
+  if (post.type === 'photo') {
+    return <PhotoLayout post={post}>{mdxContent}</PhotoLayout>;
+  }
+
+  return <PostLayout post={post}>{mdxContent}</PostLayout>;
 }

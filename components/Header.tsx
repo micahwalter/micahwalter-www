@@ -28,6 +28,12 @@ export default function Header() {
             <div className="hidden md:flex items-center gap-8">
               <TopicsDropdown />
               <Link
+                href="/photos"
+                className="text-charcoal no-underline hover:text-gray transition-colors"
+              >
+                Photos
+              </Link>
+              <Link
                 href="/sketches"
                 className="text-charcoal no-underline hover:text-gray transition-colors"
               >

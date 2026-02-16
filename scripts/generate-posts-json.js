@@ -38,6 +38,11 @@ function getAllPosts() {
         tags: data.tags || [],
         coverImage: data.coverImage || undefined,
         draft: data.draft || false,
+        type: data.type || 'blog',
+        // Photo-specific metadata for search
+        camera: data.camera,
+        lens: data.lens,
+        location: data.location,
       };
     })
     .filter((post) => post !== null && !post.draft);

@@ -37,6 +37,15 @@ function getAllPosts() {
         category: data.category || "Writing",
         tags: data.tags || [],
         draft: data.draft || false,
+        type: data.type || 'blog',
+        // Photo metadata
+        camera: data.camera,
+        lens: data.lens,
+        aperture: data.aperture,
+        shutterSpeed: data.shutterSpeed,
+        iso: data.iso,
+        focalLength: data.focalLength,
+        location: data.location,
       };
     })
     .filter((post) => post !== null && !post.draft);
@@ -56,13 +65,30 @@ function generateRSS() {
       const postUrl = `${baseUrl}/posts/${post.slug}`;
       const pubDate = new Date(post.publishedAt).toUTCString();
 
+      // Build description with EXIF metadata for photos
+      let description = post.excerpt;
+      if (post.type === 'photo') {
+        const exifParts = [];
+        if (post.camera) exifParts.push(`Camera: ${post.camera}`);
+        if (post.lens) exifParts.push(`Lens: ${post.lens}`);
+        const settings = [post.aperture, post.shutterSpeed, post.iso ? `ISO ${post.iso}` : null, post.focalLength]
+          .filter(Boolean)
+          .join(' • ');
+        if (settings) exifParts.push(`Settings: ${settings}`);
+        if (post.location) exifParts.push(`Location: ${post.location}`);
+
+        if (exifParts.length > 0) {
+          description += '\n\n' + exifParts.join('\n');
+        }
+      }
+
       return `
     <item>
       <title><![CDATA[${post.title}]]></title>
       <link>${postUrl}</link>
       <guid>${postUrl}</guid>
       <pubDate>${pubDate}</pubDate>
-      <description><![CDATA[${post.excerpt}]]></description>
+      <description><![CDATA[${description}]]></description>
       <category>${post.category}</category>
       ${post.tags.map((tag) => `<category>${tag}</category>`).join("\n      ")}
     </item>`;

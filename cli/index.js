@@ -26,6 +26,15 @@ const commands = {
       'blog post:new "My Post Title"'
     ]
   },
+  'photos:import': {
+    description: 'Import photos with EXIF extraction',
+    script: 'scripts/import-photos.js',
+    examples: [
+      'blog photos:import ~/Desktop/photos',
+      'blog photos:import ./photos --dry-run',
+      'blog photos:import ~/trips --category Travel'
+    ]
+  },
   'images:optimize': {
     description: 'Process images into multiple sizes and formats',
     script: 'scripts/optimize-images.js',

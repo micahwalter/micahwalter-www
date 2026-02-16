@@ -13,6 +13,17 @@ export interface Post {
   coverImage?: string;
   draft: boolean;
   content: string;
+  type?: 'blog' | 'photo'; // Content type (defaults to 'blog')
+
+  // Photo-specific metadata (optional, extracted from EXIF)
+  camera?: string; // e.g., "Canon EOS R5"
+  lens?: string; // e.g., "RF 24-105mm f/4L IS USM"
+  aperture?: string; // e.g., "f/2.8"
+  shutterSpeed?: string; // e.g., "1/500"
+  iso?: string; // e.g., "400"
+  focalLength?: string; // e.g., "50mm"
+  dateTaken?: string; // e.g., "2025-02-15T14:30:00"
+  location?: string; // e.g., "Brooklyn, NY"
 }
 
 const postsDirectory = path.join(process.cwd(), "content/posts");
@@ -52,6 +63,16 @@ export function getAllPosts(): Post[] {
         coverImage: data.coverImage || undefined,
         draft: data.draft || false,
         content,
+        type: data.type || 'blog',
+        // Photo-specific metadata
+        camera: data.camera,
+        lens: data.lens,
+        aperture: data.aperture,
+        shutterSpeed: data.shutterSpeed,
+        iso: data.iso,
+        focalLength: data.focalLength,
+        dateTaken: data.dateTaken,
+        location: data.location,
       } as Post;
     })
     .filter((post): post is Post => {
@@ -123,4 +144,12 @@ export function getPostsByTag(tag: string): Post[] {
   return posts.filter((post) =>
     post.tags.some((t) => t.toLowerCase() === tag.toLowerCase())
   );
+}
+
+export function getPhotos(): Post[] {
+  return getSortedPosts().filter(post => post.type === 'photo');
+}
+
+export function getBlogPosts(): Post[] {
+  return getSortedPosts().filter(post => !post.type || post.type === 'blog');
 }

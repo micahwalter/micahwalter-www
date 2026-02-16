@@ -38,6 +38,7 @@
     "cli-progress": "^3.12.0",
     "eslint": "^9",
     "eslint-config-next": "^15.1.6",
+    "exifreader": "^4.36.1",
     "p-limit": "^4.0.0",
     "postcss": "^8",
     "sharp": "^0.34.5",

@@ -99,6 +99,14 @@ export default function MobileMenu({ isOpen, onClose, onSearchOpen }: MobileMenu
             </div>
 
             <Link
+              href="/photos"
+              onClick={onClose}
+              className="block px-4 py-3 text-lg text-charcoal no-underline hover:bg-charcoal/5 rounded-lg transition-colors"
+            >
+              Photos
+            </Link>
+
+            <Link
               href="/sketches"
               onClick={onClose}
               className="block px-4 py-3 text-lg text-charcoal no-underline hover:bg-charcoal/5 rounded-lg transition-colors"

@@ -1,4 +1,5 @@
 import PostCard from "./PostCard";
+import PhotoCard from "./PhotoCard";
 import type { Post } from "@/lib/content";
 
 interface PostGridProps {
@@ -29,9 +30,13 @@ export default function PostGrid({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {(featuredFirst ? restPosts : posts).map((post) => (
-          <PostCard key={post.slug} post={post} />
-        ))}
+        {(featuredFirst ? restPosts : posts).map((post) => {
+          // Use PhotoCard for photo posts, PostCard for blog posts
+          if (post.type === 'photo') {
+            return <PhotoCard key={post.slug} post={post} />;
+          }
+          return <PostCard key={post.slug} post={post} />;
+        })}
       </div>
     </div>
   );
