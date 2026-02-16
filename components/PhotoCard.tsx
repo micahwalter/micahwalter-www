@@ -101,9 +101,24 @@ export default function PhotoCard({ post }: PhotoCardProps) {
 
           {/* Excerpt */}
           {post.excerpt && (
-            <p className="text-base text-charcoal/80 leading-relaxed line-clamp-2">
+            <p className="text-base text-charcoal/80 leading-relaxed line-clamp-2 mb-3">
               {post.excerpt}
             </p>
+          )}
+
+          {/* Tags */}
+          {post.tags && post.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {post.tags.slice(0, 4).map((tag) => (
+                <Link
+                  key={tag}
+                  href={`/tags/${encodeURIComponent(tag.toLowerCase())}`}
+                  className="text-xs text-gray border border-gray/30 rounded px-2 py-1 no-underline hover:border-gray hover:bg-gray/10 transition-colors"
+                >
+                  {tag}
+                </Link>
+              ))}
+            </div>
           )}
         </div>
       </article>

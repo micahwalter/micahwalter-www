@@ -35,6 +35,15 @@ const commands = {
       'blog photos:import ~/trips --category Travel'
     ]
   },
+  'photos:tag': {
+    description: 'AI-powered photo tagging with Claude Vision',
+    script: 'scripts/tag-photos.js',
+    examples: [
+      'blog photos:tag 2026-02-16-sunset-park',
+      'blog photos:tag --all',
+      'blog photos:tag --all --auto-approve'
+    ]
+  },
   'images:optimize': {
     description: 'Process images into multiple sizes and formats',
     script: 'scripts/optimize-images.js',
