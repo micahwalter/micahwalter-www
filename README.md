@@ -1,6 +1,6 @@
 # Micah Walter's Website
 
-A modern, statically-exported blog built with Next.js 15 and hosted on AWS S3 + CloudFront with automated CI/CD deployment.
+A modern, statically-exported blog and photo archive built with Next.js 15 and hosted on AWS S3 + CloudFront with automated CI/CD deployment.
 
 ## Tech Stack
 
@@ -78,6 +78,9 @@ The unified `blog` CLI manages all content and image operations. It must be link
 | `blog help <command>` | Get help for specific command |
 | `blog post:new` | Create new post with template |
 | `blog post:new "Title"` | Create post with title (skip prompt) |
+| `blog photos:import <dir>` | Import photos with EXIF extraction |
+| `blog photos:tag <folder>` | AI-powered photo tagging with Claude Vision |
+| `blog photos:tag --all` | Tag all photos with AI suggestions |
 | `blog images:optimize` | Process images (400/800/1200px WebP+JPEG) |
 | `blog images:upload` | Upload originals + processed to S3 |
 | `blog images:download` | Download from S3 to local |
@@ -198,6 +201,190 @@ Posts with `draft: true` behave differently in dev vs production:
 - **Production** (`npm run build`): Drafts completely excluded
 
 Set `draft: false` when ready to publish.
+
+## Photo Archive System
+
+The site includes a complete photo archive system with automatic EXIF extraction and AI-powered tagging using Claude Vision API.
+
+### Photo Import with EXIF Extraction
+
+Import photos with automatic metadata extraction from EXIF data:
+
+```bash
+# Import photos from a directory
+blog photos:import ~/Desktop/photos
+
+# Preview without creating files
+blog photos:import ~/Photos/trip --dry-run
+
+# Set custom category
+blog photos:import ~/vacation-photos --category Travel
+```
+
+**What it does:**
+1. Scans directory for image files (JPG, PNG, HEIC)
+2. Extracts EXIF metadata using ExifReader:
+   - Camera make and model
+   - Lens information
+   - Camera settings (aperture, shutter speed, ISO, focal length)
+   - Date and time photo was taken
+3. Creates post folder: `content/posts/YYYY-MM-DD-slug/`
+4. Copies original photo to folder
+5. Generates `index.mdx` with frontmatter populated from EXIF
+
+**Date handling:**
+- Folder date = Today (upload/post date)
+- `dateTaken` field = EXIF capture date (preserved in metadata)
+
+This separation lets you post old photos while preserving when they were actually taken.
+
+### AI-Powered Photo Tagging
+
+Use Claude Vision API to analyze photos and suggest relevant tags:
+
+```bash
+# Set your Anthropic API key
+export ANTHROPIC_API_KEY=your-key-here
+
+# Tag a specific photo
+blog photos:tag 2026-02-16-sunset-park
+
+# Tag all photos interactively
+blog photos:tag --all
+
+# Auto-approve all suggestions
+blog photos:tag --all --auto-approve
+
+# Preview suggestions without updating
+blog photos:tag --all --dry-run
+```
+
+**AI analysis includes:**
+- Subject matter (people, objects, nature, architecture)
+- Location type (urban, beach, indoor, outdoor)
+- Mood and atmosphere (serene, dramatic, vibrant)
+- Visual style (minimalist, colorful, vintage)
+- Notable features (sunset, reflection, bokeh)
+
+**Example AI-generated tags:**
+- `seascape, ocean, sunset, coastal, water-reflection`
+- `skateboarding, urban, dramatic-sky, action-sports`
+- `bridge, autumn, reflection, park, colorful-foliage`
+
+Tags are merged with existing ones (no duplicates) and appear on photo cards and filter pages.
+
+### Photo Content Structure
+
+Photos are stored alongside blog posts with `type: photo`:
+
+```
+content/posts/
+├── 2026-02-16-sunset-park/
+│   ├── index.mdx        # Photo post with EXIF metadata
+│   └── photo.jpg        # Original photo
+├── 2026-02-15-beach-walk/
+│   ├── index.mdx
+│   └── photo.jpg
+└── ...
+```
+
+### Photo Frontmatter
+
+Photo posts include all standard fields plus EXIF metadata:
+
+```yaml
+---
+type: photo                    # Content type (required)
+title: "Sunset in Brooklyn"
+publishedAt: "2026-02-16"     # Post date (today)
+excerpt: "Golden hour over the park"
+category: "Photography"
+tags: ["sunset", "urban", "golden-hour", "cityscape"]
+coverImage: "./photo.jpg"
+
+# EXIF metadata (automatically extracted)
+camera: "Canon EOS R5"
+lens: "RF 24-105mm f/4L IS USM"
+aperture: "f/2.8"
+shutterSpeed: "1/500"
+iso: "400"
+focalLength: "50mm"
+dateTaken: "2024-08-15T18:30:00"  # Actual capture date
+location: "Brooklyn, NY"
+
+draft: false
+---
+
+Optional narrative or description of the photo...
+```
+
+### Photo Display Features
+
+**Photo Cards (Homepage/Grid):**
+- 4:3 aspect ratio (classic photo format)
+- Photo badge overlay
+- EXIF summary on hover
+- Up to 4 tags displayed
+- Camera info shown
+
+**Individual Photo Pages:**
+- Large responsive image display
+- Organized EXIF panel with sections:
+  - Equipment (camera, lens)
+  - Settings (aperture, shutter, ISO, focal length)
+  - Details (capture date, location)
+- Full description/narrative
+- Same SEO and sharing features as blog posts
+
+**Photo-Only Feed:**
+- Access at `/photos`
+- Filters to show only photo posts
+- Photo-optimized grid layout
+- Pagination support
+
+### Photo Workflow Example
+
+Complete workflow from import to publish:
+
+```bash
+# 1. Import photos with EXIF extraction
+blog photos:import ~/Desktop/vacation-photos
+
+# 2. AI-tag the photos
+export ANTHROPIC_API_KEY=your-key
+blog photos:tag --all
+
+# 3. Review and edit generated posts
+# Edit content/posts/2026-02-16-*/index.mdx
+
+# 4. Optimize images
+blog images:optimize
+
+# 5. Upload to S3
+blog images:sync --profile www
+
+# 6. Commit and deploy
+git add content/posts/
+git commit -m "Add vacation photos"
+git push
+```
+
+### AI Tagging Requirements
+
+To use AI photo tagging, you need:
+
+1. **Anthropic API Key**: Get from https://console.anthropic.com/
+2. **Set environment variable**:
+   ```bash
+   export ANTHROPIC_API_KEY=your-key-here
+   ```
+3. **Model**: Uses Claude Sonnet 4.5 for vision analysis
+4. **Cost**: ~$0.01-0.02 per photo analyzed
+
+**Recommended setup** (add to `~/.zshrc` or `~/.bashrc`):
+```bash
+export ANTHROPIC_API_KEY=your-key-here
+```
 
 ## Image Workflow
 
@@ -565,7 +752,7 @@ Defined in `tailwind.config.ts`:
 ### Blog Features
 - ✅ MDX-based content management
 - ✅ Blog post grid with featured layout
-- ✅ Category filtering (AI, AWS, Writing)
+- ✅ Category filtering (AI, AWS, Writing, Photography)
 - ✅ Tag system for content organization
 - ✅ Client-side search functionality
 - ✅ RSS feed generation
@@ -575,6 +762,18 @@ Defined in `tailwind.config.ts`:
 - ✅ Responsive images with lazy loading
 - ✅ Mobile-friendly navigation
 - ✅ Draft post support (dev vs production)
+
+### Photo Archive Features
+- ✅ Unified content system (photos as posts with `type: photo`)
+- ✅ Bulk photo import with EXIF extraction
+- ✅ AI-powered tagging with Claude Vision API
+- ✅ EXIF metadata display (camera, lens, settings, capture date)
+- ✅ Photo-optimized layouts (4:3 aspect ratio cards)
+- ✅ Photo-only filtering route (`/photos`)
+- ✅ Interactive tagging approval workflow
+- ✅ Tag merging (preserves existing tags)
+- ✅ Separation of post date vs capture date
+- ✅ Same image optimization as blog posts
 
 ### Infrastructure Features
 - ✅ HTTPS enabled (TLS 1.2+)
@@ -739,8 +938,10 @@ export default async function Page({ params }: Props) {
 
 ### Content Filtering
 
-- `getAllPosts()` - Returns all posts, filtering drafts in production
+- `getAllPosts()` - Returns all posts (blog + photos), filtering drafts in production
 - `getSortedPosts()` - Posts sorted by publishedAt (newest first)
+- `getBlogPosts()` - Filter to only blog posts (`type: 'blog'`)
+- `getPhotos()` - Filter to only photo posts (`type: 'photo'`)
 - `getPostsByCategory(category)` - Filter by category
 - `getPostsByTag(tag)` - Filter by tag
 
