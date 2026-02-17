@@ -51,6 +51,7 @@ function parseArgs() {
     all: args.includes('--all'),
     autoApprove: args.includes('--auto-approve'),
     dryRun: args.includes('--dry-run'),
+    untaggedOnly: args.includes('--untagged-only'),
   };
 }
 
@@ -71,6 +72,7 @@ Arguments:
 
 Options:
   --auto-approve   Automatically apply suggested tags without confirmation
+  --untagged-only  Only process photos with minimal tags (just "photography")
   --dry-run        Show suggestions without updating files
 
 Examples:
@@ -137,13 +139,34 @@ async function analyzePhoto(photoPath, apiKey) {
     apiKey: apiKey,
   });
 
-  // Read and encode image
-  const imageBuffer = fs.readFileSync(photoPath);
+  const sharp = require('sharp');
+
+  // Read image and resize if needed (Claude has 5MB limit)
+  // Resize to max 1600px on longest side, quality 85
+  const image = sharp(photoPath);
+  const metadata = await image.metadata();
+
+  let imageBuffer;
+  const maxDimension = 1600;
+  const shouldResize = metadata.width > maxDimension || metadata.height > maxDimension;
+
+  if (shouldResize) {
+    console.log(`   📐 Resizing image (${metadata.width}x${metadata.height} → max ${maxDimension}px)`);
+    imageBuffer = await image
+      .resize(maxDimension, maxDimension, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .jpeg({ quality: 85 })
+      .toBuffer();
+  } else {
+    imageBuffer = fs.readFileSync(photoPath);
+  }
+
   const base64Image = imageBuffer.toString('base64');
 
   // Determine media type
-  const ext = path.extname(photoPath).toLowerCase();
-  const mediaType = ext === '.png' ? 'image/png' : 'image/jpeg';
+  const mediaType = 'image/jpeg'; // Always JPEG after processing
 
   console.log('   🤖 Analyzing with Claude Vision...');
 
@@ -232,6 +255,15 @@ async function processPhotoPost(postFolder, options, apiKey) {
   // Read current frontmatter
   const fileContents = fs.readFileSync(mdxPath, 'utf8');
   const { data } = matter(fileContents);
+
+  // Check if photo is already tagged (for --untagged-only mode)
+  const isUntagged = !data.tags || data.tags.length === 0 ||
+    (data.tags.length === 1 && data.tags[0].toLowerCase() === 'photography');
+
+  if (options.untaggedOnly && !isUntagged) {
+    console.log(`   ⏭️  Already tagged, skipping`);
+    return { skipped: true };
+  }
 
   console.log(`   📝 Title: ${data.title}`);
   console.log(`   🏷️  Current tags: ${data.tags ? data.tags.join(', ') : 'none'}`);

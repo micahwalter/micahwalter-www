@@ -26,12 +26,12 @@ export default function PostCard({ post, featured = false }: PostCardProps) {
       <article className="h-full transition-transform duration-200 hover:-translate-y-1">
         {/* Thumbnail */}
         {post.coverImage ? (
-          <div className={`w-full overflow-hidden rounded-lg bg-gray/10 mb-4 ${featured ? '' : 'aspect-video'}`}>
+          <div className={`w-full overflow-hidden rounded-lg bg-gray/10 mb-4 ${featured ? 'max-h-[600px]' : 'aspect-video'}`}>
             <CoverImage
               folderName={post.folderName}
               filename={coverFilename}
               alt={post.title}
-              className={`transition-transform duration-300 group-hover:scale-105 ${featured ? '' : 'object-cover'}`}
+              className={`transition-transform duration-300 group-hover:scale-105 ${featured ? 'object-cover h-full w-full' : 'object-cover'}`}
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 400px, 500px"
             />
           </div>

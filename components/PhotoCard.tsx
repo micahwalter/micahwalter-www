@@ -32,14 +32,14 @@ export default function PhotoCard({ post }: PhotoCardProps) {
       className="group block no-underline"
     >
       <article className="h-full transition-transform duration-200 hover:-translate-y-1">
-        {/* Photo - 4:3 aspect ratio for classic photo format */}
+        {/* Photo - 4:3 aspect ratio with object-contain to show full image */}
         {post.coverImage ? (
-          <div className="aspect-[4/3] w-full overflow-hidden rounded-lg bg-gray/10 mb-4 relative">
+          <div className="aspect-[4/3] w-full overflow-hidden rounded-lg bg-gray/10 mb-4 relative flex items-center justify-center">
             <CoverImage
               folderName={post.folderName}
               filename={coverFilename}
               alt={post.title}
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              className="object-contain max-h-full max-w-full transition-transform duration-300 group-hover:scale-105"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 400px, 500px"
             />
 

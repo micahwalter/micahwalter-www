@@ -147,9 +147,12 @@ async function extractExif(photoPath) {
     let aperture = undefined;
     const fNumber = tags.FNumber;
     if (fNumber && fNumber.description) {
-      aperture = `f/${fNumber.description}`;
+      const desc = fNumber.description;
+      // Check if description already starts with "f/"
+      aperture = desc.startsWith('f/') ? desc : `f/${desc}`;
     } else if (tags.ApertureValue) {
-      aperture = tags.ApertureValue.description;
+      const desc = tags.ApertureValue.description;
+      aperture = desc.startsWith('f/') ? desc : `f/${desc}`;
     }
 
     // Extract shutter speed
