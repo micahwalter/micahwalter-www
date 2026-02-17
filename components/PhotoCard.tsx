@@ -32,14 +32,14 @@ export default function PhotoCard({ post }: PhotoCardProps) {
       className="group block no-underline"
     >
       <article className="h-full transition-transform duration-200 hover:-translate-y-1">
-        {/* Photo - 4:3 aspect ratio with object-contain to show full image */}
+        {/* Photo - Natural aspect ratio, no cropping */}
         {post.coverImage ? (
-          <div className="aspect-[4/3] w-full overflow-hidden rounded-lg bg-gray/10 mb-4 relative flex items-center justify-center">
+          <div className="w-full mb-4 relative">
             <CoverImage
               folderName={post.folderName}
               filename={coverFilename}
               alt={post.title}
-              className="object-contain max-h-full max-w-full transition-transform duration-300 group-hover:scale-105"
+              className="w-full h-auto rounded-lg transition-transform duration-300 group-hover:scale-105"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 400px, 500px"
             />
 
@@ -52,7 +52,7 @@ export default function PhotoCard({ post }: PhotoCardProps) {
 
             {/* EXIF overlay on hover */}
             {exifSummary && (
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-charcoal/90 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-charcoal/90 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-lg">
                 <p className="text-xs text-cream/80 font-mono">
                   {exifSummary}
                 </p>
@@ -60,7 +60,7 @@ export default function PhotoCard({ post }: PhotoCardProps) {
             )}
           </div>
         ) : (
-          <div className="aspect-[4/3] w-full rounded-lg bg-gradient-to-br from-accent/20 to-gray/10 mb-4 flex items-center justify-center">
+          <div className="aspect-square w-full rounded-lg bg-gradient-to-br from-accent/20 to-gray/10 mb-4 flex items-center justify-center">
             <span className="text-6xl">📷</span>
           </div>
         )}
