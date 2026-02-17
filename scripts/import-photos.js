@@ -280,8 +280,6 @@ coverImage: "./${photoFilename}"`;
   frontmatter += `
 draft: false
 ---
-
-Optional description or narrative about this photo...
 `;
 
   return frontmatter;
