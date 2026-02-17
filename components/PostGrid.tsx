@@ -21,16 +21,19 @@ export default function PostGrid({
 
   const [firstPost, ...restPosts] = posts;
 
+  // Only show featured layout for blog posts, not photos
+  const shouldShowFeatured = featuredFirst && firstPost && firstPost.type !== 'photo';
+
   return (
     <div className="max-w-wide mx-auto px-6 py-12">
-      {featuredFirst && firstPost && (
+      {shouldShowFeatured && (
         <div className="mb-16">
           <PostCard post={firstPost} featured />
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {(featuredFirst ? restPosts : posts).map((post) => {
+        {(shouldShowFeatured ? restPosts : posts).map((post) => {
           // Use PhotoCard for photo posts, PostCard for blog posts
           if (post.type === 'photo') {
             return <PhotoCard key={post.slug} post={post} />;
