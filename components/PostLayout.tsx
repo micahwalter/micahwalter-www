@@ -79,6 +79,18 @@ export default function PostLayout({ post, children }: PostLayoutProps) {
 
       {/* Content */}
       <div className="prose prose-lg max-w-none">{children}</div>
+
+      {/* Edit on GitHub */}
+      <div className="mt-12 pt-6 border-t border-gray/20">
+        <a
+          href={`https://github.com/micahwalter/micahwalter-www/blob/main/content/posts/${post.folderName}/index.mdx`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-gray/60 hover:text-gray transition-colors no-underline"
+        >
+          Edit on GitHub →
+        </a>
+      </div>
     </article>
   );
 }
