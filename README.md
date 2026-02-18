@@ -141,6 +141,7 @@ Create `index.mdx` with frontmatter:
 
 ```yaml
 ---
+id: 42
 title: "My Post Title"
 publishedAt: "2024-01-15"
 excerpt: "A brief description that appears in listings and SEO."
@@ -170,6 +171,7 @@ You can also use JSX components if needed.
 
 | Field | Required | Description |
 |-------|----------|-------------|
+| `id` | ✅ | Auto-assigned global sequential ID (set by `blog post:new` or `blog photos:import`) |
 | `title` | ✅ | Post title for display and SEO |
 | `publishedAt` | ✅ | Publication date (YYYY-MM-DD) |
 | `excerpt` | ✅ | Brief summary for listings and SEO |
