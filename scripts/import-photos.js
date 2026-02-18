@@ -16,7 +16,7 @@ const sharp = require('sharp');
 const ExifReader = require('exifreader');
 
 const POSTS_DIR = path.join(process.cwd(), 'content/posts');
-const COUNTER_FILE = path.join(process.cwd(), 'content/photo-counter');
+const COUNTER_FILE = path.join(process.cwd(), 'content/post-counter');
 
 // Supported image formats
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.heic', '.heif'];
