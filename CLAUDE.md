@@ -91,6 +91,7 @@ content/posts/
 
 ```yaml
 ---
+id: 42                        # Auto-assigned: global sequential post ID
 title: "Post Title"           # Required
 publishedAt: "2024-01-15"    # Required: YYYY-MM-DD
 excerpt: "Brief summary"      # Required
@@ -100,6 +101,15 @@ coverImage: "./cover.jpg"    # Optional: relative path
 draft: false                 # Optional: true hides in production
 ---
 ```
+
+### Post Counter
+
+All posts (blog and photo) share a single global counter stored in `content/post-counter`. Each new post is assigned the next integer `id` regardless of type:
+
+- **Blog posts** (`blog post:new`): `id` is written to frontmatter for reference but the URL slug remains title-based.
+- **Photo posts** (`blog photos:import`): `id` is written to frontmatter and also used as the URL slug (e.g. `/photos/42`).
+
+This ensures every post has a stable, unique numeric ID across the entire site.
 
 ### Content Filtering
 

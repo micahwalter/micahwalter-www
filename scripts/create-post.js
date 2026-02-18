@@ -14,6 +14,16 @@ const path = require('path');
 const readline = require('readline');
 
 const POSTS_DIR = path.join(process.cwd(), 'content/posts');
+const COUNTER_FILE = path.join(process.cwd(), 'content/post-counter');
+
+function nextPostId() {
+  const current = fs.existsSync(COUNTER_FILE)
+    ? parseInt(fs.readFileSync(COUNTER_FILE, 'utf8').trim(), 10) || 0
+    : 0;
+  const next = current + 1;
+  fs.writeFileSync(COUNTER_FILE, String(next));
+  return next;
+}
 
 /**
  * Create readline interface for user input
@@ -59,9 +69,10 @@ function getTodayDate() {
  * Generate frontmatter template
  */
 function generateFrontmatter(data) {
-  const { title, date, excerpt, category, tags, coverImage, draft } = data;
+  const { id, title, date, excerpt, category, tags, coverImage, draft } = data;
 
   return `---
+id: ${id}
 title: "${title}"
 publishedAt: "${date}"
 excerpt: "${excerpt}"
@@ -153,7 +164,9 @@ async function main() {
   rl.close();
 
   // Create post
+  const id = nextPostId();
   const postData = {
+    id,
     title,
     date,
     slug,
