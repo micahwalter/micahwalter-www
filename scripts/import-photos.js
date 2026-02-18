@@ -16,6 +16,7 @@ const sharp = require('sharp');
 const ExifReader = require('exifreader');
 
 const POSTS_DIR = path.join(process.cwd(), 'content/posts');
+const COUNTER_FILE = path.join(process.cwd(), 'content/photo-counter');
 
 // Supported image formats
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.heic', '.heif'];
@@ -54,6 +55,23 @@ function getArgValue(args, flag) {
     return args[index + 1];
   }
   return null;
+}
+
+/**
+ * Read the current value of the photo ID counter
+ */
+function readCurrentId() {
+  if (!fs.existsSync(COUNTER_FILE)) return 0;
+  return parseInt(fs.readFileSync(COUNTER_FILE, 'utf8').trim(), 10) || 0;
+}
+
+/**
+ * Increment the counter, persist it, and return the new ID
+ */
+function nextPhotoId() {
+  const next = readCurrentId() + 1;
+  fs.writeFileSync(COUNTER_FILE, String(next));
+  return next;
 }
 
 /**
@@ -243,10 +261,11 @@ function getTodayDate() {
  * Generate frontmatter for photo post
  */
 function generateFrontmatter(photoData) {
-  const { title, date, excerpt, category, tags, photoFilename, exif } = photoData;
+  const { title, date, excerpt, category, tags, photoFilename, exif, id } = photoData;
 
   let frontmatter = `---
 type: photo
+id: ${id}
 title: "${title}"
 publishedAt: "${date}"
 excerpt: "${excerpt}"
@@ -289,7 +308,7 @@ draft: false
  * Import a single photo
  */
 async function importPhoto(photoPath, options) {
-  const { category, dryRun } = options;
+  const { category, dryRun, previewId } = options;
   const filename = path.basename(photoPath);
   const ext = path.extname(photoPath).toLowerCase();
 
@@ -297,6 +316,9 @@ async function importPhoto(photoPath, options) {
 
   // Extract EXIF
   const exif = await extractExif(photoPath);
+
+  // Assign a unique photo ID (or preview ID in dry-run mode)
+  const id = dryRun ? previewId : nextPhotoId();
 
   // Generate slug from filename and use today's date for post
   const slug = generateSlug(filename);
@@ -317,6 +339,7 @@ async function importPhoto(photoPath, options) {
 
   // Prepare photo data
   const photoData = {
+    id,
     title,
     date,
     excerpt: exif.camera ? `Photo taken with ${exif.camera}` : 'A new photo',
@@ -328,6 +351,7 @@ async function importPhoto(photoPath, options) {
 
   if (dryRun) {
     console.log(`   📁 Would create: ${dirName}`);
+    console.log(`   🔢 Photo ID: ${id} → URL: /posts/${id}`);
     console.log(`   📝 Title: ${title}`);
     console.log(`   📅 Post date: ${date}`);
     if (exif.dateTaken) console.log(`   📸 Captured: ${exif.dateTaken}`);
@@ -355,6 +379,7 @@ async function importPhoto(photoPath, options) {
   fs.writeFileSync(indexPath, content);
 
   console.log(`   ✅ Created: ${dirName}`);
+  console.log(`   🔢 Photo ID: ${id} → URL: /posts/${id}`);
   console.log(`   📅 Post date: ${date}`);
   if (exif.dateTaken) console.log(`   📸 Captured: ${exif.dateTaken}`);
   console.log(`   📷 Photo: ${photoData.photoFilename}`);
@@ -413,9 +438,13 @@ async function main() {
     errors: 0,
   };
 
+  // For dry-run: pre-compute what IDs would be assigned without touching the counter
+  let dryRunNextId = readCurrentId();
+
   for (const photoPath of imageFiles) {
     try {
-      const result = await importPhoto(photoPath, options);
+      dryRunNextId++;
+      const result = await importPhoto(photoPath, { ...options, previewId: dryRunNextId });
       if (result.created) results.created++;
       if (result.skipped) results.skipped++;
     } catch (error) {

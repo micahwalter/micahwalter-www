@@ -4,6 +4,7 @@ import matter from "gray-matter";
 
 export interface Post {
   slug: string;
+  id?: string; // Unique sequential integer ID for photo posts (used as URL slug)
   folderName: string; // Folder name with date prefix for image paths
   title: string;
   publishedAt: string;
@@ -42,7 +43,7 @@ export function getAllPosts(): Post[] {
       return fs.statSync(fullPath).isDirectory();
     })
     .map((folder) => {
-      const slug = folder.replace(/^\d{4}-\d{2}-\d{2}-/, "");
+      const folderSlug = folder.replace(/^\d{4}-\d{2}-\d{2}-/, "");
       const fullPath = path.join(postsDirectory, folder, "index.mdx");
 
       if (!fs.existsSync(fullPath)) {
@@ -52,8 +53,12 @@ export function getAllPosts(): Post[] {
       const fileContents = fs.readFileSync(fullPath, "utf8");
       const { data, content } = matter(fileContents);
 
+      const id = data.id ? String(data.id) : undefined;
+      const slug = (data.type === 'photo' && id) ? id : folderSlug;
+
       return {
         slug,
+        id,
         folderName: folder, // Store folder name for image paths
         title: data.title || "",
         publishedAt: data.publishedAt || "",
