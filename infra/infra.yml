@@ -1,6 +1,21 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'Static website hosting with S3 and CloudFront - optimized for cost and security'
 
+Parameters:
+  HostedZoneId:
+    Type: String
+    Description: Route53 Hosted Zone ID for micahwalter.com (find in AWS Console > Route53 > Hosted Zones)
+
+  DomainName:
+    Type: String
+    Default: micahwalter.com
+    Description: Root domain name
+
+  WWWDomainName:
+    Type: String
+    Default: www.micahwalter.com
+    Description: WWW subdomain name
+
 Resources:
   # S3 Bucket for access logs
   LogsBucket:
@@ -108,6 +123,26 @@ Resources:
         - Key: Purpose
           Value: BlogImages
 
+  # ACM Certificate for custom domains (must be in us-east-1 for CloudFront)
+  # CloudFormation automatically creates/removes Route53 DNS validation records
+  ACMCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref WWWDomainName
+      SubjectAlternativeNames:
+        - !Ref DomainName
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref WWWDomainName
+          HostedZoneId: !Ref HostedZoneId
+        - DomainName: !Ref DomainName
+          HostedZoneId: !Ref HostedZoneId
+      Tags:
+        - Key: Project
+          Value: micahwalter-www
+        - Key: ManagedBy
+          Value: CloudFormation
+
   # CloudFront Origin Access Control for Website Bucket
   CloudFrontOAC:
     Type: AWS::CloudFront::OriginAccessControl
@@ -140,7 +175,7 @@ Resources:
           var uri = request.uri;
 
           // Routes that should serve static HTML files
-          var staticRoutes = ['/posts/', '/topics/', '/sketches'];
+          var staticRoutes = ['/posts/', '/topics/', '/sketches', '/photos/', '/tags/'];
           var isStaticRoute = staticRoutes.some(function(route) {
             return uri.startsWith(route);
           });
@@ -168,7 +203,27 @@ Resources:
         Comment: Routes paths to static HTML files with clean URLs or falls back to SPA routing
         Runtime: cloudfront-js-1.0
 
-  # CloudFront Distribution
+  # CloudFront Function for apex domain redirect to www
+  ApexRedirectFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub '${AWS::StackName}-apex-redirect'
+      AutoPublish: true
+      FunctionCode: !Sub |
+        function handler(event) {
+          return {
+            statusCode: 301,
+            statusDescription: 'Moved Permanently',
+            headers: {
+              location: { value: 'https://${WWWDomainName}' + event.request.uri }
+            }
+          };
+        }
+      FunctionConfig:
+        Comment: Redirects all apex domain requests to www
+        Runtime: cloudfront-js-1.0
+
+  # Main CloudFront Distribution (www.micahwalter.com)
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -177,8 +232,11 @@ Resources:
         HttpVersion: http2and3
         Comment: !Sub 'Distribution for ${AWS::StackName}'
         DefaultRootObject: index.html
+        Aliases:
+          - !Ref WWWDomainName
         ViewerCertificate:
-          CloudFrontDefaultCertificate: true
+          AcmCertificateArn: !Ref ACMCertificate
+          SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1.2_2021
         Origins:
           - Id: S3Origin
@@ -246,6 +304,53 @@ Resources:
         - Key: ManagedBy
           Value: CloudFormation
 
+  # Apex redirect CloudFront Distribution (micahwalter.com → www.micahwalter.com)
+  # The CloudFront Function returns a 301 redirect on every request; the origin is never hit.
+  ApexRedirectDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        HttpVersion: http2and3
+        Comment: !Sub 'Apex redirect for ${DomainName} -> ${WWWDomainName}'
+        Aliases:
+          - !Ref DomainName
+        ViewerCertificate:
+          AcmCertificateArn: !Ref ACMCertificate
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+        Origins:
+          # Dummy origin — never reached because the function always returns a redirect
+          - Id: DummyOrigin
+            DomainName: !GetAtt WebsiteBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !Ref CloudFrontOAC
+        DefaultCacheBehavior:
+          TargetOriginId: DummyOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # Managed-CachingOptimized
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt ApexRedirectFunction.FunctionARN
+        PriceClass: PriceClass_All
+      Tags:
+        - Key: Project
+          Value: micahwalter-www
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: StaticWebsite
+        - Key: ManagedBy
+          Value: CloudFormation
+
   # Bucket Policy for Website Bucket
   WebsiteBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -282,10 +387,49 @@ Resources:
               StringEquals:
                 AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
 
+  # Route53 DNS records
+  DNSRecords:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      RecordSets:
+        # www.micahwalter.com → main distribution (IPv4)
+        - Name: !Ref WWWDomainName
+          Type: A
+          AliasTarget:
+            DNSName: !GetAtt CloudFrontDistribution.DomainName
+            EvaluateTargetHealth: false
+            HostedZoneId: Z2FDTNDATAQYW2  # CloudFront global hosted zone ID (constant)
+        # www.micahwalter.com → main distribution (IPv6)
+        - Name: !Ref WWWDomainName
+          Type: AAAA
+          AliasTarget:
+            DNSName: !GetAtt CloudFrontDistribution.DomainName
+            EvaluateTargetHealth: false
+            HostedZoneId: Z2FDTNDATAQYW2
+        # micahwalter.com → apex redirect distribution (IPv4)
+        - Name: !Ref DomainName
+          Type: A
+          AliasTarget:
+            DNSName: !GetAtt ApexRedirectDistribution.DomainName
+            EvaluateTargetHealth: false
+            HostedZoneId: Z2FDTNDATAQYW2
+        # micahwalter.com → apex redirect distribution (IPv6)
+        - Name: !Ref DomainName
+          Type: AAAA
+          AliasTarget:
+            DNSName: !GetAtt ApexRedirectDistribution.DomainName
+            EvaluateTargetHealth: false
+            HostedZoneId: Z2FDTNDATAQYW2
+
 Outputs:
   CloudFrontURL:
     Description: CloudFront Distribution URL - use this to access your website
     Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
+
+  WebsiteURL:
+    Description: Primary website URL
+    Value: !Sub 'https://${WWWDomainName}'
 
   CloudFrontDistributionId:
     Description: CloudFront Distribution ID (needed for cache invalidation)
