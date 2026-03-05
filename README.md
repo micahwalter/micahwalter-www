@@ -20,6 +20,18 @@ flowchart TD
     GH -->|GitHub Actions CI/CD| Build[Next.js Static Build]
     Build -->|sync out/| S3Web
     Build -->|invalidate cache| CFMain
+
+    classDef people fill:#F5B684,stroke:#c47d3e,color:#191919
+    classDef dns fill:#c9e6f0,stroke:#5ba3be,color:#191919
+    classDef cdn fill:#b3d9f5,stroke:#3a8fc7,color:#191919
+    classDef storage fill:#c8f0d8,stroke:#3da85e,color:#191919
+    classDef cicd fill:#e0d4f5,stroke:#8a5ec7,color:#191919
+
+    class Visitor,Dev people
+    class R53 dns
+    class CFMain,CFApex cdn
+    class S3Web,S3Img storage
+    class GH,Build cicd
 ```
 
 ## Tech Stack
