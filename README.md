@@ -16,6 +16,7 @@ flowchart TD
     CFMain -->|Images| S3Img[(S3 Images Bucket)]
 
     Dev([Developer]) -->|git push| GH[GitHub]
+    Dev -->|blog images:sync| S3Img
     GH -->|GitHub Actions CI/CD| Build[Next.js Static Build]
     Build -->|sync out/| S3Web
     Build -->|invalidate cache| CFMain
