@@ -158,3 +158,60 @@ export function getPhotos(): Post[] {
 export function getBlogPosts(): Post[] {
   return getSortedPosts().filter(post => !post.type || post.type === 'blog');
 }
+
+export function getPostsByYear(year: string): Post[] {
+  return getSortedPosts().filter(post => post.publishedAt.startsWith(year + '-'));
+}
+
+export function getPostsByYearMonth(year: string, month: string): Post[] {
+  return getSortedPosts().filter(post =>
+    post.publishedAt.startsWith(`${year}-${month.padStart(2, '0')}-`)
+  );
+}
+
+export function getAllYears(): string[] {
+  const posts = getAllPosts();
+  const years = new Set(posts.map(post => post.publishedAt.slice(0, 4)));
+  return Array.from(years).sort((a, b) => b.localeCompare(a));
+}
+
+export function getAllSlugs(): string[] {
+  return getAllPosts().map(post => post.slug);
+}
+
+export function getAllPostDateSlugs(): { year: string; month: string; day: string; slug: string }[] {
+  return getAllPosts().map(post => ({
+    year: post.publishedAt.slice(0, 4),
+    month: post.publishedAt.slice(5, 7),
+    day: post.publishedAt.slice(8, 10),
+    slug: post.slug,
+  }));
+}
+
+export function getAllPostYearMonthSlugs(): { year: string; month: string; slug: string }[] {
+  return getAllPosts().map(post => ({
+    year: post.publishedAt.slice(0, 4),
+    month: post.publishedAt.slice(5, 7),
+    slug: post.slug,
+  }));
+}
+
+export function getAllYearMonths(): { year: string; month: string }[] {
+  const posts = getAllPosts();
+  const seen = new Set<string>();
+  const result: { year: string; month: string }[] = [];
+  for (const post of posts) {
+    const year = post.publishedAt.slice(0, 4);
+    const month = post.publishedAt.slice(5, 7);
+    const key = `${year}-${month}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push({ year, month });
+    }
+  }
+  return result.sort((a, b) => {
+    const da = `${a.year}-${a.month}`;
+    const db = `${b.year}-${b.month}`;
+    return db.localeCompare(da);
+  });
+}
