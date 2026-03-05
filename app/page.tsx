@@ -24,6 +24,9 @@ export default function Home() {
           sizes="(max-width: 768px) 100vw, 1340px"
         />
       </Link>
+      <p className="mt-4 text-center text-charcoal">
+        Please enjoy this snowy photo while the site undergoes some maintenance.
+      </p>
     </main>
   );
 }
