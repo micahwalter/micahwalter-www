@@ -6,8 +6,10 @@ on:
       - main
     paths:
       - 'app/**'
+      - 'components/**'
       - 'public/**'
       - 'content/**'
+      - 'lib/**'
       - 'scripts/**'
       - 'package.json'
       - 'next.config.ts'
