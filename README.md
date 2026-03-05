@@ -2,6 +2,25 @@
 
 A modern, statically-exported blog and photo archive built with Next.js 15 and hosted on AWS S3 + CloudFront with automated CI/CD deployment.
 
+## Architecture
+
+```mermaid
+flowchart TD
+    Visitor([Visitor]) --> R53[Route53 DNS]
+
+    R53 -->|www.micahwalter.com| CFMain[CloudFront\nMain Distribution]
+    R53 -->|micahwalter.com| CFApex[CloudFront\nApex Redirect]
+    CFApex -->|301 to www| CFMain
+
+    CFMain -->|HTML / CSS / JS| S3Web[(S3\nWebsite Bucket)]
+    CFMain -->|Images| S3Img[(S3\nImages Bucket)]
+
+    Dev([Developer]) -->|git push| GH[GitHub]
+    GH -->|GitHub Actions CI/CD| Build[Next.js\nStatic Build]
+    Build -->|sync out/| S3Web
+    Build -->|invalidate cache| CFMain
+```
+
 ## Tech Stack
 
 ### Frontend
