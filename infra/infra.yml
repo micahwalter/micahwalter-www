@@ -180,9 +180,11 @@ Resources:
             return uri.startsWith(route);
           });
 
-          // Date archive routes: /YYYY and /YYYY/MM
+          // Date archive routes: /YYYY, /YYYY/MM, /YYYY/MM/slug, /YYYY/MM/DD/slug
           if (!isStaticRoute) {
-            isStaticRoute = /^\/20\d{2}(\/\d{2})?$/.test(uri);
+            isStaticRoute = /^\/20\d{2}(\/\d{2}(\/\d{2})?)?$/.test(uri) ||
+              /^\/20\d{2}\/\d{2}\/[^/]+$/.test(uri) ||
+              /^\/20\d{2}\/\d{2}\/\d{2}\/[^/]+$/.test(uri);
           }
 
           // If URI doesn't have a file extension
