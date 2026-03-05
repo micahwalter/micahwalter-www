@@ -18,7 +18,6 @@ function getAllPosts() {
       return fs.statSync(fullPath).isDirectory();
     })
     .map((folder) => {
-      const slug = folder.replace(/^\d{4}-\d{2}-\d{2}-/, "");
       const fullPath = path.join(postsDirectory, folder, "index.mdx");
 
       if (!fs.existsSync(fullPath)) {
@@ -27,6 +26,9 @@ function getAllPosts() {
 
       const fileContents = fs.readFileSync(fullPath, "utf8");
       const { data } = matter(fileContents);
+
+      const id = data.id ? String(data.id) : undefined;
+      const slug = (data.type === 'photo' && id) ? id : folder.replace(/^\d{4}-\d{2}-\d{2}-/, "");
 
       return {
         slug,
