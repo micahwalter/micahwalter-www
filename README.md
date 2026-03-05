@@ -15,10 +15,11 @@ A modern, statically-exported blog and photo archive built with Next.js 15 and h
 ### Infrastructure
 - **AWS S3**: Static file storage with versioning and encryption
 - **CloudFront**: Global CDN with HTTP/2, HTTP/3, and edge caching
-- **CloudFront Function**: SPA routing and path rewriting
-- **Route 53**: DNS management (optional)
-- **ACM**: SSL/TLS certificates
+- **CloudFront Functions**: SPA routing/path rewriting + apex domain redirect
+- **Route 53**: DNS management with A/AAAA alias records
+- **ACM**: SSL/TLS certificates (DNS validated)
 - **GitHub Actions**: CI/CD with OIDC authentication (no stored credentials)
+- **Fathom Analytics**: Privacy-first analytics via `fathom-client`
 
 ### Image Processing
 - **Sharp**: High-performance image optimization
@@ -523,21 +524,18 @@ npm run images:dev       # Optimize + copy to public/ for dev
 
 ### Environment Variables
 
-**Production (GitHub Actions):**
-Already configured via secrets.
+**Production (GitHub Actions secrets):**
+
+| Secret | Description |
+|--------|-------------|
+| `AWS_ROLE_ARN` | IAM role ARN for OIDC deployment |
+| `NEXT_PUBLIC_FATHOM_SITE_ID` | Fathom Analytics site ID (baked in at build time) |
 
 **Local Development:**
-Create `.env.local` (optional):
+Create `.env.local`:
 
 ```bash
-# S3 bucket name for images
-IMAGES_BUCKET=micahwalter-www-images
-
-# AWS region
-AWS_REGION=us-east-1
-
-# AWS profile (alternative to --profile flag)
-AWS_PROFILE=www
+NEXT_PUBLIC_FATHOM_SITE_ID=your-fathom-site-id
 ```
 
 ## Build Process
@@ -612,25 +610,32 @@ gh run view --log
 
 ### AWS Resources
 
-**Main Stack (CloudFormation):**
+**Main Stack (CloudFormation — `infra/infra.yml`):**
 - S3 Website Bucket (static HTML/JS/CSS)
 - S3 Images Bucket (optimized images)
 - S3 Logs Bucket (access logs)
-- CloudFront Distribution (CDN)
-- CloudFront Function (SPA routing)
+- ACM Certificate (`www.micahwalter.com` + `micahwalter.com`, DNS validated)
+- CloudFront Distribution (CDN for `www.micahwalter.com`)
+- CloudFront Apex Redirect Distribution (`micahwalter.com` → 301 → `www.micahwalter.com`)
+- CloudFront Functions (SPA routing + apex redirect)
+- Route53 A/AAAA alias records for both domains
 - Origin Access Control (secure S3 access)
 
-**GitHub Actions Stack:**
+**GitHub Actions Stack (`infra/github-actions-role.yml`):**
 - IAM Role with OIDC provider
 - Least-privilege permissions for S3 and CloudFront
 
 ### Initial Infrastructure Setup
 
 ```bash
-# Deploy main infrastructure
+# Deploy main infrastructure (requires HostedZoneId from Route53)
 aws cloudformation create-stack \
   --stack-name micahwalter-www \
   --template-body file://infra/infra.yml \
+  --parameters \
+    ParameterKey=HostedZoneId,ParameterValue=<your-hosted-zone-id> \
+    ParameterKey=DomainName,ParameterValue=micahwalter.com \
+    ParameterKey=WWWDomainName,ParameterValue=www.micahwalter.com \
   --profile www \
   --region us-east-1
 
@@ -686,6 +691,10 @@ aws cloudformation describe-stacks \
 aws cloudformation update-stack \
   --stack-name micahwalter-www \
   --template-body file://infra/infra.yml \
+  --parameters \
+    ParameterKey=HostedZoneId,ParameterValue=<your-hosted-zone-id> \
+    ParameterKey=DomainName,ParameterValue=micahwalter.com \
+    ParameterKey=WWWDomainName,ParameterValue=www.micahwalter.com \
   --profile www \
   --region us-east-1
 
@@ -764,6 +773,8 @@ Defined in `tailwind.config.ts`:
 - ✅ Responsive images with lazy loading
 - ✅ Mobile-friendly navigation
 - ✅ Draft post support (dev vs production)
+- ✅ Themed 404 page (`app/not-found.tsx`)
+- ✅ Fathom Analytics (privacy-first, page-view tracking)
 
 ### Photo Archive Features
 - ✅ Unified content system (photos as posts with `type: photo`)
@@ -780,6 +791,8 @@ Defined in `tailwind.config.ts`:
 ### Infrastructure Features
 - ✅ HTTPS enabled (TLS 1.2+)
 - ✅ HTTP/2 and HTTP/3 support
+- ✅ Custom domain (`www.micahwalter.com`) with ACM SSL certificate
+- ✅ Apex redirect (`micahwalter.com` → 301 → `https://www.micahwalter.com`)
 - ✅ Global edge locations
 - ✅ SPA routing (CloudFront Function)
 - ✅ Gzip/Brotli compression
@@ -796,6 +809,7 @@ Defined in `tailwind.config.ts`:
 - ✅ Manual deployment trigger option
 - ✅ Build-time image optimization
 - ✅ Separate image and content buckets
+- ✅ Path triggers cover `app/`, `components/`, `lib/`, `content/`, `public/`, `scripts/`
 
 ## Security
 
@@ -917,7 +931,7 @@ WebP is supported by 97%+ of browsers:
 
 ## Static Export Limitations
 
-Because `output: "export"` is enabled:
+`output: "export"` is enabled in **production only** (`NODE_ENV === "production"`). Dev mode uses standard Next.js routing. In production builds:
 
 - **No API routes**: Cannot use `/app/api/*` routes
 - **No server-side rendering**: Everything is pre-rendered at build time

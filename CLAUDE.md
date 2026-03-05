@@ -13,6 +13,7 @@ This is a **static blog built with Next.js 15** using the App Router and exporte
    - All dynamic data must be generated at build time via scripts
    - Files like `posts.json`, `feed.xml`, and `sitemap.xml` are generated during prebuild
    - Dynamic routes use `generateStaticParams()` to pre-render all pages
+   - `output: "export"` is only enabled in production (`NODE_ENV === "production"`). Dev mode uses standard Next.js routing so all slugs are accessible without being in `generateStaticParams`.
 
 2. **Content Management**: MDX-based with gray-matter frontmatter
    - Posts live in `content/posts/YYYY-MM-DD-slug/index.mdx`
@@ -107,7 +108,7 @@ draft: false                 # Optional: true hides in production
 All posts (blog and photo) share a single global counter stored in `content/post-counter`. Each new post is assigned the next integer `id` regardless of type:
 
 - **Blog posts** (`blog post:new`): `id` is written to frontmatter for reference but the URL slug remains title-based.
-- **Photo posts** (`blog photos:import`): `id` is written to frontmatter and also used as the URL slug (e.g. `/photos/42`).
+- **Photo posts** (`blog photos:import`): `id` is written to frontmatter and also used as the URL slug (e.g. `/posts/42`).
 
 This ensures every post has a stable, unique numeric ID across the entire site.
 
@@ -214,11 +215,39 @@ User → API → Database
 
 ## AWS Profile
 
-All AWS operations use the `www` profile. Ensure it's configured:
+All AWS operations use the `www` profile. It is configured as an SSO profile:
 
 ```bash
-aws configure --profile www
+aws configure sso --profile www
 # Or verify: aws sts get-caller-identity --profile www
+```
+
+## Analytics
+
+Fathom Analytics is added via `components/Fathom.tsx`, included in `app/layout.tsx`. The site ID is set via environment variable:
+
+- **Local dev**: add `NEXT_PUBLIC_FATHOM_SITE_ID=<id>` to `.env.local`
+- **Production**: set `NEXT_PUBLIC_FATHOM_SITE_ID` as a GitHub Actions secret (it is baked into the static build at CI time)
+
+## Custom Domain
+
+The site is live at `https://www.micahwalter.com`. Infra managed in `infra/infra.yml`:
+
+- ACM certificate covers `www.micahwalter.com` + `micahwalter.com` (DNS validated via Route53)
+- Main CloudFront distribution serves `www.micahwalter.com`
+- Apex redirect distribution + CloudFront Function issues 301 `micahwalter.com` → `https://www.micahwalter.com`
+- Route53 A + AAAA alias records for both domains
+
+The `infra/infra.yml` stack requires Parameters on deploy:
+```bash
+aws cloudformation update-stack \
+  --stack-name micahwalter-www \
+  --template-body file://infra/infra.yml \
+  --parameters \
+    ParameterKey=HostedZoneId,ParameterValue=<hosted-zone-id> \
+    ParameterKey=DomainName,ParameterValue=micahwalter.com \
+    ParameterKey=WWWDomainName,ParameterValue=www.micahwalter.com \
+  --profile www
 ```
 
 ## Deployment
