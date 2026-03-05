@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import TopicsDropdown from "./TopicsDropdown";
 import MobileMenu from "./MobileMenu";
 import SearchBar from "./SearchBar";
 
@@ -26,19 +25,6 @@ export default function Header() {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-8">
-              <TopicsDropdown />
-              <Link
-                href="/photos"
-                className="text-charcoal no-underline hover:text-gray transition-colors"
-              >
-                Photos
-              </Link>
-              <Link
-                href="/sketches"
-                className="text-charcoal no-underline hover:text-gray transition-colors"
-              >
-                Sketches
-              </Link>
               <button
                 onClick={() => setIsSearchOpen(true)}
                 className="text-charcoal hover:text-gray transition-colors"
