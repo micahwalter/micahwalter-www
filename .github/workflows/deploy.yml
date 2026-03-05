@@ -47,6 +47,8 @@ jobs:
 
       - name: Build Next.js app
         run: npm run build
+        env:
+          NEXT_PUBLIC_FATHOM_SITE_ID: ${{ secrets.NEXT_PUBLIC_FATHOM_SITE_ID }}
 
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v4
