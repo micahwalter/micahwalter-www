@@ -3,6 +3,7 @@ import { EB_Garamond } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Fathom from "@/components/Fathom";
 
 const ebGaramond = EB_Garamond({
   subsets: ["latin"],
@@ -32,6 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${ebGaramond.variable} antialiased`} suppressHydrationWarning>
+        <Fathom />
         <Header />
         <main className="min-h-screen">
           {children}

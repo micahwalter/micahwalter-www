@@ -23,6 +23,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.9",
     "date-fns": "^4.1.0",
+    "fathom-client": "^3.7.2",
     "gray-matter": "^4.0.3",
     "next": "^15.1.6",
     "next-mdx-remote": "^6.0.0",
