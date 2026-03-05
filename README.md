@@ -5,6 +5,7 @@ A modern, statically-exported blog and photo archive built with Next.js 15 and h
 ## Architecture
 
 ```mermaid
+%%{init: {"flowchart": {"curve": "linear"}} }%%
 flowchart TD
     Visitor([Visitor]) --> R53[Route53 DNS]
 
