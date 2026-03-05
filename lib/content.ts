@@ -175,6 +175,10 @@ export function getAllYears(): string[] {
   return Array.from(years).sort((a, b) => b.localeCompare(a));
 }
 
+export function getAllSlugs(): string[] {
+  return getAllPosts().map(post => post.slug);
+}
+
 export function getAllPostDateSlugs(): { year: string; month: string; day: string; slug: string }[] {
   return getAllPosts().map(post => ({
     year: post.publishedAt.slice(0, 4),

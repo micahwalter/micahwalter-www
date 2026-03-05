@@ -1,4 +1,5 @@
-import { getPostsByYearMonth, getAllYearMonths } from "@/lib/content";
+import { redirect } from "next/navigation";
+import { getPostsByYearMonth, getAllYearMonths, getAllSlugs, getAllYears } from "@/lib/content";
 import PostGrid from "@/components/PostGrid";
 import type { Metadata } from "next";
 
@@ -14,14 +15,26 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ];
 
+function isValidMonth(month: string): boolean {
+  const n = parseInt(month, 10);
+  return /^\d{2}$/.test(month) && n >= 1 && n <= 12;
+}
+
 export async function generateStaticParams() {
-  const yearMonths = getAllYearMonths();
-  return yearMonths.map(({ year, month }) => ({ year, month }));
+  const yearMonths = getAllYearMonths().map(({ year, month }) => ({ year, month }));
+  // Also generate year+slug combos so /YYYY/slug redirects work in static export
+  const years = getAllYears();
+  const slugs = getAllSlugs();
+  const yearSlugs = years.flatMap((year) => slugs.map((slug) => ({ year, month: slug })));
+  return [...yearMonths, ...yearSlugs];
 }
 
 export async function generateMetadata({ params }: MonthPageProps): Promise<Metadata> {
   const { year, month } = await params;
-  const monthName = MONTH_NAMES[parseInt(month, 10) - 1] ?? month;
+  if (!isValidMonth(month)) {
+    return {};
+  }
+  const monthName = MONTH_NAMES[parseInt(month, 10) - 1];
   return {
     title: `Posts from ${monthName} ${year}`,
     description: `Browse all posts published in ${monthName} ${year}`,
@@ -30,7 +43,12 @@ export async function generateMetadata({ params }: MonthPageProps): Promise<Meta
 
 export default async function MonthArchivePage({ params }: MonthPageProps) {
   const { year, month } = await params;
-  const monthName = MONTH_NAMES[parseInt(month, 10) - 1] ?? month;
+
+  if (!isValidMonth(month)) {
+    redirect(`/posts/${month}`);
+  }
+
+  const monthName = MONTH_NAMES[parseInt(month, 10) - 1];
   const posts = getPostsByYearMonth(year, month);
 
   return (

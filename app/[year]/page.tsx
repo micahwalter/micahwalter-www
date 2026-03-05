@@ -1,4 +1,5 @@
-import { getPostsByYear, getAllYears } from "@/lib/content";
+import { redirect } from "next/navigation";
+import { getPostsByYear, getAllYears, getAllSlugs } from "@/lib/content";
 import PostGrid from "@/components/PostGrid";
 import type { Metadata } from "next";
 
@@ -9,12 +10,16 @@ interface YearPageProps {
 }
 
 export async function generateStaticParams() {
-  const years = getAllYears();
-  return years.map((year) => ({ year }));
+  const years = getAllYears().map((year) => ({ year }));
+  const slugs = getAllSlugs().map((slug) => ({ year: slug }));
+  return [...years, ...slugs];
 }
 
 export async function generateMetadata({ params }: YearPageProps): Promise<Metadata> {
   const { year } = await params;
+  if (!/^\d{4}$/.test(year)) {
+    return {};
+  }
   return {
     title: `Posts from ${year}`,
     description: `Browse all posts published in ${year}`,
@@ -23,6 +28,11 @@ export async function generateMetadata({ params }: YearPageProps): Promise<Metad
 
 export default async function YearArchivePage({ params }: YearPageProps) {
   const { year } = await params;
+
+  if (!/^\d{4}$/.test(year)) {
+    redirect(`/posts/${year}`);
+  }
+
   const posts = getPostsByYear(year);
 
   return (
