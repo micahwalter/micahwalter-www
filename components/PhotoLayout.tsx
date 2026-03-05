@@ -19,6 +19,21 @@ export default function PhotoLayout({ post, children }: PhotoLayoutProps) {
 
   return (
     <article className="max-w-wide mx-auto px-6 py-12">
+      {/* Photo - Full width within max-wide constraint */}
+      {post.coverImage && (
+        <div className="mb-8">
+          <CoverImage
+            folderName={post.folderName}
+            filename={coverFilename}
+            alt={post.title}
+            className="rounded-lg"
+            priority={true}
+            sizes="(max-width: 768px) 100vw, 1340px"
+            zoomable={true}
+          />
+        </div>
+      )}
+
       {/* Header */}
       <header className="mb-8 max-w-reading mx-auto">
         {/* Category & Draft Badge */}
@@ -62,21 +77,6 @@ export default function PhotoLayout({ post, children }: PhotoLayoutProps) {
           )}
         </div>
       </header>
-
-      {/* Photo - Full width within max-wide constraint */}
-      {post.coverImage && (
-        <div className="mb-8">
-          <CoverImage
-            folderName={post.folderName}
-            filename={coverFilename}
-            alt={post.title}
-            className="rounded-lg"
-            priority={true}
-            sizes="(max-width: 768px) 100vw, 1340px"
-            zoomable={true}
-          />
-        </div>
-      )}
 
       {/* Two-column layout for description and EXIF */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-reading mx-auto">
