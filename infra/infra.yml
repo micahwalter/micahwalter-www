@@ -174,20 +174,7 @@ Resources:
           var request = event.request;
           var uri = request.uri;
 
-          // Routes that should serve static HTML files
-          var staticRoutes = ['/posts/', '/topics/', '/sketches', '/photos/', '/tags/'];
-          var isStaticRoute = staticRoutes.some(function(route) {
-            return uri.startsWith(route);
-          });
-
-          // Date archive routes: /YYYY, /YYYY/MM, /YYYY/MM/slug, /YYYY/MM/DD/slug
-          if (!isStaticRoute) {
-            isStaticRoute = /^\/20\d{2}(\/\d{2}(\/\d{2})?)?$/.test(uri) ||
-              /^\/20\d{2}\/\d{2}\/[^/]+$/.test(uri) ||
-              /^\/20\d{2}\/\d{2}\/\d{2}\/[^/]+$/.test(uri);
-          }
-
-          // If URI doesn't have a file extension
+          // If URI doesn't have a file extension, resolve to an HTML file
           if (!uri.includes('.')) {
             if (uri === '/' || uri === '') {
               // Root path serves index.html
@@ -195,19 +182,17 @@ Resources:
             } else if (uri.endsWith('/')) {
               // Directory paths get index.html appended
               request.uri = uri + 'index.html';
-            } else if (isStaticRoute) {
-              // Static routes get .html appended for clean URLs
-              request.uri = uri + '.html';
             } else {
-              // Other routes fall back to index.html for client-side routing
-              request.uri = '/index.html';
+              // All other clean URLs map to their .html equivalent.
+              // If the file doesn't exist in S3, CloudFront returns 404.html.
+              request.uri = uri + '.html';
             }
           }
 
           return request;
         }
       FunctionConfig:
-        Comment: Routes paths to static HTML files with clean URLs or falls back to SPA routing
+        Comment: Routes clean URLs to static HTML files; missing files produce a 404
         Runtime: cloudfront-js-1.0
 
   # CloudFront Function for apex domain redirect to www
@@ -289,12 +274,12 @@ Resources:
               FunctionARN: !GetAtt StaticHTMLRoutingFunction.FunctionARN
         CustomErrorResponses:
           - ErrorCode: 403
-            ResponseCode: 200
-            ResponsePagePath: /index.html
+            ResponseCode: 404
+            ResponsePagePath: /404.html
             ErrorCachingMinTTL: 300
           - ErrorCode: 404
-            ResponseCode: 200
-            ResponsePagePath: /index.html
+            ResponseCode: 404
+            ResponsePagePath: /404.html
             ErrorCachingMinTTL: 300
         PriceClass: PriceClass_All
         Logging:
