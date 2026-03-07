@@ -28,6 +28,15 @@ Resources:
             Status: Enabled
             NoncurrentVersionExpiration:
               NoncurrentDays: 30
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
 Outputs:
 

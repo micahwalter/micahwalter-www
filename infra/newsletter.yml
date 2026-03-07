@@ -92,6 +92,15 @@ Resources:
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
   # -------------------------------------------------------------------------
   # Secrets
@@ -106,6 +115,15 @@ Resources:
         Format: {"current":"<key>","previous":"<oldkey>"}
         Set "previous" during rotation; clear it after old tokens expire.
       SecretString: '{"current":"REPLACE_WITH_STRONG_RANDOM_KEY","previous":""}'
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
   # -------------------------------------------------------------------------
   # Messaging — EventBridge bus, SQS queue, routing rule
@@ -115,6 +133,15 @@ Resources:
     Type: AWS::Events::EventBus
     Properties:
       Name: newsletter-bus
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
   NewsletterBusArchive:
     Type: AWS::Events::Archive
@@ -132,6 +159,15 @@ Resources:
     Properties:
       QueueName: email-send-dlq
       MessageRetentionPeriod: 1209600 # 14 days
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
   EmailSendQueue:
     Type: AWS::SQS::Queue
@@ -141,6 +177,15 @@ Resources:
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt EmailSendDLQ.Arn
         maxReceiveCount: 3
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
   # Allow EventBridge to publish to the SQS queue
   EmailSendQueuePolicy:
@@ -197,6 +242,11 @@ Resources:
         AllowHeaders:
           - Content-Type
         MaxAge: 300
+      Tags:
+        Project: micahwalter-newsletter
+        Environment: Production
+        Application: NewsletterSubscription
+        ManagedBy: CloudFormation
 
   NewsletterApiStage:
     Type: AWS::ApiGatewayV2::Stage
@@ -204,6 +254,11 @@ Resources:
       ApiId: !Ref NewsletterApi
       StageName: $default
       AutoDeploy: true
+      Tags:
+        Project: micahwalter-newsletter
+        Environment: Production
+        Application: NewsletterSubscription
+        ManagedBy: CloudFormation
 
   # -------------------------------------------------------------------------
   # IAM Roles — one per Lambda, least-privilege
@@ -239,6 +294,15 @@ Resources:
               - Effect: Allow
                 Action: secretsmanager:GetSecretValue
                 Resource: !Ref HMACSecret
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
   ConfirmFnRole:
     Type: AWS::IAM::Role
@@ -269,6 +333,15 @@ Resources:
               - Effect: Allow
                 Action: secretsmanager:GetSecretValue
                 Resource: !Ref HMACSecret
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
   UnsubscribeFnRole:
     Type: AWS::IAM::Role
@@ -299,6 +372,15 @@ Resources:
               - Effect: Allow
                 Action: secretsmanager:GetSecretValue
                 Resource: !Ref HMACSecret
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
   EmailFnRole:
     Type: AWS::IAM::Role
@@ -330,6 +412,15 @@ Resources:
               - Effect: Allow
                 Action: secretsmanager:GetSecretValue
                 Resource: !Ref HMACSecret
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
   # -------------------------------------------------------------------------
   # Lambda Functions
@@ -354,6 +445,15 @@ Resources:
           EVENT_BUS_NAME: !Ref NewsletterBus
           HMAC_SECRET_ARN: !Ref HMACSecret
           SITE_URL: !Ref SiteUrl
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
   ConfirmFn:
     Type: AWS::Lambda::Function
@@ -374,6 +474,15 @@ Resources:
           EVENT_BUS_NAME: !Ref NewsletterBus
           HMAC_SECRET_ARN: !Ref HMACSecret
           SITE_URL: !Ref SiteUrl
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
   UnsubscribeFn:
     Type: AWS::Lambda::Function
@@ -394,6 +503,15 @@ Resources:
           EVENT_BUS_NAME: !Ref NewsletterBus
           HMAC_SECRET_ARN: !Ref HMACSecret
           SITE_URL: !Ref SiteUrl
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
   EmailFn:
     Type: AWS::Lambda::Function
@@ -412,6 +530,15 @@ Resources:
         Variables:
           SENDER_EMAIL: !Ref SenderEmail
           SITE_URL: !Ref SiteUrl
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
   # -------------------------------------------------------------------------
   # API Gateway — integrations, routes, and Lambda invoke permissions
@@ -695,6 +822,15 @@ Resources:
     Properties:
       AlarmName: newsletter-subscribe-fn-errors
       AlarmDescription: newsletter-subscribe Lambda error rate is elevated
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
       Namespace: AWS/Lambda
       MetricName: Errors
       Dimensions:
@@ -712,6 +848,15 @@ Resources:
     Properties:
       AlarmName: newsletter-confirm-fn-errors
       AlarmDescription: newsletter-confirm Lambda error rate is elevated
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
       Namespace: AWS/Lambda
       MetricName: Errors
       Dimensions:
@@ -729,6 +874,15 @@ Resources:
     Properties:
       AlarmName: newsletter-unsubscribe-fn-errors
       AlarmDescription: newsletter-unsubscribe Lambda error rate is elevated
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
       Namespace: AWS/Lambda
       MetricName: Errors
       Dimensions:
@@ -746,6 +900,15 @@ Resources:
     Properties:
       AlarmName: newsletter-email-fn-errors
       AlarmDescription: newsletter-email Lambda error rate is elevated
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
       Namespace: AWS/Lambda
       MetricName: Errors
       Dimensions:
@@ -765,6 +928,15 @@ Resources:
       AlarmDescription: >
         Messages are landing in the email DLQ — emails are failing to send.
         Check newsletter-email Lambda logs.
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
       Namespace: AWS/SQS
       MetricName: ApproximateNumberOfMessagesVisible
       Dimensions:

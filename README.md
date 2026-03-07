@@ -648,28 +648,30 @@ The newsletter subscription system is a separate serverless backend deployed alo
 ### Architecture
 
 ```mermaid
+%%{init: {"flowchart": {"curve": "linear"}} }%%
 flowchart TD
-    Visitor([Visitor\nbrowser]) -->|POST /subscribe\nPOST /confirm\nPOST /unsubscribe| APIGW[API Gateway\nnewsletter-api]
+    Visitor([Visitor]) -->|POST /subscribe | APIGW[API Gateway]
 
-    APIGW --> SubFn[subscribe-fn\nGo Lambda]
-    APIGW --> ConFn[confirm-fn\nGo Lambda]
-    APIGW --> UnsFn[unsubscribe-fn\nGo Lambda]
+    APIGW --> SubFn[subscribe-fn]
+    APIGW --> ConFn[confirm-fn]
+    APIGW --> UnsFn[unsubscribe-fn]
 
-    SubFn & ConFn & UnsFn -->|GetSecretValue| SM[(Secrets Manager\nHMAC signing key)]
+    SubFn & ConFn & UnsFn -->|GetSecretValue| SM[(Secrets Manager)]
 
-    SubFn -->|write PENDING| DDB[(DynamoDB\nnewsletter_subscribers)]
+    SubFn -->|write PENDING| DDB[(DynamoDB)]
     ConFn -->|write ACTIVE| DDB
     UnsFn -->|write UNSUBSCRIBED| DDB
 
-    SubFn -->|SignupRequested\nConfirmationResent| EB{{EventBridge\nnewsletter-bus}}
+    SubFn -->|SignupRequested| EB{{EventBridge}}
+    SubFn -->|ConfirmationResent| EB
     ConFn -->|SubscriberConfirmed| EB
     UnsFn -->|UnsubscribeRequested| EB
 
-    EB -->|route-to-email rule| SQS[SQS\nemail-send-queue]
-    SQS -->|max 3 retries| EmailFn[email-fn\nGo Lambda]
-    SQS -->|persistent failure| DLQ[email-send-dlq\n+ CloudWatch alarm]
+    EB -->|route-to-email rule| SQS[SQS queue]
+    SQS -->|max 3 retries| EmailFn[email-fn]
+    SQS -->|persistent failure| DLQ[DLQ + alarm]
 
-    EmailFn -->|SendTemplatedEmail| SES[AWS SES\nmicah@micahwalter.com]
+    EmailFn -->|SendTemplatedEmail| SES[AWS SES]
 
     classDef people fill:#F5B684,stroke:#c47d3e,color:#191919
     classDef lambda fill:#b3d9f5,stroke:#3a8fc7,color:#191919
