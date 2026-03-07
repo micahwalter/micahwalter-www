@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Newsletter artifacts bucket — deploy this ONCE before the main newsletter stack.
+  Stores compiled Lambda zip files uploaded during the build process.
+
+Resources:
+
+  NewsletterArtifactsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: micahwalter-newsletter-artifacts
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireOldVersions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 30
+
+Outputs:
+
+  BucketName:
+    Description: S3 bucket for Lambda deployment artifacts
+    Value: !Ref NewsletterArtifactsBucket
+    Export:
+      Name: micahwalter-newsletter-artifacts-bucket
