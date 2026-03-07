@@ -11,6 +11,11 @@ export default function Footer() {
           <p className="text-gray text-sm">
             &copy; {currentYear} Micah Walter. All rights reserved.
           </p>
+          <p className="text-gray text-sm">
+            <a href="/newsletter" className="hover:text-charcoal transition-colors no-underline">
+              Newsletter
+            </a>
+          </p>
         </div>
       </div>
     </footer>
