@@ -563,12 +563,14 @@ npm run images:dev       # Optimize + copy to public/ for dev
 |--------|-------------|
 | `AWS_ROLE_ARN` | IAM role ARN for OIDC deployment |
 | `NEXT_PUBLIC_FATHOM_SITE_ID` | Fathom Analytics site ID (baked in at build time) |
+| `NEXT_PUBLIC_NEWSLETTER_API_URL` | Newsletter API Gateway base URL (baked in at build time) |
 
 **Local Development:**
 Create `.env.local`:
 
 ```bash
 NEXT_PUBLIC_FATHOM_SITE_ID=your-fathom-site-id
+NEXT_PUBLIC_NEWSLETTER_API_URL=https://79zhxk7xu9.execute-api.us-east-1.amazonaws.com
 ```
 
 ## Build Process
@@ -638,6 +640,114 @@ gh run watch
 # View detailed logs
 gh run view --log
 ```
+
+## Newsletter
+
+The newsletter subscription system is a separate serverless backend deployed alongside the main website. It follows an event-driven architecture — command handlers validate input, write state, and emit domain events. All downstream behaviour (sending emails, future CRM sync, analytics) is handled by independent consumers that react to those events without any coupling to the command side.
+
+### Architecture
+
+```mermaid
+flowchart TD
+    Visitor([Visitor\nbrowser]) -->|POST /subscribe\nPOST /confirm\nPOST /unsubscribe| APIGW[API Gateway\nnewsletter-api]
+
+    APIGW --> SubFn[subscribe-fn\nGo Lambda]
+    APIGW --> ConFn[confirm-fn\nGo Lambda]
+    APIGW --> UnsFn[unsubscribe-fn\nGo Lambda]
+
+    SubFn & ConFn & UnsFn -->|GetSecretValue| SM[(Secrets Manager\nHMAC signing key)]
+
+    SubFn -->|write PENDING| DDB[(DynamoDB\nnewsletter_subscribers)]
+    ConFn -->|write ACTIVE| DDB
+    UnsFn -->|write UNSUBSCRIBED| DDB
+
+    SubFn -->|SignupRequested\nConfirmationResent| EB{{EventBridge\nnewsletter-bus}}
+    ConFn -->|SubscriberConfirmed| EB
+    UnsFn -->|UnsubscribeRequested| EB
+
+    EB -->|route-to-email rule| SQS[SQS\nemail-send-queue]
+    SQS -->|max 3 retries| EmailFn[email-fn\nGo Lambda]
+    SQS -->|persistent failure| DLQ[email-send-dlq\n+ CloudWatch alarm]
+
+    EmailFn -->|SendTemplatedEmail| SES[AWS SES\nmicah@micahwalter.com]
+
+    classDef people fill:#F5B684,stroke:#c47d3e,color:#191919
+    classDef lambda fill:#b3d9f5,stroke:#3a8fc7,color:#191919
+    classDef storage fill:#c8f0d8,stroke:#3da85e,color:#191919
+    classDef messaging fill:#e0d4f5,stroke:#8a5ec7,color:#191919
+    classDef email fill:#f5e6b3,stroke:#c7a83a,color:#191919
+
+    class Visitor people
+    class SubFn,ConFn,UnsFn,EmailFn lambda
+    class DDB,SM storage
+    class APIGW,EB,SQS,DLQ messaging
+    class SES email
+```
+
+### Subscriber Journey
+
+| Step | Page | What happens |
+|---|---|---|
+| 1 | `/newsletter` | Visitor submits email + name |
+| 2 | `/newsletter/check-inbox` | `subscribe-fn` writes `PENDING`, emits `SignupRequested`; `email-fn` sends confirmation email with signed 24h token |
+| 3 | `/newsletter/confirm?token=…` | Page auto-POSTs token; `confirm-fn` verifies HMAC, writes `ACTIVE`, emits `SubscriberConfirmed` |
+| 4 | `/newsletter/thank-you` | `email-fn` sends welcome email with signed 90-day unsubscribe token |
+| 5 | `/newsletter/unsubscribe` | Token in URL → auto-submits; no token → email form. `unsubscribe-fn` writes `UNSUBSCRIBED`, emits `UnsubscribeRequested` |
+| 6 | `/newsletter/goodbye` | `email-fn` sends goodbye email |
+
+### Domain Events
+
+All events are emitted onto the `newsletter-bus` EventBridge bus under `source: newsletter.subscribers`. The event archive retains 90 days of history for replay and audit.
+
+| Event (`detail-type`) | Emitted by | Trigger |
+|---|---|---|
+| `SignupRequested` | `subscribe-fn` | New or re-subscribing email; record written as `PENDING` |
+| `ConfirmationResent` | `subscribe-fn` | Already-`PENDING` email re-submits the form |
+| `SubscriberConfirmed` | `confirm-fn` | Token verified; record updated to `ACTIVE` |
+| `UnsubscribeRequested` | `unsubscribe-fn` | Unsubscribe via signed link or manual form |
+
+### Token Security
+
+Confirmation and unsubscribe links use HMAC-SHA256 signed tokens — no raw email addresses are ever in URLs.
+
+```
+payload   = base64url( email + "|" + expires_unix_ts )
+signature = HMAC-SHA256( payload, secret )
+token     = payload + "." + signature
+```
+
+- Verification uses `crypto/subtle.ConstantTimeCompare` to prevent timing attacks
+- Dual-key rotation: Secrets Manager stores `{"current":"…","previous":"…"}` so keys can be rotated without invalidating in-flight tokens
+- Confirmation tokens expire after 24 hours; unsubscribe tokens after 90 days
+
+### Newsletter Deploy
+
+**One-time bootstrap** (creates the S3 artifacts bucket):
+
+```bash
+cd infra/newsletter-lambdas
+make deploy-bootstrap
+```
+
+**Build, upload, and deploy:**
+
+```bash
+make build            # compile 4 Go binaries for linux/arm64
+make upload           # zip + upload to S3
+make deploy           # create/update CloudFormation stack (prints API URL)
+```
+
+**Update Lambda code only** (faster than a full stack deploy):
+
+```bash
+make update-functions
+```
+
+**CloudFormation stacks:**
+- `micahwalter-newsletter-bootstrap` — S3 artifacts bucket
+- `micahwalter-newsletter` — all newsletter resources (DynamoDB, EventBridge, SQS, API Gateway, Lambdas, SES, CloudWatch alarms)
+
+---
 
 ## Infrastructure
 
@@ -820,6 +930,17 @@ Defined in `tailwind.config.ts`:
 - ✅ Tag merging (preserves existing tags)
 - ✅ Separation of post date vs capture date
 - ✅ Same image optimization as blog posts
+
+### Newsletter Features
+- ✅ Double opt-in subscription (confirmation email required)
+- ✅ HMAC-SHA256 signed tokens (no raw emails in URLs)
+- ✅ Dual-key rotation support for zero-downtime key changes
+- ✅ Idempotent, non-revealing unsubscribe endpoint
+- ✅ Event-driven architecture via EventBridge (extensible without touching existing code)
+- ✅ 90-day event archive for replay and audit
+- ✅ SQS dead-letter queue with CloudWatch alarm on failures
+- ✅ SES transactional emails (confirmation, welcome, goodbye)
+- ✅ DKIM-signed sending domain via Route53
 
 ### Infrastructure Features
 - ✅ HTTPS enabled (TLS 1.2+)
