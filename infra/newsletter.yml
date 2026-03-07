@@ -1,0 +1,805 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Newsletter subscription system — DynamoDB, EventBridge, SQS, API Gateway,
+  Lambda (subscribe / confirm / unsubscribe / email), SES, and CloudWatch alarms.
+  Deploy newsletter-bootstrap.yml first to create the artifacts bucket, then
+  upload Lambda zips before deploying this stack.
+
+# ---------------------------------------------------------------------------
+# Parameters
+# ---------------------------------------------------------------------------
+Parameters:
+
+  LambdaArtifactsBucket:
+    Type: String
+    Default: micahwalter-newsletter-artifacts
+    Description: S3 bucket created by newsletter-bootstrap.yml
+
+  LambdaArtifactsKeyPrefix:
+    Type: String
+    Default: newsletter/lambda
+    Description: S3 key prefix where Lambda zip files are uploaded (no trailing slash)
+
+  HostedZoneId:
+    Type: String
+    Default: Z05804121WRFHZZEYWGT5
+    Description: Route53 hosted zone ID for micahwalter.com
+
+  DomainName:
+    Type: String
+    Default: micahwalter.com
+
+  SiteUrl:
+    Type: String
+    Default: https://www.micahwalter.com
+    Description: Full site URL used to build confirmation and unsubscribe links
+
+  SenderEmail:
+    Type: String
+    Default: micah@micahwalter.com
+    Description: From address for all newsletter emails (must be SES-verified)
+
+  CreateSESIdentity:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: >
+      Set to false if micahwalter.com is already verified in SES and you do
+      not want CloudFormation to take ownership of the identity.
+
+# ---------------------------------------------------------------------------
+# Conditions
+# ---------------------------------------------------------------------------
+Conditions:
+  ShouldCreateSESIdentity: !Equals [!Ref CreateSESIdentity, 'true']
+
+# ---------------------------------------------------------------------------
+# Resources
+# ---------------------------------------------------------------------------
+Resources:
+
+  # -------------------------------------------------------------------------
+  # Storage
+  # -------------------------------------------------------------------------
+
+  NewsletterSubscribersTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: newsletter_subscribers
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      AttributeDefinitions:
+        - AttributeName: email
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: confirmed_at
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: StatusIndex
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: confirmed_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  # -------------------------------------------------------------------------
+  # Secrets
+  # -------------------------------------------------------------------------
+
+  HMACSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: newsletter-hmac-key
+      Description: >
+        HMAC-SHA256 signing key for newsletter confirmation and unsubscribe tokens.
+        Format: {"current":"<key>","previous":"<oldkey>"}
+        Set "previous" during rotation; clear it after old tokens expire.
+      SecretString: '{"current":"REPLACE_WITH_STRONG_RANDOM_KEY","previous":""}'
+
+  # -------------------------------------------------------------------------
+  # Messaging — EventBridge bus, SQS queue, routing rule
+  # -------------------------------------------------------------------------
+
+  NewsletterBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: newsletter-bus
+
+  NewsletterBusArchive:
+    Type: AWS::Events::Archive
+    Properties:
+      ArchiveName: newsletter-bus-archive
+      SourceArn: !GetAtt NewsletterBus.Arn
+      RetentionDays: 90
+      # Archive all events from newsletter.subscribers for replay and audit
+      EventPattern:
+        source:
+          - newsletter.subscribers
+
+  EmailSendDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: email-send-dlq
+      MessageRetentionPeriod: 1209600 # 14 days
+
+  EmailSendQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: email-send-queue
+      VisibilityTimeout: 30  # >= 6x Lambda timeout (5s)
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt EmailSendDLQ.Arn
+        maxReceiveCount: 3
+
+  # Allow EventBridge to publish to the SQS queue
+  EmailSendQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref EmailSendQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt EmailSendQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt RouteToEmailRule.Arn
+
+  # Route all four domain events to the email consumer queue
+  RouteToEmailRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: route-to-email
+      EventBusName: !Ref NewsletterBus
+      State: ENABLED
+      EventPattern:
+        source:
+          - newsletter.subscribers
+        detail-type:
+          - SignupRequested
+          - ConfirmationResent
+          - SubscriberConfirmed
+          - UnsubscribeRequested
+      Targets:
+        - Id: email-send-queue
+          Arn: !GetAtt EmailSendQueue.Arn
+
+  # -------------------------------------------------------------------------
+  # API Gateway — HTTP API with CORS
+  # -------------------------------------------------------------------------
+
+  NewsletterApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: newsletter-api
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref SiteUrl
+        AllowMethods:
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+        MaxAge: 300
+
+  NewsletterApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref NewsletterApi
+      StageName: $default
+      AutoDeploy: true
+
+  # -------------------------------------------------------------------------
+  # IAM Roles — one per Lambda, least-privilege
+  # -------------------------------------------------------------------------
+
+  SubscribeFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: newsletter-subscribe-fn-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SubscribeFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt NewsletterSubscribersTable.Arn
+              - Effect: Allow
+                Action: events:PutEvents
+                Resource: !GetAtt NewsletterBus.Arn
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref HMACSecret
+
+  ConfirmFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: newsletter-confirm-fn-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ConfirmFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt NewsletterSubscribersTable.Arn
+              - Effect: Allow
+                Action: events:PutEvents
+                Resource: !GetAtt NewsletterBus.Arn
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref HMACSecret
+
+  UnsubscribeFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: newsletter-unsubscribe-fn-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: UnsubscribeFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt NewsletterSubscribersTable.Arn
+              - Effect: Allow
+                Action: events:PutEvents
+                Resource: !GetAtt NewsletterBus.Arn
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref HMACSecret
+
+  EmailFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: newsletter-email-fn-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: EmailFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource: !GetAtt EmailSendQueue.Arn
+              - Effect: Allow
+                Action: ses:SendTemplatedEmail
+                Resource: '*'
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref HMACSecret
+
+  # -------------------------------------------------------------------------
+  # Lambda Functions
+  # -------------------------------------------------------------------------
+
+  SubscribeFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: newsletter-subscribe
+      Runtime: provided.al2023
+      Architectures: [arm64]
+      Handler: bootstrap
+      Role: !GetAtt SubscribeFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/subscribe.zip
+      Timeout: 5
+      MemorySize: 128
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref NewsletterSubscribersTable
+          EVENT_BUS_NAME: !Ref NewsletterBus
+          HMAC_SECRET_ARN: !Ref HMACSecret
+          SITE_URL: !Ref SiteUrl
+
+  ConfirmFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: newsletter-confirm
+      Runtime: provided.al2023
+      Architectures: [arm64]
+      Handler: bootstrap
+      Role: !GetAtt ConfirmFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/confirm.zip
+      Timeout: 5
+      MemorySize: 128
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref NewsletterSubscribersTable
+          EVENT_BUS_NAME: !Ref NewsletterBus
+          HMAC_SECRET_ARN: !Ref HMACSecret
+          SITE_URL: !Ref SiteUrl
+
+  UnsubscribeFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: newsletter-unsubscribe
+      Runtime: provided.al2023
+      Architectures: [arm64]
+      Handler: bootstrap
+      Role: !GetAtt UnsubscribeFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/unsubscribe.zip
+      Timeout: 5
+      MemorySize: 128
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref NewsletterSubscribersTable
+          EVENT_BUS_NAME: !Ref NewsletterBus
+          HMAC_SECRET_ARN: !Ref HMACSecret
+          SITE_URL: !Ref SiteUrl
+
+  EmailFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: newsletter-email
+      Runtime: provided.al2023
+      Architectures: [arm64]
+      Handler: bootstrap
+      Role: !GetAtt EmailFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/email.zip
+      Timeout: 5
+      MemorySize: 128
+      Environment:
+        Variables:
+          SENDER_EMAIL: !Ref SenderEmail
+          SITE_URL: !Ref SiteUrl
+
+  # -------------------------------------------------------------------------
+  # API Gateway — integrations, routes, and Lambda invoke permissions
+  # -------------------------------------------------------------------------
+
+  SubscribeIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref NewsletterApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub
+        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SubscribeFn.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
+  ConfirmIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref NewsletterApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub
+        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConfirmFn.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
+  UnsubscribeIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref NewsletterApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub
+        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UnsubscribeFn.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
+  SubscribeRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref NewsletterApi
+      RouteKey: POST /subscribe
+      Target: !Sub integrations/${SubscribeIntegration}
+
+  ConfirmRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref NewsletterApi
+      RouteKey: POST /confirm
+      Target: !Sub integrations/${ConfirmIntegration}
+
+  UnsubscribeRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref NewsletterApi
+      RouteKey: POST /unsubscribe
+      Target: !Sub integrations/${UnsubscribeIntegration}
+
+  SubscribeFnPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref SubscribeFn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${NewsletterApi}/*/*/subscribe
+
+  ConfirmFnPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ConfirmFn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${NewsletterApi}/*/*/confirm
+
+  UnsubscribeFnPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref UnsubscribeFn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${NewsletterApi}/*/*/unsubscribe
+
+  # -------------------------------------------------------------------------
+  # SQS → email-fn event source mapping
+  # -------------------------------------------------------------------------
+
+  EmailFnSQSTrigger:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt EmailSendQueue.Arn
+      FunctionName: !GetAtt EmailFn.Arn
+      BatchSize: 1
+      Enabled: true
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+
+  # -------------------------------------------------------------------------
+  # SES — domain identity, DKIM DNS records, email templates
+  # -------------------------------------------------------------------------
+
+  SESEmailIdentity:
+    Type: AWS::SES::EmailIdentity
+    Condition: ShouldCreateSESIdentity
+    Properties:
+      EmailIdentity: !Ref DomainName
+      DkimAttributes:
+        SigningEnabled: true
+      DkimSigningAttributes:
+        NextSigningKeyLength: RSA_2048_BIT
+      FeedbackAttributes:
+        EmailForwardingEnabled: true
+
+  # DKIM CNAME records — tokens are provided by SES via the EmailIdentity resource
+  DkimRecord1:
+    Type: AWS::Route53::RecordSet
+    Condition: ShouldCreateSESIdentity
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !GetAtt SESEmailIdentity.DkimDNSTokenName1
+      Type: CNAME
+      TTL: 1800
+      ResourceRecords:
+        - !GetAtt SESEmailIdentity.DkimDNSTokenValue1
+
+  DkimRecord2:
+    Type: AWS::Route53::RecordSet
+    Condition: ShouldCreateSESIdentity
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !GetAtt SESEmailIdentity.DkimDNSTokenName2
+      Type: CNAME
+      TTL: 1800
+      ResourceRecords:
+        - !GetAtt SESEmailIdentity.DkimDNSTokenValue2
+
+  DkimRecord3:
+    Type: AWS::Route53::RecordSet
+    Condition: ShouldCreateSESIdentity
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !GetAtt SESEmailIdentity.DkimDNSTokenName3
+      Type: CNAME
+      TTL: 1800
+      ResourceRecords:
+        - !GetAtt SESEmailIdentity.DkimDNSTokenValue3
+
+  ConfirmationEmailTemplate:
+    Type: AWS::SES::Template
+    Properties:
+      Template:
+        TemplateName: newsletter-confirmation
+        SubjectPart: "Please confirm your subscription"
+        TextPart: |
+          Hi {{name}},
+
+          Thanks for signing up. Click the link below to confirm your subscription:
+
+          {{confirmation_link}}
+
+          This link expires in 24 hours. If you didn't sign up, you can safely ignore this email.
+
+          — Micah
+        HtmlPart: |
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Confirm your subscription</title>
+            <style>
+              body { margin: 0; padding: 0; background: #fafaf2; font-family: Georgia, 'Times New Roman', serif; color: #191919; }
+              .wrap { max-width: 560px; margin: 48px auto; padding: 0 24px; }
+              h1 { font-size: 1.4em; font-weight: normal; margin-bottom: 1.2em; }
+              p { line-height: 1.7; margin-bottom: 1.2em; }
+              .btn { display: inline-block; background: #191919; color: #fafaf2 !important; text-decoration: none; padding: 12px 28px; font-family: system-ui, sans-serif; font-size: 0.9em; letter-spacing: 0.04em; }
+              .footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid #d0d0c8; font-size: 0.8em; color: #5f5f5f; font-family: system-ui, sans-serif; }
+            </style>
+          </head>
+          <body>
+            <div class="wrap">
+              <h1>Confirm your subscription</h1>
+              <p>Hi {{name}},</p>
+              <p>Thanks for signing up. Click the button below to confirm your subscription to Micah Walter's newsletter.</p>
+              <p><a class="btn" href="{{confirmation_link}}">Confirm subscription</a></p>
+              <p>Or copy this link into your browser:<br>{{confirmation_link}}</p>
+              <p>This link expires in 24 hours. If you didn't sign up, you can safely ignore this email.</p>
+              <div class="footer">micahwalter.com</div>
+            </div>
+          </body>
+          </html>
+
+  WelcomeEmailTemplate:
+    Type: AWS::SES::Template
+    Properties:
+      Template:
+        TemplateName: newsletter-welcome
+        SubjectPart: "You're subscribed"
+        TextPart: |
+          Hi {{name}},
+
+          You're now subscribed to Micah Walter's newsletter. I'll send occasional updates about writing, photography, and technology.
+
+          To unsubscribe at any time, visit:
+          {{unsubscribe_link}}
+
+          — Micah
+        HtmlPart: |
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>You're subscribed</title>
+            <style>
+              body { margin: 0; padding: 0; background: #fafaf2; font-family: Georgia, 'Times New Roman', serif; color: #191919; }
+              .wrap { max-width: 560px; margin: 48px auto; padding: 0 24px; }
+              h1 { font-size: 1.4em; font-weight: normal; margin-bottom: 1.2em; }
+              p { line-height: 1.7; margin-bottom: 1.2em; }
+              .footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid #d0d0c8; font-size: 0.8em; color: #5f5f5f; font-family: system-ui, sans-serif; }
+              .footer a { color: #5f5f5f; }
+            </style>
+          </head>
+          <body>
+            <div class="wrap">
+              <h1>You're subscribed</h1>
+              <p>Hi {{name}},</p>
+              <p>You're now subscribed to Micah Walter's newsletter. I'll send occasional updates about writing, photography, and technology.</p>
+              <div class="footer">
+                <a href="https://www.micahwalter.com">micahwalter.com</a> &middot;
+                <a href="{{unsubscribe_link}}">Unsubscribe</a>
+              </div>
+            </div>
+          </body>
+          </html>
+
+  GoodbyeEmailTemplate:
+    Type: AWS::SES::Template
+    Properties:
+      Template:
+        TemplateName: newsletter-goodbye
+        SubjectPart: "You've been unsubscribed"
+        TextPart: |
+          Hi {{name}},
+
+          You've been unsubscribed and won't receive any more emails from me.
+
+          Changed your mind? You can re-subscribe at any time:
+          https://www.micahwalter.com/newsletter
+
+          — Micah
+        HtmlPart: |
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Unsubscribed</title>
+            <style>
+              body { margin: 0; padding: 0; background: #fafaf2; font-family: Georgia, 'Times New Roman', serif; color: #191919; }
+              .wrap { max-width: 560px; margin: 48px auto; padding: 0 24px; }
+              h1 { font-size: 1.4em; font-weight: normal; margin-bottom: 1.2em; }
+              p { line-height: 1.7; margin-bottom: 1.2em; }
+              .footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid #d0d0c8; font-size: 0.8em; color: #5f5f5f; font-family: system-ui, sans-serif; }
+              .footer a { color: #5f5f5f; }
+            </style>
+          </head>
+          <body>
+            <div class="wrap">
+              <h1>You've been unsubscribed</h1>
+              <p>Hi {{name}},</p>
+              <p>You've been unsubscribed and won't receive any more emails from me.</p>
+              <p>Changed your mind? You can <a href="https://www.micahwalter.com/newsletter">re-subscribe</a> at any time.</p>
+              <div class="footer">
+                <a href="https://www.micahwalter.com">micahwalter.com</a>
+              </div>
+            </div>
+          </body>
+          </html>
+
+  # -------------------------------------------------------------------------
+  # CloudWatch Alarms
+  # -------------------------------------------------------------------------
+
+  SubscribeFnErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: newsletter-subscribe-fn-errors
+      AlarmDescription: newsletter-subscribe Lambda error rate is elevated
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref SubscribeFn
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  ConfirmFnErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: newsletter-confirm-fn-errors
+      AlarmDescription: newsletter-confirm Lambda error rate is elevated
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ConfirmFn
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  UnsubscribeFnErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: newsletter-unsubscribe-fn-errors
+      AlarmDescription: newsletter-unsubscribe Lambda error rate is elevated
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref UnsubscribeFn
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  EmailFnErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: newsletter-email-fn-errors
+      AlarmDescription: newsletter-email Lambda error rate is elevated
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref EmailFn
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  EmailSendDLQDepthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: newsletter-email-send-dlq-depth
+      AlarmDescription: >
+        Messages are landing in the email DLQ — emails are failing to send.
+        Check newsletter-email Lambda logs.
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt EmailSendDLQ.QueueName
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+# ---------------------------------------------------------------------------
+# Outputs
+# ---------------------------------------------------------------------------
+Outputs:
+
+  ApiEndpoint:
+    Description: >
+      Newsletter API base URL. Set as NEXT_PUBLIC_NEWSLETTER_API_URL in the
+      Next.js environment. Routes: POST /subscribe, /confirm, /unsubscribe.
+    Value: !Sub https://${NewsletterApi}.execute-api.${AWS::Region}.amazonaws.com
+    Export:
+      Name: micahwalter-newsletter-api-endpoint
+
+  TableName:
+    Description: DynamoDB table name
+    Value: !Ref NewsletterSubscribersTable
+
+  BusName:
+    Description: EventBridge bus name
+    Value: !Ref NewsletterBus
+
+  HMACSecretArn:
+    Description: >
+      Secrets Manager ARN for the HMAC signing key. After first deploy, update
+      the secret value via the console or CLI with a strong random key.
+    Value: !Ref HMACSecret
