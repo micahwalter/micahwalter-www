@@ -1,0 +1,104 @@
+name: Deploy Newsletter Lambda Stack
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/newsletter-lambdas/**'
+      - 'infra/newsletter.yml'
+      - '.github/workflows/newsletter-deploy.yml'
+
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ARTIFACTS_BUCKET: micahwalter-newsletter-artifacts
+  ARTIFACTS_PREFIX: newsletter/lambda
+  STACK_NAME: micahwalter-newsletter
+  FUNCTIONS: subscribe confirm unsubscribe email dispatch
+
+jobs:
+  deploy:
+    name: Build and deploy newsletter Lambda stack
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need previous commit to detect changed files
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: infra/newsletter-lambdas/go.mod
+          cache-dependency-path: infra/newsletter-lambdas/go.sum
+
+      - name: Detect what changed
+        id: changed
+        run: |
+          if git diff --name-only HEAD~1 HEAD | grep -q '^infra/newsletter\.yml$'; then
+            echo "template_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "template_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build Lambda functions
+        working-directory: infra/newsletter-lambdas
+        run: make build
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload Lambda zips to S3
+        working-directory: infra/newsletter-lambdas
+        run: |
+          for fn in ${{ env.FUNCTIONS }}; do
+            echo "  uploading ${fn}.zip..."
+            aws s3 cp dist/${fn}.zip \
+              s3://${{ env.ARTIFACTS_BUCKET }}/${{ env.ARTIFACTS_PREFIX }}/${fn}.zip \
+              --region ${{ env.AWS_REGION }}
+          done
+
+      - name: Deploy via CloudFormation (template changed)
+        if: steps.changed.outputs.template_changed == 'true'
+        run: |
+          aws cloudformation deploy \
+            --stack-name ${{ env.STACK_NAME }} \
+            --template-file infra/newsletter.yml \
+            --region ${{ env.AWS_REGION }} \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              LambdaArtifactsBucket=${{ env.ARTIFACTS_BUCKET }} \
+              LambdaArtifactsKeyPrefix=${{ env.ARTIFACTS_PREFIX }}
+
+      - name: Update function code only (Go source changed)
+        if: steps.changed.outputs.template_changed == 'false'
+        run: |
+          for fn in ${{ env.FUNCTIONS }}; do
+            echo "  updating newsletter-${fn}..."
+            aws lambda update-function-code \
+              --function-name newsletter-${fn} \
+              --s3-bucket ${{ env.ARTIFACTS_BUCKET }} \
+              --s3-key ${{ env.ARTIFACTS_PREFIX }}/${fn}.zip \
+              --region ${{ env.AWS_REGION }} \
+              --no-cli-pager
+          done
+
+      - name: Deployment summary
+        run: |
+          echo "Deploy mode: ${{ steps.changed.outputs.template_changed == 'true' && 'CloudFormation stack update' || 'Lambda function code update' }}"
+          echo ""
+          echo "Functions deployed:"
+          for fn in ${{ env.FUNCTIONS }}; do
+            size=$(stat -c%s infra/newsletter-lambdas/dist/${fn}.zip 2>/dev/null || echo "?")
+            echo "  newsletter-${fn}  (${size} bytes)"
+          done
