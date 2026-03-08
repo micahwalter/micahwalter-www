@@ -110,6 +110,7 @@ Resources:
                   - cloudformation:DescribeChangeSet
                   - cloudformation:DeleteChangeSet
                   - cloudformation:GetTemplate
+                  - cloudformation:GetTemplateSummary
                 Resource:
                   - !Sub 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/micahwalter-newsletter/*'
               # IAM PassRole — required for CloudFormation to assign Lambda execution roles
