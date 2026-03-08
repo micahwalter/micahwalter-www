@@ -14,7 +14,7 @@ export interface Post {
   coverImage?: string;
   draft: boolean;
   content: string;
-  type?: 'blog' | 'photo'; // Content type (defaults to 'blog')
+  type?: 'blog' | 'photo' | 'email'; // Content type (defaults to 'blog')
 
   // Photo-specific metadata (optional, extracted from EXIF)
   camera?: string; // e.g., "Canon EOS R5"
@@ -157,6 +157,10 @@ export function getPhotos(): Post[] {
 
 export function getBlogPosts(): Post[] {
   return getSortedPosts().filter(post => !post.type || post.type === 'blog');
+}
+
+export function getEmailPosts(): Post[] {
+  return getSortedPosts().filter(post => post.type === 'email');
 }
 
 export function getPostsByYear(year: string): Post[] {
