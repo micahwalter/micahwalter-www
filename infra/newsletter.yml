@@ -230,6 +230,15 @@ Resources:
       Targets:
         - Id: email-send-queue
           Arn: !GetAtt EmailSendQueue.Arn
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
   # -------------------------------------------------------------------------
   # API Gateway — HTTP API with CORS
@@ -665,6 +674,15 @@ Resources:
         NextSigningKeyLength: RSA_2048_BIT
       FeedbackAttributes:
         EmailForwardingEnabled: true
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
   # DKIM CNAME records — tokens are provided by SES via the EmailIdentity resource
   DkimRecord1:
@@ -1074,6 +1092,15 @@ Resources:
       Targets:
         - Id: NewsletterDispatchQueue
           Arn: !GetAtt NewsletterDispatchQueue.Arn
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
 
   # -------------------------------------------------------------------------
   # Dispatch Lambda — IAM role and function

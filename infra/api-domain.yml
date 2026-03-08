@@ -40,6 +40,8 @@ Resources:
           Value: micahwalter-www
         - Key: Environment
           Value: Production
+        - Key: Application
+          Value: StaticWebsite
         - Key: ManagedBy
           Value: CloudFormation
 
@@ -56,6 +58,7 @@ Resources:
       Tags:
         Project: micahwalter-www
         Environment: Production
+        Application: StaticWebsite
         ManagedBy: CloudFormation
 
   # Route53 alias records — A and AAAA
