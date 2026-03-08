@@ -17,6 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { randomUUID } = require('crypto');
 const matter = require('gray-matter');
 
 const POSTS_DIR = path.join(process.cwd(), 'content/posts');
@@ -184,7 +185,7 @@ async function main() {
   console.log(' done.');
 
   // 5. Build event payload
-  const eventId = crypto.randomUUID();
+  const eventId = randomUUID();
   const payload = {
     eventId,
     occurredAt: new Date().toISOString(),
