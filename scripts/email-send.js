@@ -12,6 +12,7 @@
  *   blog email:send march-2026
  *   blog email:send march-2026 --profile www
  *   blog email:send march-2026 --dry-run
+ *   blog email:send march-2026 --test you@example.com --profile www
  */
 
 const fs = require('fs');
@@ -33,9 +34,16 @@ const slug = args.find(a => !a.startsWith('--'));
 const isDryRun = args.includes('--dry-run');
 const profileIndex = args.indexOf('--profile');
 const awsProfile = profileIndex !== -1 ? args[profileIndex + 1] : undefined;
+const testIndex = args.indexOf('--test');
+const testEmail = testIndex !== -1 ? args[testIndex + 1] : undefined;
 
 if (!slug) {
-  console.error('Usage: blog email:send <slug> [--dry-run] [--profile <name>]');
+  console.error('Usage: blog email:send <slug> [--test <email>] [--dry-run] [--profile <name>]');
+  process.exit(1);
+}
+
+if (testEmail !== undefined && !testEmail) {
+  console.error('Error: --test requires an email address');
   process.exit(1);
 }
 
@@ -171,7 +179,11 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`Sending: "${data.title}" (id: ${data.id}, slug: ${slug})`);
+  if (testEmail) {
+    console.log(`Test send: "${data.title}" (id: ${data.id}, slug: ${slug}) → ${testEmail}`);
+  } else {
+    console.log(`Sending: "${data.title}" (id: ${data.id}, slug: ${slug})`);
+  }
 
   // 4. Render MDX → HTML + plain text
   process.stdout.write('Rendering MDX...');
@@ -196,6 +208,7 @@ async function main() {
     htmlBody,
     textBody,
     viewInBrowserUrl: `${SITE_URL}/emails/${slug}`,
+    ...(testEmail && { testEmail }),
   };
 
   // 6. Emit
@@ -213,7 +226,13 @@ async function main() {
     console.log(`  eventId: ${eventId}`);
     console.log(`  emailId: ${data.id}`);
     console.log(`  slug:    ${slug}`);
-    console.log('\nThe newsletter-dispatch-fn Lambda will handle delivery.');
+    if (testEmail) {
+      console.log(`  test:    ${testEmail}`);
+      console.log('\nTest email will be delivered to the specified address only.');
+      console.log('No records will be written to newsletter_sends.');
+    } else {
+      console.log('\nThe newsletter-dispatch-fn Lambda will handle delivery.');
+    }
   }
 }
 

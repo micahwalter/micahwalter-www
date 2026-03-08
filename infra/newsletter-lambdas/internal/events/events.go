@@ -85,6 +85,9 @@ type UnsubscribeRequestedDetail struct {
 
 // NewsletterSendRequestedDetail is emitted by the blog email:send CLI command.
 // Source: newsletter.campaigns
+//
+// When TestEmail is non-empty, the dispatch Lambda sends only to that address
+// and skips all DynamoDB subscriber queries and newsletter_sends writes.
 type NewsletterSendRequestedDetail struct {
 	EventID          string `json:"eventId"`
 	OccurredAt       string `json:"occurredAt"`
@@ -95,6 +98,7 @@ type NewsletterSendRequestedDetail struct {
 	HTMLBody         string `json:"htmlBody"`
 	TextBody         string `json:"textBody"`
 	ViewInBrowserURL string `json:"viewInBrowserUrl"`
+	TestEmail        string `json:"testEmail,omitempty"` // non-empty → test send to single address
 }
 
 // --- Emit methods ---

@@ -103,7 +103,8 @@ const commands = {
     examples: [
       'blog email:send march-2026',
       'blog email:send march-2026 --dry-run',
-      'blog email:send march-2026 --profile www'
+      'blog email:send march-2026 --profile www',
+      'blog email:send march-2026 --test you@example.com --profile www'
     ]
   },
   'help': {

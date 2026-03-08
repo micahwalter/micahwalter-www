@@ -1,12 +1,17 @@
 // newsletter-dispatch-fn processes NewsletterSendRequested events from SQS.
 //
-// For each event it:
+// Normal send:
 //  1. Creates/updates an SES template with the rendered HTML and text body
 //  2. Queries all ACTIVE subscribers from DynamoDB (paginated)
 //  3. Generates a signed 90-day unsubscribe token per subscriber
 //  4. Skips any subscriber already recorded in newsletter_sends (idempotency)
 //  5. Sends via SES SendBulkTemplatedEmail in batches of 50
 //  6. Records SENT/FAILED results in newsletter_sends
+//
+// Test send (detail.TestEmail != ""):
+//  1. Creates/updates the SES template as normal
+//  2. Sends to the single test address only
+//  3. Skips all DynamoDB subscriber queries and newsletter_sends writes
 package main
 
 import (
@@ -116,6 +121,11 @@ func dispatch(ctx context.Context, detail evts.NewsletterSendRequestedDetail) er
 	}
 	logger.Info("dispatch: SES template ready", "template", templateName)
 
+	// Test send: deliver to a single address and skip all subscriber/sends logic.
+	if detail.TestEmail != "" {
+		return dispatchTest(ctx, detail, templateName, keys.Current)
+	}
+
 	// Query all ACTIVE subscribers
 	subscribers, err := subscribersDB.QueryActiveSubscribers(ctx)
 	if err != nil {
@@ -215,6 +225,36 @@ func dispatch(ctx context.Context, detail evts.NewsletterSendRequestedDetail) er
 		"failed", failed,
 		"total", len(subscribers),
 	)
+	return nil
+}
+
+// dispatchTest sends to a single test address without touching subscriber or send records.
+func dispatchTest(ctx context.Context, detail evts.NewsletterSendRequestedDetail, templateName, hmacSecret string) error {
+	logger := slog.With("emailId", detail.EmailID, "slug", detail.Slug, "testEmail", detail.TestEmail)
+
+	unsubToken, err := token.Sign(detail.TestEmail, unsubscribeTTL, hmacSecret)
+	if err != nil {
+		return fmt.Errorf("dispatchTest: sign token: %w", err)
+	}
+
+	templateData, _ := json.Marshal(map[string]string{
+		"name":                "there",
+		"unsubscribe_link":    fmt.Sprintf("%s/newsletter/unsubscribe?token=%s", siteURL, unsubToken),
+		"view_in_browser_url": detail.ViewInBrowserURL,
+	})
+
+	batch := []sestypes.BulkEmailDestination{
+		{
+			Destination:             &sestypes.Destination{ToAddresses: []string{detail.TestEmail}},
+			ReplacementTemplateData: aws.String(string(templateData)),
+		},
+	}
+
+	if _, err := sendBatch(ctx, templateName, batch); err != nil {
+		return fmt.Errorf("dispatchTest: send: %w", err)
+	}
+
+	logger.Info("dispatch: test send complete")
 	return nil
 }
 
