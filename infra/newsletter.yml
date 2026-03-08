@@ -278,6 +278,7 @@ Resources:
       ApiId: !Ref NewsletterApi
       DomainName: !Ref ApiDomainName
       Stage: !Ref NewsletterApiStage
+      ApiMappingKey: newsletter
 
   # -------------------------------------------------------------------------
   # IAM Roles — one per Lambda, least-privilege
