@@ -140,6 +140,10 @@ Resources:
       Tags:
         - Key: Project
           Value: micahwalter-www
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: StaticWebsite
         - Key: ManagedBy
           Value: CloudFormation
 
@@ -295,6 +299,8 @@ Resources:
           Value: StaticWebsite
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Purpose
+          Value: MainDistribution
 
   # Apex redirect CloudFront Distribution (micahwalter.com → www.micahwalter.com)
   # The CloudFront Function returns a 301 redirect on every request; the origin is never hit.
@@ -342,6 +348,8 @@ Resources:
           Value: StaticWebsite
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Purpose
+          Value: ApexRedirect
 
   # Bucket Policy for Website Bucket
   WebsiteBucketPolicy:
