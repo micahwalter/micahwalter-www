@@ -25,6 +25,13 @@ export default function Header() {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-8">
+              <Link
+                href="/about"
+                className="text-charcoal hover:text-gray transition-colors no-underline text-sm tracking-wide"
+                style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+              >
+                ABOUT
+              </Link>
               <button
                 onClick={() => setIsSearchOpen(true)}
                 className="text-charcoal hover:text-gray transition-colors"
