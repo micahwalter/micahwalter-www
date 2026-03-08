@@ -101,7 +101,7 @@ Resources:
                   - lambda:GetFunction
                 Resource:
                   - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:newsletter-*'
-              # CloudFormation — deploy newsletter stack
+              # CloudFormation — deploy newsletter and api-domain stacks
               - Effect: Allow
                 Action:
                   - cloudformation:DescribeStacks
@@ -113,6 +113,37 @@ Resources:
                   - cloudformation:GetTemplateSummary
                 Resource:
                   - !Sub 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/micahwalter-newsletter/*'
+                  - !Sub 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/micahwalter-api-domain/*'
+              # ACM — request and manage TLS certificate for api.micahwalter.com
+              - Effect: Allow
+                Action:
+                  - acm:RequestCertificate
+                  - acm:DescribeCertificate
+                  - acm:DeleteCertificate
+                  - acm:AddTagsToCertificate
+                  - acm:ListTagsForCertificate
+                Resource: '*'
+              # Route53 — DNS validation records for ACM + alias records for API GW custom domain
+              - Effect: Allow
+                Action:
+                  - route53:ChangeResourceRecordSets
+                  - route53:GetHostedZone
+                  - route53:ListHostedZones
+                  - route53:GetChange
+                Resource:
+                  - !Sub 'arn:aws:route53:::hostedzone/Z05804121WRFHZZEYWGT5'
+                  - 'arn:aws:route53:::change/*'
+              # API Gateway — custom domain name and API mapping
+              - Effect: Allow
+                Action:
+                  - apigateway:GET
+                  - apigateway:POST
+                  - apigateway:PATCH
+                  - apigateway:DELETE
+                  - apigateway:PUT
+                Resource:
+                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/domainnames'
+                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/domainnames/*'
               # IAM PassRole — required for CloudFormation to assign Lambda execution roles
               - Effect: Allow
                 Action:

@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Shared API Gateway custom domain — api.micahwalter.com.
+  Manages the ACM certificate, API Gateway V2 domain name, and Route53 DNS records.
+  Individual API stacks (newsletter, etc.) create their own ApiMapping resources
+  that bind their APIs to this domain. Deploy this stack before any stack that
+  needs to create an ApiMapping for api.micahwalter.com.
+
+# ---------------------------------------------------------------------------
+# Parameters
+# ---------------------------------------------------------------------------
+Parameters:
+
+  ApiSubdomain:
+    Type: String
+    Default: api.micahwalter.com
+    Description: Full custom domain name for the shared API Gateway endpoint
+
+  HostedZoneId:
+    Type: String
+    Default: Z05804121WRFHZZEYWGT5
+    Description: Route53 hosted zone ID for micahwalter.com
+
+# ---------------------------------------------------------------------------
+# Resources
+# ---------------------------------------------------------------------------
+Resources:
+
+  # ACM certificate — DNS-validated automatically via Route53
+  ApiCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref ApiSubdomain
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref ApiSubdomain
+          HostedZoneId: !Ref HostedZoneId
+      Tags:
+        - Key: Project
+          Value: micahwalter-www
+        - Key: Environment
+          Value: Production
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # API Gateway V2 custom domain name
+  ApiGatewayDomainName:
+    Type: AWS::ApiGatewayV2::DomainName
+    DependsOn: ApiCertificate
+    Properties:
+      DomainName: !Ref ApiSubdomain
+      DomainNameConfigurations:
+        - CertificateArn: !Ref ApiCertificate
+          EndpointType: REGIONAL
+          SecurityPolicy: TLS_1_2
+      Tags:
+        Project: micahwalter-www
+        Environment: Production
+        ManagedBy: CloudFormation
+
+  # Route53 alias records — A and AAAA
+  ApiDomainARecord:
+    Type: AWS::Route53::RecordSet
+    DependsOn: ApiGatewayDomainName
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref ApiSubdomain
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ApiGatewayDomainName.RegionalDomainName
+        HostedZoneId: !GetAtt ApiGatewayDomainName.RegionalHostedZoneId
+        EvaluateTargetHealth: false
+
+  ApiDomainAAAARecord:
+    Type: AWS::Route53::RecordSet
+    DependsOn: ApiGatewayDomainName
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref ApiSubdomain
+      Type: AAAA
+      AliasTarget:
+        DNSName: !GetAtt ApiGatewayDomainName.RegionalDomainName
+        HostedZoneId: !GetAtt ApiGatewayDomainName.RegionalHostedZoneId
+        EvaluateTargetHealth: false
+
+# ---------------------------------------------------------------------------
+# Outputs
+# ---------------------------------------------------------------------------
+Outputs:
+
+  ApiDomainName:
+    Description: >
+      The custom domain name. Reference this in ApiMapping resources in other
+      stacks: DomainName: api.micahwalter.com (or use !ImportValue).
+    Value: !Ref ApiSubdomain
+    Export:
+      Name: micahwalter-api-domain-name
+
+  ApiBaseUrl:
+    Description: >
+      Stable base URL for all APIs behind this domain. Set
+      NEXT_PUBLIC_NEWSLETTER_API_URL=https://api.micahwalter.com in GitHub
+      Actions secrets after deploying this stack.
+    Value: !Sub https://${ApiSubdomain}
+    Export:
+      Name: micahwalter-api-base-url
+
+  RegionalDomainName:
+    Description: API Gateway regional domain name (for reference / debugging)
+    Value: !GetAtt ApiGatewayDomainName.RegionalDomainName

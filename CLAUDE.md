@@ -309,9 +309,18 @@ Newsletter Lambda changes deploy **automatically** via GitHub Actions (`.github/
 - **Go source only changed** → fast path: build + upload zips + `aws lambda update-function-code` (~1 min)
 - **`infra/newsletter.yml` changed** → full path: build + upload zips + `aws cloudformation deploy` (~3-4 min)
 
+**Deploy order:** `micahwalter-api-domain` must exist before `micahwalter-newsletter` (the newsletter stack's `ApiMapping` depends on the domain being present).
+
 Manual local deploy (if needed):
 
 ```bash
+# 1. API domain stack (only needed when api-domain.yml changes)
+AWS_PROFILE=www aws cloudformation deploy \
+  --stack-name micahwalter-api-domain \
+  --template-file infra/api-domain.yml \
+  --region us-east-1
+
+# 2. Newsletter stack
 cd infra/newsletter-lambdas
 make build && make upload
 
