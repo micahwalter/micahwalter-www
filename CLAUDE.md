@@ -54,6 +54,12 @@ blog images:download             # Download from S3 to local
 blog images:sync --profile www   # One command: optimize + upload
 
 blog build:static                # Generate RSS, sitemap, posts.json
+
+blog email:send <slug>                           # Send newsletter issue to all subscribers
+blog email:send <slug> --test you@example.com   # Test send to single address
+blog email:send <slug> --dry-run                # Preview event payload without sending
+blog email:send <slug> --profile www            # Use AWS profile
+
 blog help                        # Show all commands
 blog help images:upload          # Help for specific command
 ```
@@ -114,10 +120,32 @@ This ensures every post has a stable, unique numeric ID across the entire site.
 
 ### Content Filtering
 
-- `getAllPosts()` - Returns all posts, filtering drafts in production only
+- `getAllPosts()` - Returns all posts (blog + photo + email), filtering drafts in production only
 - `getSortedPosts()` - Posts sorted by publishedAt (newest first)
+- `getBlogPosts()` - Filter to blog posts only (`type: 'blog'`)
+- `getPhotos()` - Filter to photo posts only (`type: 'photo'`)
+- `getEmailPosts()` - Filter to email posts only (`type: 'email'`)
 - `getPostsByCategory(category)` - Filter by category
 - `getPostsByTag(tag)` - Filter by tag
+
+### Email Posts (`type: email`)
+
+Email posts are newsletter issues stored in `content/posts/` alongside blog and photo posts.
+
+```yaml
+---
+type: email
+id: 142                        # Required; primary key for newsletter_sends table
+title: "March 2026"
+publishedAt: "2026-03-15"      # Must not be in the future to send
+excerpt: "Brief archive summary"
+draft: false                   # Must be false to send
+---
+```
+
+- Do **not** include an unsubscribe footer in the MDX body — the dispatch Lambda appends it automatically with the correct per-subscriber token
+- The `id` must be unique across all posts; increment `content/post-counter`
+- Email posts are served at `/emails/<slug>` and listed at `/emails`
 
 ## Build Process
 
@@ -249,6 +277,68 @@ aws cloudformation update-stack \
     ParameterKey=WWWDomainName,ParameterValue=www.micahwalter.com \
   --profile www
 ```
+
+## Newsletter Sending
+
+### Send workflow
+
+```bash
+blog email:send <slug> --test you@example.com --profile www  # test to one address
+blog email:send <slug> --dry-run --profile www               # preview event payload
+blog email:send <slug> --profile www                         # send to all ACTIVE subscribers
+```
+
+### How it works
+
+`blog email:send` → EventBridge `newsletter-bus` (source: `newsletter.campaigns`) → SQS `newsletter-dispatch-queue` → Go Lambda `newsletter-dispatch` → SES `SendBulkTemplatedEmail`
+
+The Lambda:
+1. Creates/updates SES template `newsletter-campaign-<id>`, appending unsubscribe + view-in-browser footer with `{{unsubscribe_link}}` / `{{view_in_browser_url}}` SES placeholders
+2. Queries `StatusIndex` on `newsletter_subscribers` for all `ACTIVE` subscribers (paginated)
+3. Checks `newsletter_sends` for idempotency — skips any subscriber already `SENT`
+4. Generates a signed 90-day unsubscribe token per subscriber
+5. Sends in batches of 50 via `SendBulkTemplatedEmail`
+6. Writes `SENT`/`FAILED` records to `newsletter_sends`
+
+Test sends (`--test <email>`) skip steps 2, 3, and 6 entirely — no subscriber or send records touched.
+
+### Lambda infrastructure deploy
+
+Only needed when `infra/newsletter.yml` or Go Lambda code changes. The frontend deploys automatically via GitHub Actions on push to main.
+
+```bash
+cd infra/newsletter-lambdas
+make build && make upload
+
+# Full stack update:
+AWS_PROFILE=www aws cloudformation deploy \
+  --stack-name micahwalter-newsletter \
+  --template-file infra/newsletter.yml \
+  --region us-east-1 \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides \
+    LambdaArtifactsBucket=micahwalter-newsletter-artifacts \
+    LambdaArtifactsKeyPrefix=newsletter/lambda
+
+# Lambda code only (faster):
+make update-functions
+```
+
+### Key files
+
+- `scripts/email-send.js` — CLI send script
+- `infra/newsletter-lambdas/cmd/dispatch/main.go` — dispatch Lambda
+- `infra/newsletter-lambdas/internal/events/events.go` — `NewsletterSendRequestedDetail` struct
+- `infra/newsletter-lambdas/internal/dynamo/dynamo.go` — `SendsClient`, `QueryActiveSubscribers`
+- `app/emails/page.tsx` — email archive listing
+- `app/emails/[slug]/page.tsx` — per-issue view-in-browser page
+
+### Gotchas
+
+- `app/emails/[slug]/page.tsx` requires at least one non-draft email post — `generateStaticParams` returning `[]` fails with `output: export`
+- Do not include an unsubscribe link in email MDX body — the Lambda footer adds it automatically
+- `scripts/email-send.js` requires `unified`, `remark-parse`, `remark-rehype`, `rehype-stringify` (installed in package.json)
+- SES `{{variable}}` substitution only works if the placeholder appears in the SES template HTML/text — the Lambda appends the footer, so authors never need to add placeholders manually
 
 ## Deployment
 

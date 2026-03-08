@@ -258,13 +258,35 @@ func dispatchTest(ctx context.Context, detail evts.NewsletterSendRequestedDetail
 	return nil
 }
 
+// emailFooterHTML is appended to every campaign's HTML body.
+// SES substitutes {{unsubscribe_link}} and {{view_in_browser_url}} per-recipient.
+const emailFooterHTML = `
+<hr style="margin:40px 0;border:none;border-top:1px solid #e0e0e0;">
+<p style="font-size:12px;color:#888888;text-align:center;line-height:1.6;">
+  You're receiving this because you subscribed at micahwalter.com.<br>
+  <a href="{{unsubscribe_link}}" style="color:#888888;">Unsubscribe</a>
+  &nbsp;&middot;&nbsp;
+  <a href="{{view_in_browser_url}}" style="color:#888888;">View in browser</a>
+</p>`
+
+// emailFooterText is appended to every campaign's plain-text body.
+const emailFooterText = `
+
+---
+You're receiving this because you subscribed at micahwalter.com.
+Unsubscribe: {{unsubscribe_link}}
+View in browser: {{view_in_browser_url}}`
+
 // upsertTemplate creates or replaces the SES template for a campaign.
+// The unsubscribe and view-in-browser footers are appended here so that
+// SES can substitute the per-recipient {{unsubscribe_link}} and
+// {{view_in_browser_url}} placeholders at send time.
 func upsertTemplate(ctx context.Context, name, subject, htmlBody, textBody string) error {
 	tmpl := &sestypes.Template{
 		TemplateName: aws.String(name),
 		SubjectPart:  aws.String(subject),
-		HtmlPart:     aws.String(htmlBody),
-		TextPart:     aws.String(textBody),
+		HtmlPart:     aws.String(htmlBody + emailFooterHTML),
+		TextPart:     aws.String(textBody + emailFooterText),
 	}
 
 	// Try create first; if it already exists, update instead.

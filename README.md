@@ -737,10 +737,13 @@ Email posts are authored in `content/posts/` with `type: email` frontmatter. A s
 # content/posts/2026-03-08-march-2026/index.mdx
 # frontmatter: type: email, id: 142, draft: false
 
-# 2. Preview the rendered output and event payload
+# 2. Send a test email to yourself first
+blog email:send march-2026 --test you@example.com --profile www
+
+# 3. Preview the full event payload without sending
 blog email:send march-2026 --dry-run --profile www
 
-# 3. Send
+# 4. Send to all active subscribers
 blog email:send march-2026 --profile www
 ```
 
@@ -751,12 +754,14 @@ blog email:send march-2026 --profile www
 3. Emits `NewsletterSendRequested` to `newsletter-bus` (source: `newsletter.campaigns`)
 4. `route-newsletter-send` EventBridge rule routes to `newsletter-dispatch-queue`
 5. `dispatch-fn` Lambda:
-   - Creates/updates an SES template (`newsletter-campaign-<id>`) with the rendered HTML
+   - Creates/updates an SES template (`newsletter-campaign-<id>`) with the rendered HTML, appending a footer with `{{unsubscribe_link}}` and `{{view_in_browser_url}}` placeholders
    - Queries all `ACTIVE` subscribers from `newsletter_subscribers` (paginated)
    - Checks `newsletter_sends` — skips any subscriber already marked `SENT` (idempotent)
    - Generates a signed 90-day unsubscribe token per subscriber
-   - Sends via `SES:SendBulkTemplatedEmail` in batches of 50
+   - Sends via `SES:SendBulkTemplatedEmail` in batches of 50, substituting per-recipient template variables
    - Writes `SENT`/`FAILED` records to `newsletter_sends`
+
+**Test sends** (`--test <email>`) deliver to a single address via the full pipeline without querying subscribers or writing any `newsletter_sends` records. Safe to run as many times as needed before the real send.
 
 **Re-sending is safe.** If a send is interrupted and retried, only subscribers without a `SENT` record receive the email.
 
