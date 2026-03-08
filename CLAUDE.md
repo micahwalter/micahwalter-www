@@ -337,7 +337,7 @@ After updating `infra/github-actions-role.yml`, redeploy the IAM stack:
 
 ```bash
 AWS_PROFILE=www aws cloudformation deploy \
-  --stack-name micahwalter-github-actions-role \
+  --stack-name micahwalter-www-github-actions \
   --template-file infra/github-actions-role.yml \
   --region us-east-1 \
   --capabilities CAPABILITY_NAMED_IAM
