@@ -7,6 +7,7 @@ on:
     paths:
       - 'infra/newsletter-lambdas/**'
       - 'infra/newsletter.yml'
+      - 'infra/api-domain.yml'
       - '.github/workflows/newsletter-deploy.yml'
 
   workflow_dispatch:  # Allow manual triggering
@@ -42,10 +43,16 @@ jobs:
       - name: Detect what changed
         id: changed
         run: |
-          if git diff --name-only HEAD~1 HEAD | grep -q '^infra/newsletter\.yml$'; then
+          CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          if echo "$CHANGED" | grep -q '^infra/newsletter\.yml$'; then
             echo "template_changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "template_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+          if echo "$CHANGED" | grep -q '^infra/api-domain\.yml$'; then
+            echo "api_domain_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "api_domain_changed=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build Lambda functions
@@ -67,6 +74,14 @@ jobs:
               s3://${{ env.ARTIFACTS_BUCKET }}/${{ env.ARTIFACTS_PREFIX }}/${fn}.zip \
               --region ${{ env.AWS_REGION }}
           done
+
+      - name: Deploy api-domain stack (api-domain.yml changed)
+        if: steps.changed.outputs.api_domain_changed == 'true'
+        run: |
+          aws cloudformation deploy \
+            --stack-name micahwalter-api-domain \
+            --template-file infra/api-domain.yml \
+            --region ${{ env.AWS_REGION }}
 
       - name: Deploy via CloudFormation (template changed)
         if: steps.changed.outputs.template_changed == 'true'
