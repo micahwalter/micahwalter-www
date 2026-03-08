@@ -47,6 +47,11 @@ Parameters:
       Set to false if micahwalter.com is already verified in SES and you do
       not want CloudFormation to take ownership of the identity.
 
+  ApiSubdomain:
+    Type: String
+    Default: api.micahwalter.com
+    Description: Custom domain name for the newsletter API (must be under DomainName)
+
 # ---------------------------------------------------------------------------
 # Conditions
 # ---------------------------------------------------------------------------
@@ -259,6 +264,75 @@ Resources:
         Environment: Production
         Application: NewsletterSubscription
         ManagedBy: CloudFormation
+
+  # -------------------------------------------------------------------------
+  # Custom domain — api.micahwalter.com
+  # -------------------------------------------------------------------------
+
+  ApiCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref ApiSubdomain
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref ApiSubdomain
+          HostedZoneId: !Ref HostedZoneId
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  ApiDomainName:
+    Type: AWS::ApiGatewayV2::DomainName
+    DependsOn: ApiCertificate
+    Properties:
+      DomainName: !Ref ApiSubdomain
+      DomainNameConfigurations:
+        - CertificateArn: !Ref ApiCertificate
+          EndpointType: REGIONAL
+          SecurityPolicy: TLS_1_2
+      Tags:
+        Project: micahwalter-newsletter
+        Environment: Production
+        Application: NewsletterSubscription
+        ManagedBy: CloudFormation
+
+  ApiMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    DependsOn: ApiDomainName
+    Properties:
+      ApiId: !Ref NewsletterApi
+      DomainName: !Ref ApiSubdomain
+      Stage: !Ref NewsletterApiStage
+
+  ApiDomainARecord:
+    Type: AWS::Route53::RecordSet
+    DependsOn: ApiDomainName
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref ApiSubdomain
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ApiDomainName.RegionalDomainName
+        HostedZoneId: !GetAtt ApiDomainName.RegionalHostedZoneId
+        EvaluateTargetHealth: false
+
+  ApiDomainAAAARecord:
+    Type: AWS::Route53::RecordSet
+    DependsOn: ApiDomainName
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref ApiSubdomain
+      Type: AAAA
+      AliasTarget:
+        DNSName: !GetAtt ApiDomainName.RegionalDomainName
+        HostedZoneId: !GetAtt ApiDomainName.RegionalHostedZoneId
+        EvaluateTargetHealth: false
 
   # -------------------------------------------------------------------------
   # IAM Roles — one per Lambda, least-privilege
@@ -1222,11 +1296,19 @@ Outputs:
 
   ApiEndpoint:
     Description: >
-      Newsletter API base URL. Set as NEXT_PUBLIC_NEWSLETTER_API_URL in the
-      Next.js environment. Routes: POST /subscribe, /confirm, /unsubscribe.
+      Auto-generated API Gateway URL (kept for reference). Prefer ApiCustomDomainUrl.
     Value: !Sub https://${NewsletterApi}.execute-api.${AWS::Region}.amazonaws.com
     Export:
       Name: micahwalter-newsletter-api-endpoint
+
+  ApiCustomDomainUrl:
+    Description: >
+      Stable custom-domain URL for the newsletter API. Set as
+      NEXT_PUBLIC_NEWSLETTER_API_URL in GitHub Actions secrets and .env.local.
+      Routes: POST /subscribe, /confirm, /unsubscribe.
+    Value: !Sub https://${ApiSubdomain}
+    Export:
+      Name: micahwalter-newsletter-api-custom-url
 
   TableName:
     Description: DynamoDB table name

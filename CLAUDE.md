@@ -329,6 +329,10 @@ AWS_PROFILE=www aws cloudformation deploy \
 make update-functions
 ```
 
+After the first deploy that adds the custom domain, update the GitHub Actions secret
+`NEXT_PUBLIC_NEWSLETTER_API_URL` → `https://api.micahwalter.com`, then trigger a
+site redeploy so the URL is baked into the static build.
+
 After updating `infra/github-actions-role.yml`, redeploy the IAM stack:
 
 ```bash
