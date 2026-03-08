@@ -230,15 +230,6 @@ Resources:
       Targets:
         - Id: email-send-queue
           Arn: !GetAtt EmailSendQueue.Arn
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
 
   # -------------------------------------------------------------------------
   # API Gateway — HTTP API with CORS
@@ -1092,15 +1083,6 @@ Resources:
       Targets:
         - Id: NewsletterDispatchQueue
           Arn: !GetAtt NewsletterDispatchQueue.Arn
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
 
   # -------------------------------------------------------------------------
   # Dispatch Lambda — IAM role and function
