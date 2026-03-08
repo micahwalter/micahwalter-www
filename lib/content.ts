@@ -12,6 +12,7 @@ export interface Post {
   category: string;
   tags: string[];
   coverImage?: string;
+  thumbnailUrl?: string; // Resolved 400px WebP path for search results
   draft: boolean;
   content: string;
   type?: 'blog' | 'photo' | 'email'; // Content type (defaults to 'blog')
