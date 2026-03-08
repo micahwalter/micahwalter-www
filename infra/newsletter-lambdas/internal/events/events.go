@@ -16,13 +16,15 @@ import (
 )
 
 const (
-	source = "newsletter.subscribers"
-	v1     = "1"
+	sourceSubscribers = "newsletter.subscribers"
+	sourceCampaigns   = "newsletter.campaigns"
+	v1                = "1"
 
-	DetailTypeSignupRequested     = "SignupRequested"
-	DetailTypeConfirmationResent  = "ConfirmationResent"
-	DetailTypeSubscriberConfirmed = "SubscriberConfirmed"
-	DetailTypeUnsubscribeRequested = "UnsubscribeRequested"
+	DetailTypeSignupRequested         = "SignupRequested"
+	DetailTypeConfirmationResent      = "ConfirmationResent"
+	DetailTypeSubscriberConfirmed     = "SubscriberConfirmed"
+	DetailTypeUnsubscribeRequested    = "UnsubscribeRequested"
+	DetailTypeNewsletterSendRequested = "NewsletterSendRequested"
 )
 
 // Client wraps the EventBridge SDK client.
@@ -81,38 +83,59 @@ type UnsubscribeRequestedDetail struct {
 	Via            string `json:"via"` // "email-link" or "manual-form"
 }
 
+// NewsletterSendRequestedDetail is emitted by the blog email:send CLI command.
+// Source: newsletter.campaigns
+type NewsletterSendRequestedDetail struct {
+	EventID          string `json:"eventId"`
+	OccurredAt       string `json:"occurredAt"`
+	Version          string `json:"version"`
+	EmailID          int    `json:"emailId"`
+	Slug             string `json:"slug"`
+	Title            string `json:"title"`
+	HTMLBody         string `json:"htmlBody"`
+	TextBody         string `json:"textBody"`
+	ViewInBrowserURL string `json:"viewInBrowserUrl"`
+}
+
 // --- Emit methods ---
 
 func (c *Client) EmitSignupRequested(ctx context.Context, d SignupRequestedDetail) error {
 	d.EventID = newID()
 	d.OccurredAt = now()
 	d.Version = v1
-	return c.put(ctx, DetailTypeSignupRequested, d)
+	return c.put(ctx, sourceSubscribers, DetailTypeSignupRequested, d)
 }
 
 func (c *Client) EmitConfirmationResent(ctx context.Context, d ConfirmationResentDetail) error {
 	d.EventID = newID()
 	d.OccurredAt = now()
 	d.Version = v1
-	return c.put(ctx, DetailTypeConfirmationResent, d)
+	return c.put(ctx, sourceSubscribers, DetailTypeConfirmationResent, d)
 }
 
 func (c *Client) EmitSubscriberConfirmed(ctx context.Context, d SubscriberConfirmedDetail) error {
 	d.EventID = newID()
 	d.OccurredAt = now()
 	d.Version = v1
-	return c.put(ctx, DetailTypeSubscriberConfirmed, d)
+	return c.put(ctx, sourceSubscribers, DetailTypeSubscriberConfirmed, d)
 }
 
 func (c *Client) EmitUnsubscribeRequested(ctx context.Context, d UnsubscribeRequestedDetail) error {
 	d.EventID = newID()
 	d.OccurredAt = now()
 	d.Version = v1
-	return c.put(ctx, DetailTypeUnsubscribeRequested, d)
+	return c.put(ctx, sourceSubscribers, DetailTypeUnsubscribeRequested, d)
+}
+
+func (c *Client) EmitNewsletterSendRequested(ctx context.Context, d NewsletterSendRequestedDetail) error {
+	d.EventID = newID()
+	d.OccurredAt = now()
+	d.Version = v1
+	return c.put(ctx, sourceCampaigns, DetailTypeNewsletterSendRequested, d)
 }
 
 // put marshals detail and calls EventBridge PutEvents.
-func (c *Client) put(ctx context.Context, detailType string, detail interface{}) error {
+func (c *Client) put(ctx context.Context, source, detailType string, detail interface{}) error {
 	detailJSON, err := json.Marshal(detail)
 	if err != nil {
 		return fmt.Errorf("events.put marshal: %w", err)

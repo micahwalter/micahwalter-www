@@ -9,7 +9,7 @@ ARTIFACTS_PREFIX := newsletter/lambda
 BOOTSTRAP_STACK := micahwalter-newsletter-bootstrap
 STACK_NAME      := micahwalter-newsletter
 
-FUNCTIONS := subscribe confirm unsubscribe email
+FUNCTIONS := subscribe confirm unsubscribe email dispatch
 
 DIST := dist
 

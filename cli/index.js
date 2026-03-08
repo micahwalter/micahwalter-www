@@ -11,6 +11,7 @@
  *   images:copy-local  - Copy optimized images to public/ for dev
  *   build              - Optimize images and copy to public/ (local dev)
  *   build:static       - Generate static files (RSS, sitemap, posts.json)
+ *   email:send         - Render an email post and emit NewsletterSendRequested
  *   help               - Show help information
  */
 
@@ -94,6 +95,15 @@ const commands = {
     description: 'Generate static files (RSS, sitemap, posts.json)',
     examples: [
       'blog build:static'
+    ]
+  },
+  'email:send': {
+    description: 'Render an email post and emit NewsletterSendRequested to trigger dispatch',
+    script: 'scripts/email-send.js',
+    examples: [
+      'blog email:send march-2026',
+      'blog email:send march-2026 --dry-run',
+      'blog email:send march-2026 --profile www'
     ]
   },
   'help': {

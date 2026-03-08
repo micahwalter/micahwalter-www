@@ -1,4 +1,5 @@
-// Package dynamo provides a typed DynamoDB client for the newsletter_subscribers table.
+// Package dynamo provides typed DynamoDB clients for the newsletter_subscribers
+// and newsletter_sends tables.
 package dynamo
 
 import (
@@ -9,6 +10,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	ddbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+)
+
+const (
+	SendStatusSent   = "SENT"
+	SendStatusFailed = "FAILED"
 )
 
 const (
@@ -126,6 +132,118 @@ func (c *Client) UnsubscribeSubscriber(ctx context.Context, email, unsubscribedA
 	})
 	if err != nil {
 		return fmt.Errorf("dynamo.UnsubscribeSubscriber: %w", err)
+	}
+	return nil
+}
+
+// QueryActiveSubscribers returns all ACTIVE subscribers, paginated.
+// It queries the StatusIndex GSI on newsletter_subscribers.
+func (c *Client) QueryActiveSubscribers(ctx context.Context) ([]*Subscriber, error) {
+	var subscribers []*Subscriber
+	var lastKey map[string]ddbtypes.AttributeValue
+
+	for {
+		input := &dynamodb.QueryInput{
+			TableName:              aws.String(c.tableName),
+			IndexName:              aws.String("StatusIndex"),
+			KeyConditionExpression: aws.String("#st = :status"),
+			ExpressionAttributeNames: map[string]string{
+				"#st": "status",
+			},
+			ExpressionAttributeValues: map[string]ddbtypes.AttributeValue{
+				":status": &ddbtypes.AttributeValueMemberS{Value: StatusActive},
+			},
+			ExclusiveStartKey: lastKey,
+		}
+
+		result, err := c.db.Query(ctx, input)
+		if err != nil {
+			return nil, fmt.Errorf("dynamo.QueryActiveSubscribers: %w", err)
+		}
+
+		for _, item := range result.Items {
+			var sub Subscriber
+			if err := attributevalue.UnmarshalMap(item, &sub); err != nil {
+				return nil, fmt.Errorf("dynamo.QueryActiveSubscribers unmarshal: %w", err)
+			}
+			subscribers = append(subscribers, &sub)
+		}
+
+		if result.LastEvaluatedKey == nil {
+			break
+		}
+		lastKey = result.LastEvaluatedKey
+	}
+
+	return subscribers, nil
+}
+
+// ---------------------------------------------------------------------------
+// newsletter_sends table
+// ---------------------------------------------------------------------------
+
+// SendRecord mirrors the newsletter_sends DynamoDB schema.
+// PK: emailId (N), SK: email (S)
+type SendRecord struct {
+	EmailID       int    `dynamodbav:"emailId"`
+	Email         string `dynamodbav:"email"`
+	SentAt        string `dynamodbav:"sentAt,omitempty"`
+	Status        string `dynamodbav:"status"`
+	FailureReason string `dynamodbav:"failureReason,omitempty"`
+}
+
+// SendsClient wraps DynamoDB operations for the newsletter_sends table.
+type SendsClient struct {
+	db        *dynamodb.Client
+	tableName string
+}
+
+// NewSendsClient returns a new SendsClient using the provided AWS config.
+func NewSendsClient(cfg aws.Config, tableName string) *SendsClient {
+	return &SendsClient{
+		db:        dynamodb.NewFromConfig(cfg),
+		tableName: tableName,
+	}
+}
+
+// GetSend retrieves a send record for (emailId, email). Returns (nil, nil) when not found.
+func (c *SendsClient) GetSend(ctx context.Context, emailID int, email string) (*SendRecord, error) {
+	emailIDAttr, err := attributevalue.Marshal(emailID)
+	if err != nil {
+		return nil, fmt.Errorf("dynamo.GetSend marshal emailId: %w", err)
+	}
+	result, err := c.db.GetItem(ctx, &dynamodb.GetItemInput{
+		TableName: aws.String(c.tableName),
+		Key: map[string]ddbtypes.AttributeValue{
+			"emailId": emailIDAttr,
+			"email":   &ddbtypes.AttributeValueMemberS{Value: email},
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("dynamo.GetSend: %w", err)
+	}
+	if result.Item == nil {
+		return nil, nil
+	}
+	var rec SendRecord
+	if err := attributevalue.UnmarshalMap(result.Item, &rec); err != nil {
+		return nil, fmt.Errorf("dynamo.GetSend unmarshal: %w", err)
+	}
+	return &rec, nil
+}
+
+// PutSend writes a send record, replacing any existing item with the same (emailId, email).
+func (c *SendsClient) PutSend(ctx context.Context, rec *SendRecord) error {
+	item, err := attributevalue.MarshalMap(rec)
+	if err != nil {
+		return fmt.Errorf("dynamo.PutSend marshal: %w", err)
+	}
+	_, err = c.db.PutItem(ctx, &dynamodb.PutItemInput{
+		TableName: aws.String(c.tableName),
+		Item:      item,
+	})
+	if err != nil {
+		return fmt.Errorf("dynamo.PutSend: %w", err)
 	}
 	return nil
 }

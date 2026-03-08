@@ -949,6 +949,272 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
 
+  # -------------------------------------------------------------------------
+  # Newsletter Sends — DynamoDB table (per-subscriber send history)
+  # -------------------------------------------------------------------------
+
+  NewsletterSendsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: newsletter_sends
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      AttributeDefinitions:
+        - AttributeName: emailId
+          AttributeType: N
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: emailId
+          KeyType: HASH
+        - AttributeName: email
+          KeyType: RANGE
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # -------------------------------------------------------------------------
+  # Dispatch pipeline — SQS queues, EventBridge rule
+  # -------------------------------------------------------------------------
+
+  NewsletterDispatchDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: newsletter-dispatch-dlq
+      MessageRetentionPeriod: 1209600  # 14 days
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  NewsletterDispatchQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: newsletter-dispatch-queue
+      VisibilityTimeout: 300
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt NewsletterDispatchDLQ.Arn
+        maxReceiveCount: 3
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  NewsletterDispatchQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref NewsletterDispatchQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowEventBridgeToSend
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt NewsletterDispatchQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt RouteNewsletterSend.Arn
+
+  RouteNewsletterSend:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: route-newsletter-send
+      Description: Routes NewsletterSendRequested events to the dispatch queue
+      EventBusName: !Ref NewsletterBus
+      EventPattern:
+        source:
+          - newsletter.campaigns
+        detail-type:
+          - NewsletterSendRequested
+      State: ENABLED
+      Targets:
+        - Id: NewsletterDispatchQueue
+          Arn: !GetAtt NewsletterDispatchQueue.Arn
+
+  # -------------------------------------------------------------------------
+  # Dispatch Lambda — IAM role and function
+  # -------------------------------------------------------------------------
+
+  DispatchFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: newsletter-dispatch-fn-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DispatchFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: SQSReceive
+                Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource: !GetAtt NewsletterDispatchQueue.Arn
+              - Sid: DynamoSubscribers
+                Effect: Allow
+                Action:
+                  - dynamodb:Query
+                Resource:
+                  - !Sub ${NewsletterSubscribersTable.Arn}/index/StatusIndex
+              - Sid: DynamoSends
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                Resource: !GetAtt NewsletterSendsTable.Arn
+              - Sid: SES
+                Effect: Allow
+                Action:
+                  - ses:CreateTemplate
+                  - ses:UpdateTemplate
+                  - ses:SendBulkTemplatedEmail
+                Resource: '*'
+              - Sid: SecretsManager
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref HMACSecret
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  DispatchFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: newsletter-dispatch
+      Runtime: provided.al2023
+      Architectures: [arm64]
+      Handler: bootstrap
+      Role: !GetAtt DispatchFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/dispatch.zip
+      Timeout: 300
+      MemorySize: 256
+      Environment:
+        Variables:
+          SUBSCRIBERS_TABLE: !Ref NewsletterSubscribersTable
+          SENDS_TABLE: !Ref NewsletterSendsTable
+          HMAC_SECRET_ARN: !Ref HMACSecret
+          SES_FROM_ADDRESS: !Ref SenderEmail
+          SITE_URL: !Ref SiteUrl
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  DispatchFnSQSTrigger:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt NewsletterDispatchQueue.Arn
+      FunctionName: !GetAtt DispatchFn.Arn
+      BatchSize: 1
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+
+  # -------------------------------------------------------------------------
+  # Dispatch CloudWatch alarms
+  # -------------------------------------------------------------------------
+
+  DispatchFnErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: newsletter-dispatch-fn-errors
+      AlarmDescription: newsletter-dispatch Lambda errors — campaign send may be failing
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref DispatchFn
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  DispatchDLQDepthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: newsletter-dispatch-dlq-depth
+      AlarmDescription: >
+        Critical: newsletter dispatch failed after all retries. Campaign send incomplete.
+        Check newsletter-dispatch Lambda logs immediately.
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt NewsletterDispatchDLQ.QueueName
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
 # ---------------------------------------------------------------------------
 # Outputs
 # ---------------------------------------------------------------------------
