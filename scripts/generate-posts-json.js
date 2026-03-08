@@ -30,6 +30,14 @@ function getAllPosts() {
       const id = data.id ? String(data.id) : undefined;
       const slug = (data.type === 'photo' && id) ? id : folder.replace(/^\d{4}-\d{2}-\d{2}-/, "");
 
+      // Resolve thumbnail URL from cover image (400px WebP variant)
+      const coverFilename = data.coverImage
+        ? data.coverImage.replace(/^\.\//, '').replace(/\.(jpg|jpeg|png)$/i, '')
+        : null;
+      const thumbnailUrl = coverFilename
+        ? `/images/posts/${folder}/${coverFilename}-400.webp`
+        : undefined;
+
       return {
         slug,
         folderName: folder, // Store folder name for image paths
@@ -39,6 +47,7 @@ function getAllPosts() {
         category: data.category || "Writing",
         tags: data.tags || [],
         coverImage: data.coverImage || undefined,
+        thumbnailUrl,
         draft: data.draft || false,
         type: data.type || 'blog',
         // Photo-specific metadata for search

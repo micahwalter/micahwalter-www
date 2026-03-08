@@ -5,6 +5,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Post } from "@/lib/content";
 
+const CDN_BASE = process.env.NEXT_PUBLIC_CDN_URL || '';
+
 interface SearchBarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -142,6 +144,16 @@ export default function SearchBar({ isOpen, onClose }: SearchBarProps) {
                           {post.excerpt}
                         </p>
                       </div>
+                      {post.thumbnailUrl && (
+                        <div className="flex-shrink-0 w-16 h-16 rounded overflow-hidden bg-gray/10">
+                          <img
+                            src={`${CDN_BASE}${post.thumbnailUrl}`}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
                     </div>
                   </Link>
                 ))}
