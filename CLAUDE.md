@@ -304,7 +304,12 @@ Test sends (`--test <email>`) skip steps 2, 3, and 6 entirely — no subscriber 
 
 ### Lambda infrastructure deploy
 
-Only needed when `infra/newsletter.yml` or Go Lambda code changes. The frontend deploys automatically via GitHub Actions on push to main.
+Newsletter Lambda changes deploy **automatically** via GitHub Actions (`.github/workflows/newsletter-deploy.yml`) on push to `main` when files change under `infra/newsletter-lambdas/**` or `infra/newsletter.yml`.
+
+- **Go source only changed** → fast path: build + upload zips + `aws lambda update-function-code` (~1 min)
+- **`infra/newsletter.yml` changed** → full path: build + upload zips + `aws cloudformation deploy` (~3-4 min)
+
+Manual local deploy (if needed):
 
 ```bash
 cd infra/newsletter-lambdas
@@ -322,6 +327,16 @@ AWS_PROFILE=www aws cloudformation deploy \
 
 # Lambda code only (faster):
 make update-functions
+```
+
+After updating `infra/github-actions-role.yml`, redeploy the IAM stack:
+
+```bash
+AWS_PROFILE=www aws cloudformation deploy \
+  --stack-name micahwalter-github-actions-role \
+  --template-file infra/github-actions-role.yml \
+  --region us-east-1 \
+  --capabilities CAPABILITY_NAMED_IAM
 ```
 
 ### Key files

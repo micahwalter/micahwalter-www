@@ -85,6 +85,39 @@ Resources:
                   - cloudfront:GetInvalidation
                 Resource:
                   - !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistributionId}'
+              # S3 — upload Lambda artifacts for newsletter stack
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - arn:aws:s3:::micahwalter-newsletter-artifacts
+                  - arn:aws:s3:::micahwalter-newsletter-artifacts/*
+              # Lambda — update function code (fast path, no CF needed)
+              - Effect: Allow
+                Action:
+                  - lambda:UpdateFunctionCode
+                  - lambda:GetFunction
+                Resource:
+                  - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:newsletter-*'
+              # CloudFormation — deploy newsletter stack
+              - Effect: Allow
+                Action:
+                  - cloudformation:DescribeStacks
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:GetTemplate
+                Resource:
+                  - !Sub 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/micahwalter-newsletter/*'
+              # IAM PassRole — required for CloudFormation to assign Lambda execution roles
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource:
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/newsletter-*-fn-role'
       Tags:
         - Key: Project
           Value: micahwalter-www
