@@ -14,6 +14,7 @@ interface EmailPageProps {
 
 export async function generateStaticParams() {
   const emails = getEmailPosts();
+  if (emails.length === 0) return [{ slug: "_placeholder" }];
   return emails.map((email) => ({ slug: email.slug }));
 }
 
