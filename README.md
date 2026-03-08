@@ -122,6 +122,7 @@ The unified `blog` CLI manages all content and image operations. It must be link
 | `blog images:copy-local` | Copy optimized images to public/ for dev |
 | `blog build` | Optimize images + copy to public/ (local dev) |
 | `blog build:static` | Generate RSS, sitemap, posts.json |
+| `blog email:send <slug>` | Render email post and emit send event |
 
 ### Common Flags
 
@@ -213,6 +214,25 @@ You can also use JSX components if needed.
 | `tags` | ❌ | Array of tag strings |
 | `coverImage` | ❌ | Relative path to cover image |
 | `draft` | ❌ | Set `true` to hide in production |
+
+### Email Posts
+
+Newsletter issues are a first-class content type stored alongside blog and photo posts. They get a permanent "view in browser" URL at `/emails/<slug>` and are listed in the public email archive at `/emails`.
+
+```yaml
+---
+type: email
+id: 142                                   # Required; unique across all posts
+title: "What I've been thinking about — March 2026"
+publishedAt: "2026-03-15"                 # Must not be in the future to send
+excerpt: "A short summary for the archive listing"
+draft: false                              # Must be false to send
+---
+
+Email body in standard markdown/MDX...
+```
+
+The `id` field is the primary key for the `newsletter_sends` DynamoDB table and is required for send tracking and idempotency.
 
 ### Content Structure
 
@@ -643,14 +663,16 @@ gh run view --log
 
 ## Newsletter
 
-The newsletter subscription system is a separate serverless backend deployed alongside the main website. It follows an event-driven architecture — command handlers validate input, write state, and emit domain events. All downstream behaviour (sending emails, future CRM sync, analytics) is handled by independent consumers that react to those events without any coupling to the command side.
+The newsletter system is a serverless backend deployed alongside the main website. It covers two distinct workflows: **subscription management** (opt-in, confirmation, unsubscribe) and **campaign sending** (authoring an email post and dispatching it to all active subscribers).
+
+Both workflows follow an event-driven architecture — command handlers validate input, write state, and emit domain events. All downstream behaviour is handled by independent consumers without coupling to the command side.
 
 ### Architecture
 
 ```mermaid
 %%{init: {"flowchart": {"curve": "linear"}} }%%
 flowchart TD
-    Visitor([Visitor]) -->|POST /subscribe | APIGW[API Gateway]
+    Visitor([Visitor]) -->|POST /subscribe| APIGW[API Gateway]
 
     APIGW --> SubFn[subscribe-fn]
     APIGW --> ConFn[confirm-fn]
@@ -658,20 +680,29 @@ flowchart TD
 
     SubFn & ConFn & UnsFn -->|GetSecretValue| SM[(Secrets Manager)]
 
-    SubFn -->|write PENDING| DDB[(DynamoDB)]
+    SubFn -->|write PENDING| DDB[(newsletter_subscribers)]
     ConFn -->|write ACTIVE| DDB
     UnsFn -->|write UNSUBSCRIBED| DDB
 
-    SubFn -->|SignupRequested| EB{{EventBridge}}
+    SubFn -->|SignupRequested| EB{{newsletter-bus}}
     SubFn -->|ConfirmationResent| EB
     ConFn -->|SubscriberConfirmed| EB
     UnsFn -->|UnsubscribeRequested| EB
 
-    EB -->|route-to-email rule| SQS[SQS queue]
-    SQS -->|max 3 retries| EmailFn[email-fn]
-    SQS -->|persistent failure| DLQ[DLQ + alarm]
-
+    EB -->|route-to-email rule| SQS1[email-send-queue]
+    SQS1 -->|max 3 retries| EmailFn[email-fn]
+    SQS1 -->|persistent failure| DLQ1[email DLQ + alarm]
     EmailFn -->|SendTemplatedEmail| SES[AWS SES]
+
+    Dev([Developer]) -->|blog email:send slug| EB
+    EB -->|route-newsletter-send rule| SQS2[dispatch-queue]
+    SQS2 -->|max 3 retries| DispFn[dispatch-fn]
+    SQS2 -->|persistent failure| DLQ2[dispatch DLQ + alarm]
+
+    DispFn -->|query StatusIndex| DDB
+    DispFn -->|write send record| Sends[(newsletter_sends)]
+    DispFn -->|GetSecretValue| SM
+    DispFn -->|SendBulkTemplatedEmail| SES
 
     classDef people fill:#F5B684,stroke:#c47d3e,color:#191919
     classDef lambda fill:#b3d9f5,stroke:#3a8fc7,color:#191919
@@ -679,10 +710,10 @@ flowchart TD
     classDef messaging fill:#e0d4f5,stroke:#8a5ec7,color:#191919
     classDef email fill:#f5e6b3,stroke:#c7a83a,color:#191919
 
-    class Visitor people
-    class SubFn,ConFn,UnsFn,EmailFn lambda
-    class DDB,SM storage
-    class APIGW,EB,SQS,DLQ messaging
+    class Visitor,Dev people
+    class SubFn,ConFn,UnsFn,EmailFn,DispFn lambda
+    class DDB,Sends,SM storage
+    class APIGW,EB,SQS1,SQS2,DLQ1,DLQ2 messaging
     class SES email
 ```
 
@@ -697,16 +728,51 @@ flowchart TD
 | 5 | `/newsletter/unsubscribe` | Token in URL → auto-submits; no token → email form. `unsubscribe-fn` writes `UNSUBSCRIBED`, emits `UnsubscribeRequested` |
 | 6 | `/newsletter/goodbye` | `email-fn` sends goodbye email |
 
+### Sending a Campaign
+
+Email posts are authored in `content/posts/` with `type: email` frontmatter. A single CLI command renders the MDX and triggers delivery to all active subscribers.
+
+```bash
+# 1. Create a new email post
+# content/posts/2026-03-08-march-2026/index.mdx
+# frontmatter: type: email, id: 142, draft: false
+
+# 2. Preview the rendered output and event payload
+blog email:send march-2026 --dry-run --profile www
+
+# 3. Send
+blog email:send march-2026 --profile www
+```
+
+**What happens after `blog email:send`:**
+
+1. Script validates frontmatter (type, draft, publishedAt, id)
+2. Renders MDX → HTML + plain text
+3. Emits `NewsletterSendRequested` to `newsletter-bus` (source: `newsletter.campaigns`)
+4. `route-newsletter-send` EventBridge rule routes to `newsletter-dispatch-queue`
+5. `dispatch-fn` Lambda:
+   - Creates/updates an SES template (`newsletter-campaign-<id>`) with the rendered HTML
+   - Queries all `ACTIVE` subscribers from `newsletter_subscribers` (paginated)
+   - Checks `newsletter_sends` — skips any subscriber already marked `SENT` (idempotent)
+   - Generates a signed 90-day unsubscribe token per subscriber
+   - Sends via `SES:SendBulkTemplatedEmail` in batches of 50
+   - Writes `SENT`/`FAILED` records to `newsletter_sends`
+
+**Re-sending is safe.** If a send is interrupted and retried, only subscribers without a `SENT` record receive the email.
+
+**Email archive.** Every sent email gets a permanent public URL at `/emails/<slug>` and is listed at `/emails` (linked from the site footer).
+
 ### Domain Events
 
-All events are emitted onto the `newsletter-bus` EventBridge bus under `source: newsletter.subscribers`. The event archive retains 90 days of history for replay and audit.
+All events are emitted onto the `newsletter-bus` EventBridge bus. The event archive retains 90 days of history for replay and audit.
 
-| Event (`detail-type`) | Emitted by | Trigger |
-|---|---|---|
-| `SignupRequested` | `subscribe-fn` | New or re-subscribing email; record written as `PENDING` |
-| `ConfirmationResent` | `subscribe-fn` | Already-`PENDING` email re-submits the form |
-| `SubscriberConfirmed` | `confirm-fn` | Token verified; record updated to `ACTIVE` |
-| `UnsubscribeRequested` | `unsubscribe-fn` | Unsubscribe via signed link or manual form |
+| Event (`detail-type`) | Source | Emitted by | Trigger |
+|---|---|---|---|
+| `SignupRequested` | `newsletter.subscribers` | `subscribe-fn` | New or re-subscribing email |
+| `ConfirmationResent` | `newsletter.subscribers` | `subscribe-fn` | Already-`PENDING` email re-submits |
+| `SubscriberConfirmed` | `newsletter.subscribers` | `confirm-fn` | Token verified; record updated to `ACTIVE` |
+| `UnsubscribeRequested` | `newsletter.subscribers` | `unsubscribe-fn` | Unsubscribe via signed link or form |
+| `NewsletterSendRequested` | `newsletter.campaigns` | `blog email:send` | Campaign send triggered by developer |
 
 ### Token Security
 
@@ -734,7 +800,7 @@ make deploy-bootstrap
 **Build, upload, and deploy:**
 
 ```bash
-make build            # compile 4 Go binaries for linux/arm64
+make build            # compile all 5 Go binaries for linux/arm64
 make upload           # zip + upload to S3
 make deploy           # create/update CloudFormation stack (prints API URL)
 ```
@@ -747,7 +813,7 @@ make update-functions
 
 **CloudFormation stacks:**
 - `micahwalter-newsletter-bootstrap` — S3 artifacts bucket
-- `micahwalter-newsletter` — all newsletter resources (DynamoDB, EventBridge, SQS, API Gateway, Lambdas, SES, CloudWatch alarms)
+- `micahwalter-newsletter` — all newsletter resources (DynamoDB tables, EventBridge bus + rules, SQS queues, API Gateway, Lambdas, SES identity, CloudWatch alarms)
 
 ---
 
@@ -940,9 +1006,16 @@ Defined in `tailwind.config.ts`:
 - ✅ Idempotent, non-revealing unsubscribe endpoint
 - ✅ Event-driven architecture via EventBridge (extensible without touching existing code)
 - ✅ 90-day event archive for replay and audit
-- ✅ SQS dead-letter queue with CloudWatch alarm on failures
+- ✅ SQS dead-letter queues with CloudWatch alarms on failures
 - ✅ SES transactional emails (confirmation, welcome, goodbye)
 - ✅ DKIM-signed sending domain via Route53
+- ✅ Campaign sending via `blog email:send <slug>` CLI command
+- ✅ `type: email` content type — email posts are first-class MDX content
+- ✅ Public email archive at `/emails` with permanent per-issue URLs
+- ✅ Per-subscriber unsubscribe tokens embedded in every campaign email
+- ✅ Idempotent bulk dispatch — safe to retry; skips already-sent subscribers
+- ✅ SES `SendBulkTemplatedEmail` (batches of 50) for efficient large-list delivery
+- ✅ Send history tracked in `newsletter_sends` DynamoDB table
 
 ### Infrastructure Features
 - ✅ HTTPS enabled (TLS 1.2+)
@@ -1110,10 +1183,11 @@ export default async function Page({ params }: Props) {
 
 ### Content Filtering
 
-- `getAllPosts()` - Returns all posts (blog + photos), filtering drafts in production
+- `getAllPosts()` - Returns all posts (blog + photos + emails), filtering drafts in production
 - `getSortedPosts()` - Posts sorted by publishedAt (newest first)
 - `getBlogPosts()` - Filter to only blog posts (`type: 'blog'`)
 - `getPhotos()` - Filter to only photo posts (`type: 'photo'`)
+- `getEmailPosts()` - Filter to only email posts (`type: 'email'`)
 - `getPostsByCategory(category)` - Filter by category
 - `getPostsByTag(tag)` - Filter by tag
 
