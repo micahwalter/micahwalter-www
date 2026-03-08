@@ -114,6 +114,14 @@ export default function MobileMenu({ isOpen, onClose, onSearchOpen }: MobileMenu
               Sketches
             </Link>
 
+            <Link
+              href="/about"
+              onClick={onClose}
+              className="block px-4 py-3 text-lg text-charcoal no-underline hover:bg-charcoal/5 rounded-lg transition-colors"
+            >
+              About
+            </Link>
+
             <button
               onClick={() => {
                 onClose();

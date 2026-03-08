@@ -12,6 +12,10 @@ export default function Footer() {
             &copy; {currentYear} Micah Walter. All rights reserved.
           </p>
           <p className="text-gray text-sm">
+            <a href="/about" className="hover:text-charcoal transition-colors no-underline">
+              About
+            </a>
+            {" · "}
             <a href="/newsletter" className="hover:text-charcoal transition-colors no-underline">
               Newsletter
             </a>

@@ -81,6 +81,12 @@ function generateSitemap() {
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>${baseUrl}/about</loc>
+    <lastmod>${new Date().toISOString().split("T")[0]}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>${baseUrl}/sketches</loc>
     <lastmod>${new Date().toISOString().split("T")[0]}</lastmod>
     <changefreq>monthly</changefreq>
