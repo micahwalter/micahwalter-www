@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { trackGoal } from "fathom-client";
-import { GOAL_NEWSLETTER_CONFIRMED } from "@/lib/fathom-goals";
+import { trackEvent } from "fathom-client";
 
 const API_URL = process.env.NEXT_PUBLIC_NEWSLETTER_API_URL;
 
@@ -32,7 +31,7 @@ export default function ConfirmHandler() {
         });
 
         if (res.ok) {
-          trackGoal(GOAL_NEWSLETTER_CONFIRMED, 0);
+          trackEvent("Newsletter Confirmed");
           router.replace("/newsletter/thank-you");
           return;
         }

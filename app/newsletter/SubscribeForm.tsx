@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { trackGoal } from "fathom-client";
-import { GOAL_NEWSLETTER_SIGNUP } from "@/lib/fathom-goals";
+import { trackEvent } from "fathom-client";
 
 const API_URL = process.env.NEXT_PUBLIC_NEWSLETTER_API_URL;
 
@@ -29,7 +28,7 @@ export default function SubscribeForm() {
       });
 
       if (res.status === 202) {
-        trackGoal(GOAL_NEWSLETTER_SIGNUP, 0);
+        trackEvent("Newsletter Signup");
         router.push("/newsletter/check-inbox");
         return;
       }
