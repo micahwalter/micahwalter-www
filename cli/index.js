@@ -37,12 +37,12 @@ const commands = {
     ]
   },
   'photos:tag': {
-    description: 'AI-powered photo tagging with Claude Vision',
+    description: 'AI-powered photo tagging with Claude Vision (via AWS Bedrock)',
     script: 'scripts/tag-photos.js',
     examples: [
-      'blog photos:tag 2026-02-16-sunset-park',
-      'blog photos:tag --all',
-      'blog photos:tag --all --auto-approve'
+      'blog photos:tag 2026-02-16-sunset-park --profile www',
+      'blog photos:tag --all --profile www',
+      'blog photos:tag --all --auto-approve --profile www'
     ]
   },
   'images:optimize': {

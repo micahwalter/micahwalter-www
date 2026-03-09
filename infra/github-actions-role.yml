@@ -270,6 +270,13 @@ Resources:
                   - cloudwatch:ListTagsForResource
                 Resource:
                   - !Sub 'arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:newsletter-*'
+              # Bedrock — invoke Claude models for AI-assisted tooling (e.g. photo tagging)
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource:
+                  - !Sub 'arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.*'
               # SNS — manage alarm notification topics
               - Effect: Allow
                 Action:
