@@ -1,6 +1,8 @@
 import { getPhotos } from "@/lib/content";
-import PostGrid from "@/components/PostGrid";
+import PaginatedPostGrid from "@/components/PaginatedPostGrid";
 import type { Metadata } from "next";
+
+const POSTS_PER_PAGE = 12;
 
 export const metadata: Metadata = {
   title: "Photos - Micah Walter",
@@ -26,9 +28,8 @@ export default function PhotosPage() {
         </p>
       </header>
 
-      {/* Photo Grid */}
       {photos.length > 0 ? (
-        <PostGrid posts={photos} featuredFirst={false} />
+        <PaginatedPostGrid posts={photos} perPage={POSTS_PER_PAGE} />
       ) : (
         <div className="max-w-wide mx-auto px-6 py-24 text-center">
           <p className="text-gray text-lg">No photos yet. Check back soon!</p>
