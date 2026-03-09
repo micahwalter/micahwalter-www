@@ -144,12 +144,146 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:apigateway:${AWS::Region}::/domainnames'
                   - !Sub 'arn:aws:apigateway:${AWS::Region}::/domainnames/*'
-              # IAM PassRole — required for CloudFormation to assign Lambda execution roles
+              # IAM — create/update/delete Lambda execution roles in newsletter stack
               - Effect: Allow
                 Action:
                   - iam:PassRole
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:GetRole
+                  - iam:UpdateRole
+                  - iam:TagRole
+                  - iam:UntagRole
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:GetRolePolicy
+                  - iam:ListRolePolicies
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:ListAttachedRolePolicies
                 Resource:
                   - !Sub 'arn:aws:iam::${AWS::AccountId}:role/newsletter-*-fn-role'
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/newsletter-dispatch-fn-role'
+              # Lambda — full lifecycle for newsletter functions and event source mappings
+              - Effect: Allow
+                Action:
+                  - lambda:CreateFunction
+                  - lambda:DeleteFunction
+                  - lambda:GetFunction
+                  - lambda:GetFunctionConfiguration
+                  - lambda:UpdateFunctionCode
+                  - lambda:UpdateFunctionConfiguration
+                  - lambda:AddPermission
+                  - lambda:RemovePermission
+                  - lambda:TagResource
+                  - lambda:UntagResource
+                  - lambda:ListTags
+                  - lambda:CreateEventSourceMapping
+                  - lambda:DeleteEventSourceMapping
+                  - lambda:GetEventSourceMapping
+                  - lambda:UpdateEventSourceMapping
+                Resource:
+                  - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:newsletter-*'
+                  - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:event-source-mapping:*'
+              # SQS — resolve queue ARNs and manage queues in newsletter stack
+              - Effect: Allow
+                Action:
+                  - sqs:CreateQueue
+                  - sqs:DeleteQueue
+                  - sqs:GetQueueAttributes
+                  - sqs:GetQueueUrl
+                  - sqs:SetQueueAttributes
+                  - sqs:TagQueue
+                  - sqs:UntagQueue
+                  - sqs:ListQueueTags
+                  - sqs:AddPermission
+                  - sqs:RemovePermission
+                Resource:
+                  - !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:email-send-queue'
+                  - !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:email-send-dlq'
+                  - !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:newsletter-dispatch-queue'
+                  - !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:newsletter-dispatch-dlq'
+              # SES (v2) — manage email identity in newsletter stack
+              - Effect: Allow
+                Action:
+                  - ses:CreateEmailIdentity
+                  - ses:DeleteEmailIdentity
+                  - ses:GetEmailIdentity
+                  - ses:PutEmailIdentityDkimAttributes
+                  - ses:PutEmailIdentityMailFromAttributes
+                  - ses:TagResource
+                  - ses:UntagResource
+                Resource:
+                  - !Sub 'arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*'
+              # DynamoDB — manage newsletter tables
+              - Effect: Allow
+                Action:
+                  - dynamodb:CreateTable
+                  - dynamodb:DeleteTable
+                  - dynamodb:DescribeTable
+                  - dynamodb:UpdateTable
+                  - dynamodb:TagResource
+                  - dynamodb:UntagResource
+                  - dynamodb:ListTagsOfResource
+                  - dynamodb:DescribeContinuousBackups
+                  - dynamodb:UpdateContinuousBackups
+                Resource:
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/newsletter_*'
+              # EventBridge — manage newsletter event bus and rules
+              - Effect: Allow
+                Action:
+                  - events:CreateEventBus
+                  - events:DeleteEventBus
+                  - events:DescribeEventBus
+                  - events:PutRule
+                  - events:DeleteRule
+                  - events:DescribeRule
+                  - events:PutTargets
+                  - events:RemoveTargets
+                  - events:TagResource
+                  - events:UntagResource
+                  - events:ListTagsForResource
+                Resource:
+                  - !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/newsletter-bus'
+                  - !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/newsletter-bus/*'
+              # Secrets Manager — manage HMAC secret
+              - Effect: Allow
+                Action:
+                  - secretsmanager:CreateSecret
+                  - secretsmanager:DeleteSecret
+                  - secretsmanager:DescribeSecret
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:PutSecretValue
+                  - secretsmanager:RestoreSecret
+                  - secretsmanager:TagResource
+                  - secretsmanager:UntagResource
+                Resource:
+                  - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:newsletter/*'
+              # CloudWatch — manage newsletter alarms
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricAlarm
+                  - cloudwatch:DeleteAlarms
+                  - cloudwatch:DescribeAlarms
+                  - cloudwatch:TagResource
+                  - cloudwatch:UntagResource
+                  - cloudwatch:ListTagsForResource
+                Resource:
+                  - !Sub 'arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:newsletter-*'
+              # SNS — manage alarm notification topics
+              - Effect: Allow
+                Action:
+                  - sns:CreateTopic
+                  - sns:DeleteTopic
+                  - sns:GetTopicAttributes
+                  - sns:SetTopicAttributes
+                  - sns:Subscribe
+                  - sns:Unsubscribe
+                  - sns:TagResource
+                  - sns:UntagResource
+                  - sns:ListTagsForResource
+                Resource:
+                  - !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:newsletter-*'
       Tags:
         - Key: Project
           Value: micahwalter-www
