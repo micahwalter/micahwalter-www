@@ -13,7 +13,8 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
-const Anthropic = require('@anthropic-ai/sdk');
+const { BedrockRuntimeClient, ConverseCommand } = require('@aws-sdk/client-bedrock-runtime');
+const { fromIni } = require('@aws-sdk/credential-providers');
 const matter = require('gray-matter');
 
 const POSTS_DIR = path.join(process.cwd(), 'content/posts');
@@ -46,12 +47,18 @@ function parseArgs() {
     process.exit(0);
   }
 
+  const profileIndex = args.indexOf('--profile');
+  const profile = profileIndex !== -1 && args[profileIndex + 1] ? args[profileIndex + 1] : process.env.AWS_PROFILE;
+  const profileValue = profileIndex !== -1 ? args[profileIndex + 1] : null;
+  const postFolder = args.find(arg => !arg.startsWith('--') && arg !== profileValue) || null;
+
   return {
-    postFolder: args.find(arg => !arg.startsWith('--')),
+    postFolder,
     all: args.includes('--all'),
     autoApprove: args.includes('--auto-approve'),
     dryRun: args.includes('--dry-run'),
     untaggedOnly: args.includes('--untagged-only'),
+    profile,
   };
 }
 
@@ -60,7 +67,7 @@ function parseArgs() {
  */
 function showHelp() {
   console.log(`
-📸 AI Photo Tagging with Claude Vision
+📸 AI Photo Tagging with Claude Vision (via AWS Bedrock)
 
 Usage:
   blog photos:tag <post-folder>
@@ -71,18 +78,19 @@ Arguments:
   --all            Process all photo posts
 
 Options:
+  --profile <name> AWS profile to use (default: AWS_PROFILE env var or "www")
   --auto-approve   Automatically apply suggested tags without confirmation
   --untagged-only  Only process photos with minimal tags (just "photography")
   --dry-run        Show suggestions without updating files
 
 Examples:
-  blog photos:tag 2026-02-16-sunset-park
-  blog photos:tag --all
-  blog photos:tag --all --auto-approve
+  blog photos:tag 2026-02-16-sunset-park --profile www
+  blog photos:tag --all --profile www
+  blog photos:tag --all --auto-approve --profile www
 
 Requirements:
-  - ANTHROPIC_API_KEY environment variable must be set
-  - Get your API key from: https://console.anthropic.com/
+  - AWS credentials configured for the specified profile
+  - Bedrock model access enabled in your AWS account (us-east-1)
 
 Notes:
   - Analyzes photo content, composition, mood, and subject matter
@@ -132,16 +140,12 @@ function findPhotoFile(postDir) {
 }
 
 /**
- * Analyze photo with Claude Vision API
+ * Analyze photo with Claude Vision via AWS Bedrock
  */
-async function analyzePhoto(photoPath, apiKey) {
-  const anthropic = new Anthropic({
-    apiKey: apiKey,
-  });
-
+async function analyzePhoto(photoPath, profile) {
   const sharp = require('sharp');
 
-  // Read image and resize if needed (Claude has 5MB limit)
+  // Read image and resize if needed (Bedrock has a 5MB limit)
   // Resize to max 1600px on longest side, quality 85
   const image = sharp(photoPath);
   const metadata = await image.metadata();
@@ -163,32 +167,30 @@ async function analyzePhoto(photoPath, apiKey) {
     imageBuffer = fs.readFileSync(photoPath);
   }
 
-  const base64Image = imageBuffer.toString('base64');
+  const clientConfig = { region: 'us-east-1' };
+  if (profile) {
+    clientConfig.credentials = fromIni({ profile });
+  }
+  const client = new BedrockRuntimeClient(clientConfig);
 
-  // Determine media type
-  const mediaType = 'image/jpeg'; // Always JPEG after processing
+  console.log('   🤖 Analyzing with Claude Vision via Bedrock...');
 
-  console.log('   🤖 Analyzing with Claude Vision...');
-
-  try {
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
+  const command = new ConverseCommand({
+    modelId: 'us.anthropic.claude-sonnet-4-6',
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            image: {
+              format: 'jpeg',
               source: {
-                type: 'base64',
-                media_type: mediaType,
-                data: base64Image,
+                bytes: imageBuffer,
               },
             },
-            {
-              type: 'text',
-              text: `Analyze this photo and suggest 3-8 relevant tags that describe:
+          },
+          {
+            text: `Analyze this photo and suggest 3-8 relevant tags that describe:
 - Main subject matter (people, objects, animals, architecture, etc.)
 - Location type (urban, nature, indoor, outdoor, beach, mountain, etc.)
 - Mood/atmosphere (serene, dramatic, vibrant, peaceful, energetic, etc.)
@@ -198,28 +200,26 @@ async function analyzePhoto(photoPath, apiKey) {
 Provide ONLY the tags as a comma-separated list, lowercase, using hyphens for multi-word tags.
 Example format: street-photography, urban, night, city-lights, noir
 
-Tags:`
-            }
-          ],
-        },
-      ],
-    });
+Tags:`,
+          },
+        ],
+      },
+    ],
+    inferenceConfig: {
+      maxTokens: 1024,
+    },
+  });
 
-    const responseText = message.content[0].text.trim();
+  const response = await client.send(command);
+  const responseText = response.output.message.content[0].text.trim();
 
-    // Parse tags from response
-    const tags = responseText
-      .split(',')
-      .map(tag => tag.trim().toLowerCase())
-      .filter(tag => tag.length > 0 && tag.length < 30); // Sanity check
+  // Parse tags from response
+  const tags = responseText
+    .split(',')
+    .map(tag => tag.trim().toLowerCase())
+    .filter(tag => tag.length > 0 && tag.length < 30); // Sanity check
 
-    return tags;
-  } catch (error) {
-    if (error.status === 401) {
-      throw new Error('Invalid ANTHROPIC_API_KEY. Get your key from https://console.anthropic.com/');
-    }
-    throw error;
-  }
+  return tags;
 }
 
 /**
@@ -246,7 +246,7 @@ function updatePostTags(postDir, newTags) {
 /**
  * Process a single photo post
  */
-async function processPhotoPost(postFolder, options, apiKey) {
+async function processPhotoPost(postFolder, options, profile) {
   const postDir = path.join(POSTS_DIR, postFolder);
   const mdxPath = path.join(postDir, 'index.mdx');
 
@@ -278,7 +278,7 @@ async function processPhotoPost(postFolder, options, apiKey) {
   // Analyze with Claude
   let suggestedTags;
   try {
-    suggestedTags = await analyzePhoto(photoPath, apiKey);
+    suggestedTags = await analyzePhoto(photoPath, profile);
   } catch (error) {
     console.error(`   ❌ Error analyzing photo: ${error.message}`);
     return { error: true };
@@ -323,14 +323,10 @@ async function main() {
   console.log('📸 AI Photo Tagging with Claude Vision\n');
 
   const options = parseArgs();
+  const { profile } = options;
 
-  // Check for API key
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.error('❌ Error: ANTHROPIC_API_KEY environment variable not set\n');
-    console.error('Get your API key from: https://console.anthropic.com/');
-    console.error('Then set it: export ANTHROPIC_API_KEY=your-key-here\n');
-    process.exit(1);
+  if (profile) {
+    console.log(`🔑 Using AWS profile: ${profile}\n`);
   }
 
   // Determine which posts to process
@@ -366,7 +362,7 @@ async function main() {
 
   for (const postFolder of postsToProcess) {
     try {
-      const result = await processPhotoPost(postFolder, options, apiKey);
+      const result = await processPhotoPost(postFolder, options, profile);
       if (result.updated) results.updated++;
       if (result.skipped) results.skipped++;
       if (result.error) results.errors++;
