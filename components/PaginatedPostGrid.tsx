@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import PostCard from "./PostCard";
 import PhotoCard from "./PhotoCard";
@@ -10,7 +11,7 @@ interface PaginatedPostGridProps {
   perPage: number;
 }
 
-export default function PaginatedPostGrid({ posts, perPage }: PaginatedPostGridProps) {
+function PaginatedPostGridInner({ posts, perPage }: PaginatedPostGridProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -67,5 +68,13 @@ export default function PaginatedPostGrid({ posts, perPage }: PaginatedPostGridP
         </nav>
       )}
     </div>
+  );
+}
+
+export default function PaginatedPostGrid(props: PaginatedPostGridProps) {
+  return (
+    <Suspense>
+      <PaginatedPostGridInner {...props} />
+    </Suspense>
   );
 }
