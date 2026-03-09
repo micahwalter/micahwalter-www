@@ -27,6 +27,7 @@ var (
 	sesClient   *ses.Client
 	senderEmail string
 	siteURL     string
+	adminEmail  string
 )
 
 func init() {
@@ -38,6 +39,7 @@ func init() {
 	sesClient = ses.NewFromConfig(cfg)
 	senderEmail = os.Getenv("SENDER_EMAIL")
 	siteURL = os.Getenv("SITE_URL")
+	adminEmail = os.Getenv("ADMIN_EMAIL")
 }
 
 // eventEnvelope is the EventBridge event structure as delivered via SQS.
@@ -110,7 +112,46 @@ func sendWelcomeEmail(ctx context.Context, raw json.RawMessage) error {
 		"unsubscribe_link": unsubLink,
 	})
 
-	return sendTemplated(ctx, detail.Email, templateWelcome, string(templateData))
+	if err := sendTemplated(ctx, detail.Email, templateWelcome, string(templateData)); err != nil {
+		return err
+	}
+
+	if adminEmail != "" {
+		if err := sendAdminNotification(ctx, detail); err != nil {
+			// Log but don't fail — the subscriber's welcome email was sent successfully.
+			slog.Error("email: failed to send admin notification", "err", err)
+		}
+	}
+
+	return nil
+}
+
+func sendAdminNotification(ctx context.Context, detail evts.SubscriberConfirmedDetail) error {
+	name := detail.Name
+	if name == "" {
+		name = "(no name)"
+	}
+	subject := fmt.Sprintf("New newsletter subscriber: %s", detail.Email)
+	body := fmt.Sprintf("New subscriber confirmed!\n\nName: %s\nEmail: %s\nConfirmed at: %s\n",
+		name, detail.Email, detail.ConfirmedAt)
+
+	_, err := sesClient.SendEmail(ctx, &ses.SendEmailInput{
+		Source: aws.String(senderEmail),
+		Destination: &sestypes.Destination{
+			ToAddresses: []string{adminEmail},
+		},
+		Message: &sestypes.Message{
+			Subject: &sestypes.Content{Data: aws.String(subject)},
+			Body: &sestypes.Body{
+				Text: &sestypes.Content{Data: aws.String(body)},
+			},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("SES SendEmail (admin notification): %w", err)
+	}
+	slog.Info("email: admin notification sent", "admin", adminEmail)
+	return nil
 }
 
 func sendGoodbyeEmail(ctx context.Context, raw json.RawMessage) error {
