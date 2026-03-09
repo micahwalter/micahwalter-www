@@ -39,6 +39,11 @@ Parameters:
     Default: micah@micahwalter.com
     Description: From address for all newsletter emails (must be SES-verified)
 
+  AdminEmail:
+    Type: String
+    Default: micah@micahwalter.com
+    Description: Email address to notify when a new subscriber confirms their subscription
+
   CreateSESIdentity:
     Type: String
     Default: 'true'
@@ -436,7 +441,9 @@ Resources:
                   - sqs:GetQueueAttributes
                 Resource: !GetAtt EmailSendQueue.Arn
               - Effect: Allow
-                Action: ses:SendTemplatedEmail
+                Action:
+                  - ses:SendTemplatedEmail
+                  - ses:SendEmail
                 Resource: '*'
               - Effect: Allow
                 Action: secretsmanager:GetSecretValue
@@ -559,6 +566,7 @@ Resources:
         Variables:
           SENDER_EMAIL: !Ref SenderEmail
           SITE_URL: !Ref SiteUrl
+          ADMIN_EMAIL: !Ref AdminEmail
       Tags:
         - Key: Project
           Value: micahwalter-newsletter
