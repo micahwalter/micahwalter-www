@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
   Newsletter subscription system — DynamoDB, EventBridge, SQS, API Gateway,
-  Lambda (subscribe / confirm / unsubscribe / email), SES, and CloudWatch alarms.
+  Lambda (subscribe / confirm / unsubscribe / email / formtoken), SES, and CloudWatch alarms.
   Deploy newsletter-bootstrap.yml first to create the artifacts bucket, then
   upload Lambda zips before deploying this stack.
 
