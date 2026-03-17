@@ -1378,3 +1378,4 @@ Outputs:
       Secrets Manager ARN for the HMAC signing key. After first deploy, update
       the secret value via the console or CLI with a strong random key.
     Value: !Ref HMACSecret
+
