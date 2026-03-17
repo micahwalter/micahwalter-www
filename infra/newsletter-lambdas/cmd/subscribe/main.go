@@ -16,6 +16,7 @@ import (
 
 	"github.com/micahwalter/newsletter-lambdas/internal/dynamo"
 	evts "github.com/micahwalter/newsletter-lambdas/internal/events"
+	"github.com/micahwalter/newsletter-lambdas/internal/formtoken"
 	"github.com/micahwalter/newsletter-lambdas/internal/secrets"
 	"github.com/micahwalter/newsletter-lambdas/internal/token"
 )
@@ -40,9 +41,10 @@ func init() {
 }
 
 type subscribeRequest struct {
-	Email   string `json:"email"`
-	Name    string `json:"name"`
-	Website string `json:"website"`
+	Email     string `json:"email"`
+	Name      string `json:"name"`
+	Website   string `json:"website"`
+	FormToken string `json:"formToken"`
 }
 
 func handler(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
@@ -51,10 +53,28 @@ func handler(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.AP
 		return response(400, "Invalid request body"), nil
 	}
 
+	// Load HMAC keys early — needed for both bot checks and token signing.
+	keys, err := secClient.Keys(ctx)
+	if err != nil {
+		slog.Error("subscribe: failed to load secrets", "err", err)
+		return response(500, "Internal error"), nil
+	}
+
 	// Honeypot: real users never fill this hidden field; bots typically do.
 	// Return a fake 202 to avoid alerting bot operators.
 	if body.Website != "" {
 		slog.Info("subscribe: honeypot triggered", "ip", req.RequestContext.HTTP.SourceIP)
+		return response(202, "Check your inbox to confirm your subscription"), nil
+	}
+
+	// Time-based check: the form token is issued when the page loads and must
+	// be at least 3 seconds old. Bots that submit instantly are silently dropped.
+	if body.FormToken == "" {
+		slog.Info("subscribe: missing form token", "ip", req.RequestContext.HTTP.SourceIP)
+		return response(202, "Check your inbox to confirm your subscription"), nil
+	}
+	if err := formtoken.Verify(body.FormToken, keys.Current, keys.Previous); err != nil {
+		slog.Info("subscribe: form token rejected", "ip", req.RequestContext.HTTP.SourceIP, "reason", err)
 		return response(202, "Check your inbox to confirm your subscription"), nil
 	}
 
@@ -66,12 +86,6 @@ func handler(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.AP
 	}
 	if name == "" {
 		name = "there"
-	}
-
-	keys, err := secClient.Keys(ctx)
-	if err != nil {
-		slog.Error("subscribe: failed to load secrets", "err", err)
-		return response(500, "Internal error"), nil
 	}
 
 	existing, err := db.Get(ctx, email)
