@@ -258,6 +258,7 @@ Resources:
         AllowOrigins:
           - !Ref SiteUrl
         AllowMethods:
+          - GET
           - POST
           - OPTIONS
         AllowHeaders:
@@ -652,6 +653,87 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${NewsletterApi}/*/*/unsubscribe
+
+  FormTokenFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: newsletter-formtoken-fn-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: FormTokenFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref HMACSecret
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  FormTokenFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: newsletter-formtoken
+      Runtime: provided.al2023
+      Architectures: [arm64]
+      Handler: bootstrap
+      Role: !GetAtt FormTokenFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/formtoken.zip
+      Timeout: 5
+      MemorySize: 128
+      Environment:
+        Variables:
+          HMAC_SECRET_ARN: !Ref HMACSecret
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  FormTokenIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref NewsletterApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub
+        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FormTokenFn.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
+  FormTokenRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref NewsletterApi
+      RouteKey: GET /formtoken
+      Target: !Sub integrations/${FormTokenIntegration}
+
+  FormTokenFnPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref FormTokenFn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${NewsletterApi}/*/*/formtoken
 
   # -------------------------------------------------------------------------
   # SQS → email-fn event source mapping

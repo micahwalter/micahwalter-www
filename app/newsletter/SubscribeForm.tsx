@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { trackEvent } from "fathom-client";
 
@@ -13,8 +13,19 @@ export default function SubscribeForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
+  const [formToken, setFormToken] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    fetch(`${API_URL}/formtoken`)
+      .then((r) => r.json())
+      .then((data) => setFormToken(data.token ?? ""))
+      .catch(() => {
+        // Non-fatal: token will be empty and the Lambda will silently drop the
+        // submission, but we don't surface an error to the user here.
+      });
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,7 +36,7 @@ export default function SubscribeForm() {
       const res = await fetch(`${API_URL}/subscribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, name, website }),
+        body: JSON.stringify({ email, name, website, formToken }),
       });
 
       if (res.status === 202) {
