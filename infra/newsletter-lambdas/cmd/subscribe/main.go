@@ -40,14 +40,22 @@ func init() {
 }
 
 type subscribeRequest struct {
-	Email string `json:"email"`
-	Name  string `json:"name"`
+	Email   string `json:"email"`
+	Name    string `json:"name"`
+	Website string `json:"website"`
 }
 
 func handler(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
 	var body subscribeRequest
 	if err := json.Unmarshal([]byte(req.Body), &body); err != nil {
 		return response(400, "Invalid request body"), nil
+	}
+
+	// Honeypot: real users never fill this hidden field; bots typically do.
+	// Return a fake 202 to avoid alerting bot operators.
+	if body.Website != "" {
+		slog.Info("subscribe: honeypot triggered", "ip", req.RequestContext.HTTP.SourceIP)
+		return response(202, "Check your inbox to confirm your subscription"), nil
 	}
 
 	email := strings.TrimSpace(strings.ToLower(body.Email))

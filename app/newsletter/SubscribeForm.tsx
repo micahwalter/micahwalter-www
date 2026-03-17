@@ -12,6 +12,7 @@ export default function SubscribeForm() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [website, setWebsite] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -24,7 +25,7 @@ export default function SubscribeForm() {
       const res = await fetch(`${API_URL}/subscribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, name }),
+        body: JSON.stringify({ email, name, website }),
       });
 
       if (res.status === 202) {
@@ -66,6 +67,19 @@ export default function SubscribeForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 max-w-sm">
+      {/* Honeypot: hidden from real users, bots will fill this in */}
+      <div style={{ position: "absolute", left: "-9999px", top: "-9999px" }} aria-hidden="true">
+        <label htmlFor="website">Website</label>
+        <input
+          id="website"
+          type="text"
+          name="website"
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+        />
+      </div>
       <div>
         <label
           htmlFor="name"
