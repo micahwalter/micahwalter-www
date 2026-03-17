@@ -133,7 +133,9 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:route53:::hostedzone/Z05804121WRFHZZEYWGT5'
                   - 'arn:aws:route53:::change/*'
-              # API Gateway — custom domain name, API mapping, and HTTP APIs
+              # API Gateway — custom domain names, HTTP APIs, routes, integrations, tags, etc.
+              # CloudFormation accesses many sub-paths (/apis/*, /domainnames/*, /tags/*, etc.)
+              # so we scope to region with a wildcard rather than enumerate all paths.
               - Effect: Allow
                 Action:
                   - apigateway:GET
@@ -142,10 +144,7 @@ Resources:
                   - apigateway:DELETE
                   - apigateway:PUT
                 Resource:
-                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/domainnames'
-                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/domainnames/*'
-                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/apis'
-                  - !Sub 'arn:aws:apigateway:${AWS::Region}::/apis/*'
+                  - !Sub 'arn:aws:apigateway:${AWS::Region}::*'
               # IAM — create/update/delete Lambda execution roles in newsletter stack
               - Effect: Allow
                 Action:
