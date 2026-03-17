@@ -21,7 +21,7 @@ env:
   ARTIFACTS_BUCKET: micahwalter-newsletter-artifacts
   ARTIFACTS_PREFIX: newsletter/lambda
   STACK_NAME: micahwalter-newsletter
-  FUNCTIONS: subscribe confirm unsubscribe email dispatch
+  FUNCTIONS: subscribe confirm unsubscribe email dispatch formtoken
 
 jobs:
   deploy:
