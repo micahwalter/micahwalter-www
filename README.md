@@ -800,7 +800,7 @@ make deploy-bootstrap
 **Build, upload, and deploy:**
 
 ```bash
-make build            # compile all 5 Go binaries for linux/arm64
+make build            # compile all Go binaries for linux/arm64
 make upload           # zip + upload to S3
 make deploy           # create/update CloudFormation stack (prints API URL)
 ```
@@ -812,8 +812,105 @@ make update-functions
 ```
 
 **CloudFormation stacks:**
-- `micahwalter-newsletter-bootstrap` — S3 artifacts bucket
+- `micahwalter-newsletter-bootstrap` — S3 artifacts bucket (us-east-1)
 - `micahwalter-newsletter` — all newsletter resources (DynamoDB tables, EventBridge bus + rules, SQS queues, API Gateway, Lambdas, SES identity, CloudWatch alarms)
+
+### Newsletter Multi-Region Resilience
+
+Subscribe, confirm, and unsubscribe survive a complete us-east-1 outage via an active-passive failover to us-east-2. Newsletter dispatch (`blog email:send`) stays in primary only and degrades gracefully.
+
+**Architecture:**
+- **Primary (us-east-1):** Full stack — subscribe / confirm / unsubscribe / email / formtoken / health / dispatch
+- **Secondary (us-east-2):** Subscription management only — subscribe / confirm / unsubscribe / email / formtoken / health (no dispatch)
+- **DynamoDB `newsletter_subscribers`:** Global Table replicated to us-east-2; writes in either region sync automatically
+- **HMAC secret:** Replicated to us-east-2 via Secrets Manager `ReplicaRegions`; tokens signed in primary are verifiable in secondary
+- **Route 53:** Failover routing on `api.micahwalter.com` — health check on primary `/health` endpoint; ~90 seconds to fail over on outage
+- **SES:** Domain verified in both regions; transactional emails send from the region handling the request
+
+**First-time setup** (run once after merging this feature):
+
+```bash
+# 1. Deploy updated primary stack (adds streams + health route + HMAC replication)
+cd infra/newsletter-lambdas
+make deploy  # or: AWS_PROFILE=www aws cloudformation deploy ...
+
+# 2. Add us-east-2 replica to the newsletter_subscribers DynamoDB table (one-time)
+AWS_PROFILE=www aws dynamodb update-table \
+  --table-name newsletter_subscribers \
+  --replica-updates Create=[{RegionName=us-east-2}] \
+  --region us-east-1
+
+# 3. Create the secondary S3 artifacts bucket
+make deploy-bootstrap-secondary
+
+# 4. Build and upload Lambda zips to secondary bucket
+make build
+make upload-secondary
+
+# 5. Deploy the secondary API Gateway domain (us-east-2)
+AWS_PROFILE=www aws cloudformation deploy \
+  --stack-name micahwalter-api-domain-secondary \
+  --template-file infra/api-domain-secondary.yml \
+  --region us-east-2 \
+  --parameter-overrides HostedZoneId=Z05804121WRFHZZEYWGT5
+
+# 6. Deploy the secondary newsletter stack
+make deploy-secondary
+
+# 7. Activate Route 53 failover on the primary api-domain stack
+PRIMARY_API_DOMAIN=$(AWS_PROFILE=www aws cloudformation describe-stacks \
+  --stack-name micahwalter-newsletter \
+  --region us-east-1 \
+  --query "Stacks[0].Outputs[?OutputKey=='ApiRegionalDomainName'].OutputValue" \
+  --output text)
+
+AWS_PROFILE=www aws cloudformation deploy \
+  --stack-name micahwalter-api-domain \
+  --template-file infra/api-domain.yml \
+  --region us-east-1 \
+  --parameter-overrides \
+    HostedZoneId=Z05804121WRFHZZEYWGT5 \
+    PrimaryApiRegionalDomain=$PRIMARY_API_DOMAIN
+
+# 8. Update GitHub Actions IAM role (adds us-east-2 permissions)
+AWS_PROFILE=www aws cloudformation deploy \
+  --stack-name micahwalter-www-github-actions \
+  --template-file infra/github-actions-role.yml \
+  --region us-east-1 \
+  --capabilities CAPABILITY_NAMED_IAM
+```
+
+After first-time setup, all subsequent deployments are fully automated via GitHub Actions.
+
+**Ongoing deploys:**
+
+```bash
+# Update secondary Lambda code manually (primary is also updated)
+make update-functions-secondary
+
+# Full secondary stack update
+make deploy-secondary
+```
+
+**CloudFormation stacks (multi-region):**
+
+| Stack | Region | Template |
+|-------|--------|----------|
+| `micahwalter-newsletter-bootstrap` | us-east-1 | `newsletter-bootstrap.yml` |
+| `micahwalter-newsletter` | us-east-1 | `newsletter.yml` |
+| `micahwalter-api-domain` | us-east-1 | `api-domain.yml` |
+| `micahwalter-newsletter-bootstrap-secondary` | us-east-2 | `newsletter-bootstrap-secondary.yml` |
+| `micahwalter-newsletter-secondary` | us-east-2 | `newsletter-secondary.yml` |
+| `micahwalter-api-domain-secondary` | us-east-2 | `api-domain-secondary.yml` |
+
+**What happens during a us-east-1 outage:**
+1. Route 53 health check fails 3 consecutive times (~90 seconds)
+2. `api.micahwalter.com` DNS switches to us-east-2 endpoint
+3. Subscribe / confirm / unsubscribe served from us-east-2 Lambdas
+4. DynamoDB writes go to the us-east-2 replica and sync to us-east-1 once it recovers
+5. Transactional emails (confirmation, welcome, goodbye) send from SES in us-east-2
+6. `blog email:send` (dispatch) fails with AWS error — acceptable; retry once us-east-1 recovers
+7. When us-east-1 recovers, Route 53 automatically routes traffic back (health check recovers)
 
 ### Spam Protection
 
@@ -1036,6 +1133,9 @@ Defined in `tailwind.config.ts`:
 - ✅ Idempotent bulk dispatch — safe to retry; skips already-sent subscribers
 - ✅ SES `SendBulkTemplatedEmail` (batches of 50) for efficient large-list delivery
 - ✅ Send history tracked in `newsletter_sends` DynamoDB table
+- ✅ Multi-region active-passive failover — subscribe/confirm/unsubscribe survive a us-east-1 outage
+- ✅ DynamoDB Global Table replication to us-east-2 (~zero RPO for subscriber data)
+- ✅ Route 53 health-check failover with ~90 second RTO
 
 ### Infrastructure Features
 - ✅ HTTPS enabled (TLS 1.2+)

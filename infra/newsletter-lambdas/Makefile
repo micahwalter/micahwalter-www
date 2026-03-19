@@ -1,15 +1,19 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-PROFILE       ?= www
-REGION        ?= us-east-1
-ARTIFACTS_BUCKET := micahwalter-newsletter-artifacts
-ARTIFACTS_PREFIX := newsletter/lambda
+PROFILE                    ?= www
+REGION                     ?= us-east-1
+SECONDARY_REGION           ?= us-east-2
+ARTIFACTS_BUCKET           := micahwalter-newsletter-artifacts
+ARTIFACTS_BUCKET_SECONDARY := micahwalter-newsletter-artifacts-secondary
+ARTIFACTS_PREFIX           := newsletter/lambda
 
-BOOTSTRAP_STACK := micahwalter-newsletter-bootstrap
-STACK_NAME      := micahwalter-newsletter
+BOOTSTRAP_STACK           := micahwalter-newsletter-bootstrap
+BOOTSTRAP_STACK_SECONDARY := micahwalter-newsletter-bootstrap-secondary
+STACK_NAME                := micahwalter-newsletter
+STACK_NAME_SECONDARY      := micahwalter-newsletter-secondary
 
-FUNCTIONS := subscribe confirm unsubscribe email dispatch formtoken
+FUNCTIONS := subscribe confirm unsubscribe email dispatch formtoken health
 
 DIST := dist
 
@@ -35,7 +39,7 @@ build: ## Compile all Lambda functions for linux/arm64
 # ---------------------------------------------------------------------------
 
 .PHONY: upload
-upload: ## Upload built zip files to the artifacts S3 bucket
+upload: ## Upload built zip files to the primary (us-east-1) artifacts S3 bucket
 	@for fn in $(FUNCTIONS); do \
 		echo "  uploading $$fn.zip..."; \
 		AWS_PROFILE=$(PROFILE) aws s3 cp $(DIST)/$$fn.zip \
@@ -43,6 +47,16 @@ upload: ## Upload built zip files to the artifacts S3 bucket
 			--region $(REGION); \
 	done
 	@echo "Upload complete."
+
+.PHONY: upload-secondary
+upload-secondary: ## Upload built zip files to the secondary (us-east-2) artifacts S3 bucket
+	@for fn in $(FUNCTIONS); do \
+		echo "  uploading $$fn.zip to secondary..."; \
+		AWS_PROFILE=$(PROFILE) aws s3 cp $(DIST)/$$fn.zip \
+			s3://$(ARTIFACTS_BUCKET_SECONDARY)/$(ARTIFACTS_PREFIX)/$$fn.zip \
+			--region $(SECONDARY_REGION); \
+	done
+	@echo "Upload to secondary complete."
 
 # ---------------------------------------------------------------------------
 # Deploy bootstrap stack (run once to create the artifacts bucket)
@@ -84,11 +98,11 @@ deploy: ## Deploy the main newsletter CloudFormation stack
 # ---------------------------------------------------------------------------
 
 .PHONY: update-functions
-update-functions: ## Build, upload, then force-update all Lambda function code
+update-functions: ## Build, upload, then force-update all Lambda function code (primary)
 	$(MAKE) build
 	$(MAKE) upload
 	@for fn in $(FUNCTIONS); do \
-		echo "  updating newsletter-$$fn..."; \
+		echo "  updating newsletter-$$fn ($(REGION))..."; \
 		AWS_PROFILE=$(PROFILE) aws lambda update-function-code \
 			--function-name newsletter-$$fn \
 			--s3-bucket $(ARTIFACTS_BUCKET) \
@@ -96,7 +110,53 @@ update-functions: ## Build, upload, then force-update all Lambda function code
 			--region $(REGION) \
 			--no-cli-pager; \
 	done
-	@echo "Function code updated."
+	@echo "Primary function code updated."
+
+.PHONY: update-functions-secondary
+update-functions-secondary: ## Build, upload, then force-update all secondary Lambda function code
+	$(MAKE) build
+	$(MAKE) upload-secondary
+	@SECONDARY_FUNCTIONS="subscribe confirm unsubscribe email formtoken health"; \
+	for fn in $$SECONDARY_FUNCTIONS; do \
+		echo "  updating newsletter-$$fn ($(SECONDARY_REGION))..."; \
+		AWS_PROFILE=$(PROFILE) aws lambda update-function-code \
+			--function-name newsletter-$$fn \
+			--s3-bucket $(ARTIFACTS_BUCKET_SECONDARY) \
+			--s3-key $(ARTIFACTS_PREFIX)/$$fn.zip \
+			--region $(SECONDARY_REGION) \
+			--no-cli-pager; \
+	done
+	@echo "Secondary function code updated."
+
+# ---------------------------------------------------------------------------
+# Deploy secondary stack (us-east-2)
+# ---------------------------------------------------------------------------
+
+.PHONY: deploy-bootstrap-secondary
+deploy-bootstrap-secondary: ## Deploy the secondary bootstrap stack (creates the us-east-2 artifacts S3 bucket)
+	AWS_PROFILE=$(PROFILE) aws cloudformation deploy \
+		--stack-name $(BOOTSTRAP_STACK_SECONDARY) \
+		--template-file ../newsletter-bootstrap-secondary.yml \
+		--region $(SECONDARY_REGION)
+	@echo "Secondary bootstrap stack deployed. Bucket: $(ARTIFACTS_BUCKET_SECONDARY)"
+
+.PHONY: deploy-secondary
+deploy-secondary: ## Deploy the secondary newsletter CloudFormation stack (us-east-2)
+	AWS_PROFILE=$(PROFILE) aws cloudformation deploy \
+		--stack-name $(STACK_NAME_SECONDARY) \
+		--template-file ../newsletter-secondary.yml \
+		--region $(SECONDARY_REGION) \
+		--capabilities CAPABILITY_NAMED_IAM \
+		--parameter-overrides \
+			LambdaArtifactsBucket=$(ARTIFACTS_BUCKET_SECONDARY) \
+			LambdaArtifactsKeyPrefix=$(ARTIFACTS_PREFIX)
+	@echo ""
+	@echo "Secondary stack deployed. API endpoint:"
+	@AWS_PROFILE=$(PROFILE) aws cloudformation describe-stacks \
+		--stack-name $(STACK_NAME_SECONDARY) \
+		--region $(SECONDARY_REGION) \
+		--query "Stacks[0].Outputs[?OutputKey=='ApiEndpoint'].OutputValue" \
+		--output text
 
 # ---------------------------------------------------------------------------
 # Show outputs

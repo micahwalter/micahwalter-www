@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Shared API Gateway custom domain — api.micahwalter.com (us-east-2 secondary).
+  Creates the regional ACM certificate, API Gateway V2 domain name, and the
+  Route 53 SECONDARY failover record that receives traffic when us-east-1 is unhealthy.
+
+  Deploy order:
+    1. infra/api-domain.yml (us-east-1) with PrimaryApiRegionalDomain set
+    2. This stack (us-east-2) — adds SECONDARY record after PRIMARY exists
+
+  Individual API stacks (newsletter-secondary, etc.) create their own ApiMapping
+  resources that bind their APIs to this domain name.
+
+# ---------------------------------------------------------------------------
+# Parameters
+# ---------------------------------------------------------------------------
+Parameters:
+
+  ApiSubdomain:
+    Type: String
+    Default: api.micahwalter.com
+    Description: Full custom domain name for the shared API Gateway endpoint
+
+  HostedZoneId:
+    Type: String
+    Default: Z05804121WRFHZZEYWGT5
+    Description: Route53 hosted zone ID for micahwalter.com
+
+# ---------------------------------------------------------------------------
+# Resources
+# ---------------------------------------------------------------------------
+Resources:
+
+  # ACM certificate — must be in us-east-2 (regional endpoint requires regional cert)
+  ApiCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref ApiSubdomain
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref ApiSubdomain
+          HostedZoneId: !Ref HostedZoneId
+      Tags:
+        - Key: Project
+          Value: micahwalter-www
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: StaticWebsite
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Region
+          Value: secondary
+
+  # API Gateway V2 custom domain name (us-east-2)
+  ApiGatewayDomainName:
+    Type: AWS::ApiGatewayV2::DomainName
+    DependsOn: ApiCertificate
+    Properties:
+      DomainName: !Ref ApiSubdomain
+      DomainNameConfigurations:
+        - CertificateArn: !Ref ApiCertificate
+          EndpointType: REGIONAL
+          SecurityPolicy: TLS_1_2
+      Tags:
+        Project: micahwalter-www
+        Environment: Production
+        Application: StaticWebsite
+        ManagedBy: CloudFormation
+        Region: secondary
+
+  # ---------------------------------------------------------------------------
+  # Route 53 SECONDARY failover records
+  # Route 53 only serves these when the PRIMARY health check (in api-domain.yml)
+  # is failing or when us-east-1 is unreachable. No health check is required on
+  # the SECONDARY record — it is always considered available as a fallback.
+  # ---------------------------------------------------------------------------
+
+  ApiDomainASecondaryRecord:
+    Type: AWS::Route53::RecordSet
+    DependsOn: ApiGatewayDomainName
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref ApiSubdomain
+      Type: A
+      Failover: SECONDARY
+      SetIdentifier: secondary-us-east-2
+      AliasTarget:
+        DNSName: !GetAtt ApiGatewayDomainName.RegionalDomainName
+        HostedZoneId: !GetAtt ApiGatewayDomainName.RegionalHostedZoneId
+        EvaluateTargetHealth: false
+
+  ApiDomainAAAASecondaryRecord:
+    Type: AWS::Route53::RecordSet
+    DependsOn: ApiGatewayDomainName
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref ApiSubdomain
+      Type: AAAA
+      Failover: SECONDARY
+      SetIdentifier: secondary-us-east-2
+      AliasTarget:
+        DNSName: !GetAtt ApiGatewayDomainName.RegionalDomainName
+        HostedZoneId: !GetAtt ApiGatewayDomainName.RegionalHostedZoneId
+        EvaluateTargetHealth: false
+
+# ---------------------------------------------------------------------------
+# Outputs
+# ---------------------------------------------------------------------------
+Outputs:
+
+  ApiDomainName:
+    Description: The custom domain name (secondary region)
+    Value: !Ref ApiSubdomain
+
+  RegionalDomainName:
+    Description: API Gateway regional domain name in us-east-2 (for reference / debugging)
+    Value: !GetAtt ApiGatewayDomainName.RegionalDomainName
+    Export:
+      Name: micahwalter-api-domain-secondary-regional

@@ -1,9 +1,21 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-  Newsletter subscription system — DynamoDB, EventBridge, SQS, API Gateway,
-  Lambda (subscribe / confirm / unsubscribe / email / dispatch / formtoken), SES, and CloudWatch alarms.
-  Deploy newsletter-bootstrap.yml first to create the artifacts bucket, then
-  upload Lambda zips before deploying this stack.
+  Newsletter subscription system — secondary region (us-east-2).
+  Provides subscribe / confirm / unsubscribe / email / formtoken / health Lambdas,
+  API Gateway, SQS, EventBridge, SES, and CloudWatch alarms.
+
+  This stack is the active-passive failover target for the primary (us-east-1) stack.
+  It does NOT include the dispatch pipeline (bulk newsletter sending), which remains
+  in the primary region and degrades gracefully during a regional outage.
+
+  Prerequisites before first deploy:
+    1. infra/newsletter-bootstrap-secondary.yml deployed (creates S3 artifacts bucket)
+    2. Lambda zips uploaded to micahwalter-newsletter-artifacts-secondary
+    3. infra/api-domain-secondary.yml deployed (creates api.micahwalter.com domain in us-east-2)
+    4. newsletter_subscribers DynamoDB Global Table replica exists in us-east-2
+       (enabled by StreamSpecification in newsletter.yml + one-time CLI command)
+    5. newsletter-hmac-key Secrets Manager replica exists in us-east-2
+       (enabled by ReplicaRegions in newsletter.yml)
 
 # ---------------------------------------------------------------------------
 # Parameters
@@ -12,8 +24,8 @@ Parameters:
 
   LambdaArtifactsBucket:
     Type: String
-    Default: micahwalter-newsletter-artifacts
-    Description: S3 bucket created by newsletter-bootstrap.yml
+    Default: micahwalter-newsletter-artifacts-secondary
+    Description: S3 bucket created by newsletter-bootstrap-secondary.yml
 
   LambdaArtifactsKeyPrefix:
     Type: String
@@ -37,33 +49,35 @@ Parameters:
   SenderEmail:
     Type: String
     Default: micah@micahwalter.com
-    Description: From address for all newsletter emails (must be SES-verified)
+    Description: From address for all newsletter emails (must be SES-verified in this region)
 
   AdminEmail:
     Type: String
     Default: micah@micahwalter.com
     Description: Email address to notify when a new subscriber confirms their subscription
 
-  CreateSESIdentity:
-    Type: String
-    Default: 'true'
-    AllowedValues: ['true', 'false']
-    Description: >
-      Set to false if micahwalter.com is already verified in SES and you do
-      not want CloudFormation to take ownership of the identity.
-
   ApiDomainName:
     Type: String
     Default: api.micahwalter.com
     Description: >
-      Custom domain for the shared API Gateway domain (managed by infra/api-domain.yml).
+      Custom domain managed by infra/api-domain-secondary.yml.
       The ApiMapping binds the newsletter API to this domain.
 
-# ---------------------------------------------------------------------------
-# Conditions
-# ---------------------------------------------------------------------------
-Conditions:
-  ShouldCreateSESIdentity: !Equals [!Ref CreateSESIdentity, 'true']
+  # The table name is the same as primary — this stack reads the Global Table replica.
+  SubscribersTableName:
+    Type: String
+    Default: newsletter_subscribers
+    Description: >
+      DynamoDB table name for the newsletter_subscribers Global Table.
+      The replica in us-east-2 has the same name as the primary table.
+
+  # The HMAC secret is referenced by name so the SDK resolves the local replica.
+  HMACSecretName:
+    Type: String
+    Default: newsletter-hmac-key
+    Description: >
+      Name of the Secrets Manager secret for HMAC signing keys.
+      The SDK resolves this to the us-east-2 replica automatically.
 
 # ---------------------------------------------------------------------------
 # Resources
@@ -71,84 +85,8 @@ Conditions:
 Resources:
 
   # -------------------------------------------------------------------------
-  # Storage
-  # -------------------------------------------------------------------------
-
-  NewsletterSubscribersTable:
-    Type: AWS::DynamoDB::Table
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-    Properties:
-      TableName: newsletter_subscribers
-      BillingMode: PAY_PER_REQUEST
-      SSESpecification:
-        SSEEnabled: true
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
-      # Streams are required for DynamoDB Global Table replication.
-      # After deploying this change, add the us-east-2 replica via CLI:
-      #   aws dynamodb update-table --table-name newsletter_subscribers \
-      #     --replica-updates Create=[{RegionName=us-east-2}] --region us-east-1
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
-      AttributeDefinitions:
-        - AttributeName: email
-          AttributeType: S
-        - AttributeName: status
-          AttributeType: S
-        - AttributeName: confirmed_at
-          AttributeType: S
-      KeySchema:
-        - AttributeName: email
-          KeyType: HASH
-      GlobalSecondaryIndexes:
-        - IndexName: StatusIndex
-          KeySchema:
-            - AttributeName: status
-              KeyType: HASH
-            - AttributeName: confirmed_at
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
-
-  # -------------------------------------------------------------------------
-  # Secrets
-  # -------------------------------------------------------------------------
-
-  HMACSecret:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Name: newsletter-hmac-key
-      Description: >
-        HMAC-SHA256 signing key for newsletter confirmation and unsubscribe tokens.
-        Format: {"current":"<key>","previous":"<oldkey>"}
-        Set "previous" during rotation; clear it after old tokens expire.
-      SecretString: '{"current":"REPLACE_WITH_STRONG_RANDOM_KEY","previous":""}'
-      # Replicate to us-east-2 so tokens remain valid during regional failover.
-      # The secondary stack reads this replica by name (newsletter-hmac-key).
-      ReplicaRegions:
-        - Region: us-east-2
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
-
-  # -------------------------------------------------------------------------
   # Messaging — EventBridge bus, SQS queue, routing rule
+  # (mirrors primary; handles transactional email delivery during failover)
   # -------------------------------------------------------------------------
 
   NewsletterBus:
@@ -164,17 +102,8 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
-
-  NewsletterBusArchive:
-    Type: AWS::Events::Archive
-    Properties:
-      ArchiveName: newsletter-bus-archive
-      SourceArn: !GetAtt NewsletterBus.Arn
-      RetentionDays: 90
-      # Archive all events from newsletter.subscribers for replay and audit
-      EventPattern:
-        source:
-          - newsletter.subscribers
+        - Key: Region
+          Value: secondary
 
   EmailSendDLQ:
     Type: AWS::SQS::Queue
@@ -190,6 +119,8 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
 
   EmailSendQueue:
     Type: AWS::SQS::Queue
@@ -208,8 +139,9 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
 
-  # Allow EventBridge to publish to the SQS queue
   EmailSendQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
@@ -227,7 +159,6 @@ Resources:
               ArnEquals:
                 aws:SourceArn: !GetAtt RouteToEmailRule.Arn
 
-  # Route all four domain events to the email consumer queue
   RouteToEmailRule:
     Type: AWS::Events::Rule
     Properties:
@@ -254,6 +185,8 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
 
   # -------------------------------------------------------------------------
   # API Gateway — HTTP API with CORS
@@ -279,6 +212,7 @@ Resources:
         Environment: Production
         Application: NewsletterSubscription
         ManagedBy: CloudFormation
+        Region: secondary
 
   NewsletterApiStage:
     Type: AWS::ApiGatewayV2::Stage
@@ -291,12 +225,9 @@ Resources:
         Environment: Production
         Application: NewsletterSubscription
         ManagedBy: CloudFormation
+        Region: secondary
 
-  # -------------------------------------------------------------------------
-  # API mapping — binds newsletter API to the shared api.micahwalter.com domain
-  # The domain itself is managed by infra/api-domain.yml (deploy that stack first).
-  # -------------------------------------------------------------------------
-
+  # Binds this API to api.micahwalter.com in us-east-2 (managed by api-domain-secondary.yml)
   NewsletterApiMapping:
     Type: AWS::ApiGatewayV2::ApiMapping
     Properties:
@@ -306,13 +237,15 @@ Resources:
       ApiMappingKey: newsletter
 
   # -------------------------------------------------------------------------
-  # IAM Roles — one per Lambda, least-privilege
+  # IAM Roles — one per Lambda, least-privilege.
+  # Names use -secondary suffix because IAM roles are globally scoped.
+  # Lambda function names can be identical to primary (Lambda is region-scoped).
   # -------------------------------------------------------------------------
 
   SubscribeFnRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: newsletter-subscribe-fn-role
+      RoleName: newsletter-subscribe-fn-role-secondary
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -332,13 +265,13 @@ Resources:
                   - dynamodb:GetItem
                   - dynamodb:PutItem
                   - dynamodb:UpdateItem
-                Resource: !GetAtt NewsletterSubscribersTable.Arn
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${SubscribersTableName}
               - Effect: Allow
                 Action: events:PutEvents
                 Resource: !GetAtt NewsletterBus.Arn
               - Effect: Allow
                 Action: secretsmanager:GetSecretValue
-                Resource: !Ref HMACSecret
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${HMACSecretName}-*
       Tags:
         - Key: Project
           Value: micahwalter-newsletter
@@ -348,11 +281,13 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
 
   ConfirmFnRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: newsletter-confirm-fn-role
+      RoleName: newsletter-confirm-fn-role-secondary
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -371,13 +306,13 @@ Resources:
                 Action:
                   - dynamodb:GetItem
                   - dynamodb:UpdateItem
-                Resource: !GetAtt NewsletterSubscribersTable.Arn
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${SubscribersTableName}
               - Effect: Allow
                 Action: events:PutEvents
                 Resource: !GetAtt NewsletterBus.Arn
               - Effect: Allow
                 Action: secretsmanager:GetSecretValue
-                Resource: !Ref HMACSecret
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${HMACSecretName}-*
       Tags:
         - Key: Project
           Value: micahwalter-newsletter
@@ -387,11 +322,13 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
 
   UnsubscribeFnRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: newsletter-unsubscribe-fn-role
+      RoleName: newsletter-unsubscribe-fn-role-secondary
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -410,13 +347,13 @@ Resources:
                 Action:
                   - dynamodb:GetItem
                   - dynamodb:UpdateItem
-                Resource: !GetAtt NewsletterSubscribersTable.Arn
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${SubscribersTableName}
               - Effect: Allow
                 Action: events:PutEvents
                 Resource: !GetAtt NewsletterBus.Arn
               - Effect: Allow
                 Action: secretsmanager:GetSecretValue
-                Resource: !Ref HMACSecret
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${HMACSecretName}-*
       Tags:
         - Key: Project
           Value: micahwalter-newsletter
@@ -426,11 +363,13 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
 
   EmailFnRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: newsletter-email-fn-role
+      RoleName: newsletter-email-fn-role-secondary
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -458,7 +397,7 @@ Resources:
                 Resource: '*'
               - Effect: Allow
                 Action: secretsmanager:GetSecretValue
-                Resource: !Ref HMACSecret
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${HMACSecretName}-*
       Tags:
         - Key: Project
           Value: micahwalter-newsletter
@@ -468,9 +407,70 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
+
+  FormTokenFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: newsletter-formtoken-fn-role-secondary
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: FormTokenFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${HMACSecretName}-*
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Region
+          Value: secondary
+
+  HealthFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: newsletter-health-fn-role-secondary
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Region
+          Value: secondary
 
   # -------------------------------------------------------------------------
   # Lambda Functions
+  # Function names are identical to primary — Lambda is region-scoped.
   # -------------------------------------------------------------------------
 
   SubscribeFn:
@@ -488,9 +488,9 @@ Resources:
       MemorySize: 128
       Environment:
         Variables:
-          DYNAMODB_TABLE_NAME: !Ref NewsletterSubscribersTable
+          DYNAMODB_TABLE_NAME: !Ref SubscribersTableName
           EVENT_BUS_NAME: !Ref NewsletterBus
-          HMAC_SECRET_ARN: !Ref HMACSecret
+          HMAC_SECRET_ARN: !Ref HMACSecretName
           SITE_URL: !Ref SiteUrl
       Tags:
         - Key: Project
@@ -501,6 +501,8 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
 
   ConfirmFn:
     Type: AWS::Lambda::Function
@@ -517,9 +519,9 @@ Resources:
       MemorySize: 128
       Environment:
         Variables:
-          DYNAMODB_TABLE_NAME: !Ref NewsletterSubscribersTable
+          DYNAMODB_TABLE_NAME: !Ref SubscribersTableName
           EVENT_BUS_NAME: !Ref NewsletterBus
-          HMAC_SECRET_ARN: !Ref HMACSecret
+          HMAC_SECRET_ARN: !Ref HMACSecretName
           SITE_URL: !Ref SiteUrl
       Tags:
         - Key: Project
@@ -530,6 +532,8 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
 
   UnsubscribeFn:
     Type: AWS::Lambda::Function
@@ -546,9 +550,9 @@ Resources:
       MemorySize: 128
       Environment:
         Variables:
-          DYNAMODB_TABLE_NAME: !Ref NewsletterSubscribersTable
+          DYNAMODB_TABLE_NAME: !Ref SubscribersTableName
           EVENT_BUS_NAME: !Ref NewsletterBus
-          HMAC_SECRET_ARN: !Ref HMACSecret
+          HMAC_SECRET_ARN: !Ref HMACSecretName
           SITE_URL: !Ref SiteUrl
       Tags:
         - Key: Project
@@ -559,6 +563,8 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
 
   EmailFn:
     Type: AWS::Lambda::Function
@@ -587,6 +593,61 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
+
+  FormTokenFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: newsletter-formtoken
+      Runtime: provided.al2023
+      Architectures: [arm64]
+      Handler: bootstrap
+      Role: !GetAtt FormTokenFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/formtoken.zip
+      Timeout: 5
+      MemorySize: 128
+      Environment:
+        Variables:
+          HMAC_SECRET_ARN: !Ref HMACSecretName
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Region
+          Value: secondary
+
+  HealthFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: newsletter-health
+      Runtime: provided.al2023
+      Architectures: [arm64]
+      Handler: bootstrap
+      Role: !GetAtt HealthFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/health.zip
+      Timeout: 5
+      MemorySize: 128
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Region
+          Value: secondary
 
   # -------------------------------------------------------------------------
   # API Gateway — integrations, routes, and Lambda invoke permissions
@@ -619,6 +680,24 @@ Resources:
         arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UnsubscribeFn.Arn}/invocations
       PayloadFormatVersion: '2.0'
 
+  FormTokenIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref NewsletterApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub
+        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FormTokenFn.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
+  HealthIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref NewsletterApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub
+        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HealthFn.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
   SubscribeRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -639,6 +718,20 @@ Resources:
       ApiId: !Ref NewsletterApi
       RouteKey: POST /unsubscribe
       Target: !Sub integrations/${UnsubscribeIntegration}
+
+  FormTokenRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref NewsletterApi
+      RouteKey: GET /formtoken
+      Target: !Sub integrations/${FormTokenIntegration}
+
+  HealthRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref NewsletterApi
+      RouteKey: GET /health
+      Target: !Sub integrations/${HealthIntegration}
 
   SubscribeFnPermission:
     Type: AWS::Lambda::Permission
@@ -664,79 +757,6 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${NewsletterApi}/*/*/unsubscribe
 
-  FormTokenFnRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: newsletter-formtoken-fn-role
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Policies:
-        - PolicyName: FormTokenFnPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action: secretsmanager:GetSecretValue
-                Resource: !Ref HMACSecret
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
-
-  FormTokenFn:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: newsletter-formtoken
-      Runtime: provided.al2023
-      Architectures: [arm64]
-      Handler: bootstrap
-      Role: !GetAtt FormTokenFnRole.Arn
-      Code:
-        S3Bucket: !Ref LambdaArtifactsBucket
-        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/formtoken.zip
-      Timeout: 5
-      MemorySize: 128
-      Environment:
-        Variables:
-          HMAC_SECRET_ARN: !Ref HMACSecret
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
-
-  FormTokenIntegration:
-    Type: AWS::ApiGatewayV2::Integration
-    Properties:
-      ApiId: !Ref NewsletterApi
-      IntegrationType: AWS_PROXY
-      IntegrationUri: !Sub
-        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FormTokenFn.Arn}/invocations
-      PayloadFormatVersion: '2.0'
-
-  FormTokenRoute:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref NewsletterApi
-      RouteKey: GET /formtoken
-      Target: !Sub integrations/${FormTokenIntegration}
-
   FormTokenFnPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -744,72 +764,6 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${NewsletterApi}/*/*/formtoken
-
-  # -------------------------------------------------------------------------
-  # Health check Lambda — GET /health for Route 53 health checks
-  # -------------------------------------------------------------------------
-
-  HealthFnRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: newsletter-health-fn-role
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
-
-  HealthFn:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: newsletter-health
-      Runtime: provided.al2023
-      Architectures: [arm64]
-      Handler: bootstrap
-      Role: !GetAtt HealthFnRole.Arn
-      Code:
-        S3Bucket: !Ref LambdaArtifactsBucket
-        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/health.zip
-      Timeout: 5
-      MemorySize: 128
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
-
-  HealthIntegration:
-    Type: AWS::ApiGatewayV2::Integration
-    Properties:
-      ApiId: !Ref NewsletterApi
-      IntegrationType: AWS_PROXY
-      IntegrationUri: !Sub
-        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HealthFn.Arn}/invocations
-      PayloadFormatVersion: '2.0'
-
-  HealthRoute:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref NewsletterApi
-      RouteKey: GET /health
-      Target: !Sub integrations/${HealthIntegration}
 
   HealthFnPermission:
     Type: AWS::Lambda::Permission
@@ -834,12 +788,14 @@ Resources:
         - ReportBatchItemFailures
 
   # -------------------------------------------------------------------------
-  # SES — domain identity, DKIM DNS records, email templates
+  # SES — domain identity and DKIM DNS records for us-east-2.
+  # This creates a second SES identity for micahwalter.com in us-east-2 with
+  # its own DKIM keys. Six DKIM CNAMEs total (3 per region) coexist in Route 53
+  # because each key generates a unique subdomain (e.g. abc._domainkey.micahwalter.com).
   # -------------------------------------------------------------------------
 
   SESEmailIdentity:
     Type: AWS::SES::EmailIdentity
-    Condition: ShouldCreateSESIdentity
     Properties:
       EmailIdentity: !Ref DomainName
       DkimAttributes:
@@ -857,11 +813,11 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
 
-  # DKIM CNAME records — tokens are provided by SES via the EmailIdentity resource
   DkimRecord1:
     Type: AWS::Route53::RecordSet
-    Condition: ShouldCreateSESIdentity
     Properties:
       HostedZoneId: !Ref HostedZoneId
       Name: !GetAtt SESEmailIdentity.DkimDNSTokenName1
@@ -872,7 +828,6 @@ Resources:
 
   DkimRecord2:
     Type: AWS::Route53::RecordSet
-    Condition: ShouldCreateSESIdentity
     Properties:
       HostedZoneId: !Ref HostedZoneId
       Name: !GetAtt SESEmailIdentity.DkimDNSTokenName2
@@ -883,7 +838,6 @@ Resources:
 
   DkimRecord3:
     Type: AWS::Route53::RecordSet
-    Condition: ShouldCreateSESIdentity
     Properties:
       HostedZoneId: !Ref HostedZoneId
       Name: !GetAtt SESEmailIdentity.DkimDNSTokenName3
@@ -891,6 +845,11 @@ Resources:
       TTL: 1800
       ResourceRecords:
         - !GetAtt SESEmailIdentity.DkimDNSTokenValue3
+
+  # -------------------------------------------------------------------------
+  # SES Email Templates — must exist in us-east-2 for the email Lambda to use.
+  # Content is identical to the primary region templates.
+  # -------------------------------------------------------------------------
 
   ConfirmationEmailTemplate:
     Type: AWS::SES::Template
@@ -1033,7 +992,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: newsletter-subscribe-fn-errors
-      AlarmDescription: newsletter-subscribe Lambda error rate is elevated
+      AlarmDescription: newsletter-subscribe Lambda error rate is elevated (secondary region)
       Tags:
         - Key: Project
           Value: micahwalter-newsletter
@@ -1043,6 +1002,8 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
       Namespace: AWS/Lambda
       MetricName: Errors
       Dimensions:
@@ -1059,7 +1020,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: newsletter-confirm-fn-errors
-      AlarmDescription: newsletter-confirm Lambda error rate is elevated
+      AlarmDescription: newsletter-confirm Lambda error rate is elevated (secondary region)
       Tags:
         - Key: Project
           Value: micahwalter-newsletter
@@ -1069,6 +1030,8 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
       Namespace: AWS/Lambda
       MetricName: Errors
       Dimensions:
@@ -1085,7 +1048,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: newsletter-unsubscribe-fn-errors
-      AlarmDescription: newsletter-unsubscribe Lambda error rate is elevated
+      AlarmDescription: newsletter-unsubscribe Lambda error rate is elevated (secondary region)
       Tags:
         - Key: Project
           Value: micahwalter-newsletter
@@ -1095,6 +1058,8 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
       Namespace: AWS/Lambda
       MetricName: Errors
       Dimensions:
@@ -1111,7 +1076,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: newsletter-email-fn-errors
-      AlarmDescription: newsletter-email Lambda error rate is elevated
+      AlarmDescription: newsletter-email Lambda error rate is elevated (secondary region)
       Tags:
         - Key: Project
           Value: micahwalter-newsletter
@@ -1121,6 +1086,8 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
       Namespace: AWS/Lambda
       MetricName: Errors
       Dimensions:
@@ -1133,38 +1100,12 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-  HealthFnErrorAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: newsletter-health-fn-errors
-      AlarmDescription: newsletter-health Lambda error rate is elevated
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
-      Namespace: AWS/Lambda
-      MetricName: Errors
-      Dimensions:
-        - Name: FunctionName
-          Value: !Ref HealthFn
-      Statistic: Sum
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-
   EmailSendDLQDepthAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: newsletter-email-send-dlq-depth
       AlarmDescription: >
-        Messages are landing in the email DLQ — emails are failing to send.
+        Messages are landing in the email DLQ — emails are failing to send (secondary region).
         Check newsletter-email Lambda logs.
       Tags:
         - Key: Project
@@ -1175,286 +1116,13 @@ Resources:
           Value: NewsletterSubscription
         - Key: ManagedBy
           Value: CloudFormation
+        - Key: Region
+          Value: secondary
       Namespace: AWS/SQS
       MetricName: ApproximateNumberOfMessagesVisible
       Dimensions:
         - Name: QueueName
           Value: !GetAtt EmailSendDLQ.QueueName
-      Statistic: Sum
-      Period: 60
-      EvaluationPeriods: 1
-      Threshold: 0
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-
-  # -------------------------------------------------------------------------
-  # Newsletter Sends — DynamoDB table (per-subscriber send history)
-  # -------------------------------------------------------------------------
-
-  NewsletterSendsTable:
-    Type: AWS::DynamoDB::Table
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-    Properties:
-      TableName: newsletter_sends
-      BillingMode: PAY_PER_REQUEST
-      SSESpecification:
-        SSEEnabled: true
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
-      AttributeDefinitions:
-        - AttributeName: emailId
-          AttributeType: N
-        - AttributeName: email
-          AttributeType: S
-      KeySchema:
-        - AttributeName: emailId
-          KeyType: HASH
-        - AttributeName: email
-          KeyType: RANGE
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
-
-  # -------------------------------------------------------------------------
-  # Dispatch pipeline — SQS queues, EventBridge rule
-  # -------------------------------------------------------------------------
-
-  NewsletterDispatchDLQ:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: newsletter-dispatch-dlq
-      MessageRetentionPeriod: 1209600  # 14 days
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
-
-  NewsletterDispatchQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: newsletter-dispatch-queue
-      VisibilityTimeout: 300
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt NewsletterDispatchDLQ.Arn
-        maxReceiveCount: 3
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
-
-  NewsletterDispatchQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
-    Properties:
-      Queues:
-        - !Ref NewsletterDispatchQueue
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Sid: AllowEventBridgeToSend
-            Effect: Allow
-            Principal:
-              Service: events.amazonaws.com
-            Action: sqs:SendMessage
-            Resource: !GetAtt NewsletterDispatchQueue.Arn
-            Condition:
-              ArnEquals:
-                aws:SourceArn: !GetAtt RouteNewsletterSend.Arn
-
-  RouteNewsletterSend:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: route-newsletter-send
-      Description: Routes NewsletterSendRequested events to the dispatch queue
-      EventBusName: !Ref NewsletterBus
-      EventPattern:
-        source:
-          - newsletter.campaigns
-        detail-type:
-          - NewsletterSendRequested
-      State: ENABLED
-      Targets:
-        - Id: NewsletterDispatchQueue
-          Arn: !GetAtt NewsletterDispatchQueue.Arn
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
-
-  # -------------------------------------------------------------------------
-  # Dispatch Lambda — IAM role and function
-  # -------------------------------------------------------------------------
-
-  DispatchFnRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: newsletter-dispatch-fn-role
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Policies:
-        - PolicyName: DispatchFnPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Sid: SQSReceive
-                Effect: Allow
-                Action:
-                  - sqs:ReceiveMessage
-                  - sqs:DeleteMessage
-                  - sqs:GetQueueAttributes
-                Resource: !GetAtt NewsletterDispatchQueue.Arn
-              - Sid: DynamoSubscribers
-                Effect: Allow
-                Action:
-                  - dynamodb:Query
-                Resource:
-                  - !Sub ${NewsletterSubscribersTable.Arn}/index/StatusIndex
-              - Sid: DynamoSends
-                Effect: Allow
-                Action:
-                  - dynamodb:GetItem
-                  - dynamodb:PutItem
-                Resource: !GetAtt NewsletterSendsTable.Arn
-              - Sid: SES
-                Effect: Allow
-                Action:
-                  - ses:CreateTemplate
-                  - ses:UpdateTemplate
-                  - ses:SendBulkTemplatedEmail
-                Resource: '*'
-              - Sid: SecretsManager
-                Effect: Allow
-                Action:
-                  - secretsmanager:GetSecretValue
-                Resource: !Ref HMACSecret
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
-
-  DispatchFn:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: newsletter-dispatch
-      Runtime: provided.al2023
-      Architectures: [arm64]
-      Handler: bootstrap
-      Role: !GetAtt DispatchFnRole.Arn
-      Code:
-        S3Bucket: !Ref LambdaArtifactsBucket
-        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/dispatch.zip
-      Timeout: 300
-      MemorySize: 256
-      Environment:
-        Variables:
-          SUBSCRIBERS_TABLE: !Ref NewsletterSubscribersTable
-          SENDS_TABLE: !Ref NewsletterSendsTable
-          HMAC_SECRET_ARN: !Ref HMACSecret
-          SES_FROM_ADDRESS: !Ref SenderEmail
-          SITE_URL: !Ref SiteUrl
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
-
-  DispatchFnSQSTrigger:
-    Type: AWS::Lambda::EventSourceMapping
-    Properties:
-      EventSourceArn: !GetAtt NewsletterDispatchQueue.Arn
-      FunctionName: !GetAtt DispatchFn.Arn
-      BatchSize: 1
-      FunctionResponseTypes:
-        - ReportBatchItemFailures
-
-  # -------------------------------------------------------------------------
-  # Dispatch CloudWatch alarms
-  # -------------------------------------------------------------------------
-
-  DispatchFnErrorAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: newsletter-dispatch-fn-errors
-      AlarmDescription: newsletter-dispatch Lambda errors — campaign send may be failing
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
-      Namespace: AWS/Lambda
-      MetricName: Errors
-      Dimensions:
-        - Name: FunctionName
-          Value: !Ref DispatchFn
-      Statistic: Sum
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-
-  DispatchDLQDepthAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: newsletter-dispatch-dlq-depth
-      AlarmDescription: >
-        Critical: newsletter dispatch failed after all retries. Campaign send incomplete.
-        Check newsletter-dispatch Lambda logs immediately.
-      Tags:
-        - Key: Project
-          Value: micahwalter-newsletter
-        - Key: Environment
-          Value: Production
-        - Key: Application
-          Value: NewsletterSubscription
-        - Key: ManagedBy
-          Value: CloudFormation
-      Namespace: AWS/SQS
-      MetricName: ApproximateNumberOfMessagesVisible
-      Dimensions:
-        - Name: QueueName
-          Value: !GetAtt NewsletterDispatchDLQ.QueueName
       Statistic: Sum
       Period: 60
       EvaluationPeriods: 1
@@ -1469,30 +1137,14 @@ Outputs:
 
   ApiEndpoint:
     Description: >
-      Auto-generated API Gateway URL. Prefer https://api.micahwalter.com (managed
-      by infra/api-domain.yml). Routes: POST /subscribe, /confirm, /unsubscribe.
+      Auto-generated API Gateway URL (secondary region).
+      Prefer https://api.micahwalter.com which Route 53 routes here during failover.
     Value: !Sub https://${NewsletterApi}.execute-api.${AWS::Region}.amazonaws.com
-    Export:
-      Name: micahwalter-newsletter-api-endpoint
 
   ApiRegionalDomainName:
-    Description: >
-      Raw API Gateway regional domain name (without https://).
-      Used as the FQDN for the Route 53 health check in infra/api-domain.yml.
-      Pass this as PrimaryApiRegionalDomain when deploying that stack.
+    Description: Raw API Gateway regional domain name (for reference / debugging)
     Value: !Sub ${NewsletterApi}.execute-api.${AWS::Region}.amazonaws.com
 
-  TableName:
-    Description: DynamoDB table name
-    Value: !Ref NewsletterSubscribersTable
-
   BusName:
-    Description: EventBridge bus name
+    Description: EventBridge bus name (secondary region)
     Value: !Ref NewsletterBus
-
-  HMACSecretArn:
-    Description: >
-      Secrets Manager ARN for the HMAC signing key. After first deploy, update
-      the secret value via the console or CLI with a strong random key.
-    Value: !Ref HMACSecret
-

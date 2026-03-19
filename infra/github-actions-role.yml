@@ -85,7 +85,7 @@ Resources:
                   - cloudfront:GetInvalidation
                 Resource:
                   - !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistributionId}'
-              # S3 — upload Lambda artifacts for newsletter stack
+              # S3 — upload Lambda artifacts for newsletter stacks (both regions)
               - Effect: Allow
                 Action:
                   - s3:PutObject
@@ -94,14 +94,17 @@ Resources:
                 Resource:
                   - arn:aws:s3:::micahwalter-newsletter-artifacts
                   - arn:aws:s3:::micahwalter-newsletter-artifacts/*
-              # Lambda — update function code (fast path, no CF needed)
+                  - arn:aws:s3:::micahwalter-newsletter-artifacts-secondary
+                  - arn:aws:s3:::micahwalter-newsletter-artifacts-secondary/*
+              # Lambda — update function code (fast path, no CF needed) — both regions
               - Effect: Allow
                 Action:
                   - lambda:UpdateFunctionCode
                   - lambda:GetFunction
                 Resource:
-                  - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:newsletter-*'
-              # CloudFormation — deploy newsletter and api-domain stacks
+                  - !Sub 'arn:aws:lambda:us-east-1:${AWS::AccountId}:function:newsletter-*'
+                  - !Sub 'arn:aws:lambda:us-east-2:${AWS::AccountId}:function:newsletter-*'
+              # CloudFormation — deploy newsletter, api-domain, and secondary stacks
               - Effect: Allow
                 Action:
                   - cloudformation:DescribeStacks
@@ -112,8 +115,11 @@ Resources:
                   - cloudformation:GetTemplate
                   - cloudformation:GetTemplateSummary
                 Resource:
-                  - !Sub 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/micahwalter-newsletter/*'
-                  - !Sub 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/micahwalter-api-domain/*'
+                  - !Sub 'arn:aws:cloudformation:us-east-1:${AWS::AccountId}:stack/micahwalter-newsletter/*'
+                  - !Sub 'arn:aws:cloudformation:us-east-1:${AWS::AccountId}:stack/micahwalter-api-domain/*'
+                  - !Sub 'arn:aws:cloudformation:us-east-2:${AWS::AccountId}:stack/micahwalter-newsletter-secondary/*'
+                  - !Sub 'arn:aws:cloudformation:us-east-2:${AWS::AccountId}:stack/micahwalter-api-domain-secondary/*'
+                  - !Sub 'arn:aws:cloudformation:us-east-2:${AWS::AccountId}:stack/micahwalter-newsletter-bootstrap-secondary/*'
               # ACM — request and manage TLS certificate for api.micahwalter.com
               - Effect: Allow
                 Action:
@@ -165,7 +171,7 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:iam::${AWS::AccountId}:role/newsletter-*-fn-role'
                   - !Sub 'arn:aws:iam::${AWS::AccountId}:role/newsletter-dispatch-fn-role'
-              # Lambda — full lifecycle for newsletter functions and event source mappings
+              # Lambda — full lifecycle for newsletter functions and event source mappings (us-east-1)
               - Effect: Allow
                 Action:
                   - lambda:CreateFunction
@@ -184,9 +190,30 @@ Resources:
                   - lambda:GetEventSourceMapping
                   - lambda:UpdateEventSourceMapping
                 Resource:
-                  - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:newsletter-*'
-                  - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:event-source-mapping:*'
-              # SQS — resolve queue ARNs and manage queues in newsletter stack
+                  - !Sub 'arn:aws:lambda:us-east-1:${AWS::AccountId}:function:newsletter-*'
+                  - !Sub 'arn:aws:lambda:us-east-1:${AWS::AccountId}:event-source-mapping:*'
+              # Lambda — full lifecycle for newsletter functions in us-east-2 (secondary)
+              - Effect: Allow
+                Action:
+                  - lambda:CreateFunction
+                  - lambda:DeleteFunction
+                  - lambda:GetFunction
+                  - lambda:GetFunctionConfiguration
+                  - lambda:UpdateFunctionCode
+                  - lambda:UpdateFunctionConfiguration
+                  - lambda:AddPermission
+                  - lambda:RemovePermission
+                  - lambda:TagResource
+                  - lambda:UntagResource
+                  - lambda:ListTags
+                  - lambda:CreateEventSourceMapping
+                  - lambda:DeleteEventSourceMapping
+                  - lambda:GetEventSourceMapping
+                  - lambda:UpdateEventSourceMapping
+                Resource:
+                  - !Sub 'arn:aws:lambda:us-east-2:${AWS::AccountId}:function:newsletter-*'
+                  - !Sub 'arn:aws:lambda:us-east-2:${AWS::AccountId}:event-source-mapping:*'
+              # SQS — manage queues in newsletter stack (us-east-1)
               - Effect: Allow
                 Action:
                   - sqs:CreateQueue
@@ -200,11 +227,27 @@ Resources:
                   - sqs:AddPermission
                   - sqs:RemovePermission
                 Resource:
-                  - !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:email-send-queue'
-                  - !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:email-send-dlq'
-                  - !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:newsletter-dispatch-queue'
-                  - !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:newsletter-dispatch-dlq'
-              # SES (v2) — manage email identity in newsletter stack
+                  - !Sub 'arn:aws:sqs:us-east-1:${AWS::AccountId}:email-send-queue'
+                  - !Sub 'arn:aws:sqs:us-east-1:${AWS::AccountId}:email-send-dlq'
+                  - !Sub 'arn:aws:sqs:us-east-1:${AWS::AccountId}:newsletter-dispatch-queue'
+                  - !Sub 'arn:aws:sqs:us-east-1:${AWS::AccountId}:newsletter-dispatch-dlq'
+              # SQS — manage queues in secondary newsletter stack (us-east-2)
+              - Effect: Allow
+                Action:
+                  - sqs:CreateQueue
+                  - sqs:DeleteQueue
+                  - sqs:GetQueueAttributes
+                  - sqs:GetQueueUrl
+                  - sqs:SetQueueAttributes
+                  - sqs:TagQueue
+                  - sqs:UntagQueue
+                  - sqs:ListQueueTags
+                  - sqs:AddPermission
+                  - sqs:RemovePermission
+                Resource:
+                  - !Sub 'arn:aws:sqs:us-east-2:${AWS::AccountId}:email-send-queue'
+                  - !Sub 'arn:aws:sqs:us-east-2:${AWS::AccountId}:email-send-dlq'
+              # SES (v2) — manage email identity in newsletter stacks (both regions)
               - Effect: Allow
                 Action:
                   - ses:CreateEmailIdentity
@@ -215,8 +258,17 @@ Resources:
                   - ses:TagResource
                   - ses:UntagResource
                 Resource:
-                  - !Sub 'arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*'
-              # DynamoDB — manage newsletter tables
+                  - !Sub 'arn:aws:ses:us-east-1:${AWS::AccountId}:identity/*'
+                  - !Sub 'arn:aws:ses:us-east-2:${AWS::AccountId}:identity/*'
+              # SES templates — manage email templates in both regions
+              - Effect: Allow
+                Action:
+                  - ses:CreateTemplate
+                  - ses:UpdateTemplate
+                  - ses:DeleteTemplate
+                  - ses:GetTemplate
+                Resource: '*'
+              # DynamoDB — manage newsletter tables (us-east-1); secondary uses Global Table replica
               - Effect: Allow
                 Action:
                   - dynamodb:CreateTable
@@ -228,9 +280,32 @@ Resources:
                   - dynamodb:ListTagsOfResource
                   - dynamodb:DescribeContinuousBackups
                   - dynamodb:UpdateContinuousBackups
+                  - dynamodb:DescribeTimeToLive
                 Resource:
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/newsletter_*'
-              # EventBridge — manage newsletter event bus and rules
+                  - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/newsletter_*'
+              # EventBridge — manage newsletter event bus and rules (us-east-1)
+              - Effect: Allow
+                Action:
+                  - events:CreateEventBus
+                  - events:DeleteEventBus
+                  - events:DescribeEventBus
+                  - events:PutRule
+                  - events:DeleteRule
+                  - events:DescribeRule
+                  - events:PutTargets
+                  - events:RemoveTargets
+                  - events:TagResource
+                  - events:UntagResource
+                  - events:ListTagsForResource
+                  - events:CreateArchive
+                  - events:DeleteArchive
+                  - events:DescribeArchive
+                  - events:UpdateArchive
+                Resource:
+                  - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:event-bus/newsletter-bus'
+                  - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:rule/newsletter-bus/*'
+                  - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:archive/newsletter-bus-archive'
+              # EventBridge — manage newsletter event bus and rules (us-east-2)
               - Effect: Allow
                 Action:
                   - events:CreateEventBus
@@ -245,9 +320,9 @@ Resources:
                   - events:UntagResource
                   - events:ListTagsForResource
                 Resource:
-                  - !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/newsletter-bus'
-                  - !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/newsletter-bus/*'
-              # Secrets Manager — manage HMAC secret
+                  - !Sub 'arn:aws:events:us-east-2:${AWS::AccountId}:event-bus/newsletter-bus'
+                  - !Sub 'arn:aws:events:us-east-2:${AWS::AccountId}:rule/newsletter-bus/*'
+              # Secrets Manager — manage HMAC secret and replica (us-east-1 primary)
               - Effect: Allow
                 Action:
                   - secretsmanager:CreateSecret
@@ -258,9 +333,18 @@ Resources:
                   - secretsmanager:RestoreSecret
                   - secretsmanager:TagResource
                   - secretsmanager:UntagResource
+                  - secretsmanager:ReplicateSecretToRegions
+                  - secretsmanager:RemoveRegionsFromReplication
                 Resource:
-                  - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:newsletter/*'
-              # CloudWatch — manage newsletter alarms
+                  - !Sub 'arn:aws:secretsmanager:us-east-1:${AWS::AccountId}:secret:newsletter-hmac-key*'
+              # Secrets Manager — read replica in us-east-2 (for secondary Lambda functions)
+              - Effect: Allow
+                Action:
+                  - secretsmanager:DescribeSecret
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Sub 'arn:aws:secretsmanager:us-east-2:${AWS::AccountId}:secret:newsletter-hmac-key*'
+              # CloudWatch — manage newsletter alarms (us-east-1)
               - Effect: Allow
                 Action:
                   - cloudwatch:PutMetricAlarm
@@ -270,7 +354,67 @@ Resources:
                   - cloudwatch:UntagResource
                   - cloudwatch:ListTagsForResource
                 Resource:
-                  - !Sub 'arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:newsletter-*'
+                  - !Sub 'arn:aws:cloudwatch:us-east-1:${AWS::AccountId}:alarm:newsletter-*'
+              # CloudWatch — manage newsletter alarms (us-east-2)
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricAlarm
+                  - cloudwatch:DeleteAlarms
+                  - cloudwatch:DescribeAlarms
+                  - cloudwatch:TagResource
+                  - cloudwatch:UntagResource
+                  - cloudwatch:ListTagsForResource
+                Resource:
+                  - !Sub 'arn:aws:cloudwatch:us-east-2:${AWS::AccountId}:alarm:newsletter-*'
+              # Route 53 health checks — manage health check for api.micahwalter.com primary
+              - Effect: Allow
+                Action:
+                  - route53:CreateHealthCheck
+                  - route53:DeleteHealthCheck
+                  - route53:GetHealthCheck
+                  - route53:UpdateHealthCheck
+                  - route53:ChangeTagsForResource
+                  - route53:ListTagsForResource
+                Resource: '*'
+              # ACM — request and manage TLS certificates in both regions
+              - Effect: Allow
+                Action:
+                  - acm:RequestCertificate
+                  - acm:DescribeCertificate
+                  - acm:DeleteCertificate
+                  - acm:AddTagsToCertificate
+                  - acm:ListTagsForCertificate
+                Resource: '*'
+              # API Gateway — manage domains and APIs in us-east-2 (secondary)
+              - Effect: Allow
+                Action:
+                  - apigateway:GET
+                  - apigateway:POST
+                  - apigateway:PATCH
+                  - apigateway:DELETE
+                  - apigateway:PUT
+                Resource:
+                  - 'arn:aws:apigateway:us-east-2::*'
+              # IAM — create/update/delete Lambda execution roles for secondary stack
+              # (-secondary suffix roles are used in us-east-2; IAM is global)
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:GetRole
+                  - iam:UpdateRole
+                  - iam:TagRole
+                  - iam:UntagRole
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:GetRolePolicy
+                  - iam:ListRolePolicies
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:ListAttachedRolePolicies
+                Resource:
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:role/newsletter-*-fn-role-secondary'
               # Bedrock — invoke Claude models for AI-assisted tooling (e.g. photo tagging)
               - Effect: Allow
                 Action:

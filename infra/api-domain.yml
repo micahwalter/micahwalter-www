@@ -1,10 +1,15 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-  Shared API Gateway custom domain — api.micahwalter.com.
+  Shared API Gateway custom domain — api.micahwalter.com (us-east-1 primary).
   Manages the ACM certificate, API Gateway V2 domain name, and Route53 DNS records.
   Individual API stacks (newsletter, etc.) create their own ApiMapping resources
   that bind their APIs to this domain. Deploy this stack before any stack that
   needs to create an ApiMapping for api.micahwalter.com.
+
+  Multi-region failover: when PrimaryApiRegionalDomain is provided, this stack
+  creates a Route 53 health check and switches the DNS records to PRIMARY failover
+  routing. Deploy infra/api-domain-secondary.yml afterwards to add the SECONDARY
+  record pointing at us-east-2.
 
 # ---------------------------------------------------------------------------
 # Parameters
@@ -20,6 +25,27 @@ Parameters:
     Type: String
     Default: Z05804121WRFHZZEYWGT5
     Description: Route53 hosted zone ID for micahwalter.com
+
+  PrimaryApiRegionalDomain:
+    Type: String
+    Default: ''
+    Description: >
+      Raw API Gateway regional domain name for the primary (us-east-1) newsletter API
+      (e.g. abcdef1234.execute-api.us-east-1.amazonaws.com). Leave empty for simple
+      routing. Set this to activate Route 53 health-check failover. Retrieve the value
+      from the micahwalter-newsletter stack output ApiRegionalDomainName after deploying
+      that stack.
+
+# ---------------------------------------------------------------------------
+# Conditions
+# ---------------------------------------------------------------------------
+Conditions:
+  # Failover mode is activated when a primary API domain is provided.
+  HasFailoverConfig: !Not [!Equals [!Ref PrimaryApiRegionalDomain, '']]
+  # Inverse — used to conditionally create simple routing records.
+  NoFailoverConfig:
+    Fn::Not:
+      - Condition: HasFailoverConfig
 
 # ---------------------------------------------------------------------------
 # Resources
@@ -61,9 +87,39 @@ Resources:
         Application: StaticWebsite
         ManagedBy: CloudFormation
 
-  # Route53 alias records — A and AAAA
+  # ---------------------------------------------------------------------------
+  # Route 53 health check — only created when failover mode is active.
+  # Checks GET /health on the raw API GW regional endpoint (not the custom domain)
+  # to avoid circular DNS dependencies.
+  # ---------------------------------------------------------------------------
+
+  ApiHealthCheck:
+    Type: AWS::Route53::HealthCheck
+    Condition: HasFailoverConfig
+    Properties:
+      HealthCheckConfig:
+        Type: HTTPS
+        FullyQualifiedDomainName: !Ref PrimaryApiRegionalDomain
+        Port: 443
+        ResourcePath: /health
+        RequestInterval: 30
+        FailureThreshold: 3
+        EnableSNI: true
+      HealthCheckTags:
+        - Key: Name
+          Value: newsletter-api-primary-health
+        - Key: Project
+          Value: micahwalter-www
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ---------------------------------------------------------------------------
+  # Simple routing records — used when failover is NOT configured.
+  # ---------------------------------------------------------------------------
+
   ApiDomainARecord:
     Type: AWS::Route53::RecordSet
+    Condition: NoFailoverConfig
     DependsOn: ApiGatewayDomainName
     Properties:
       HostedZoneId: !Ref HostedZoneId
@@ -76,11 +132,51 @@ Resources:
 
   ApiDomainAAAARecord:
     Type: AWS::Route53::RecordSet
+    Condition: NoFailoverConfig
     DependsOn: ApiGatewayDomainName
     Properties:
       HostedZoneId: !Ref HostedZoneId
       Name: !Ref ApiSubdomain
       Type: AAAA
+      AliasTarget:
+        DNSName: !GetAtt ApiGatewayDomainName.RegionalDomainName
+        HostedZoneId: !GetAtt ApiGatewayDomainName.RegionalHostedZoneId
+        EvaluateTargetHealth: false
+
+  # ---------------------------------------------------------------------------
+  # Failover PRIMARY routing records — used when PrimaryApiRegionalDomain is set.
+  # Route 53 serves these while the health check is healthy. If the check fails
+  # (or us-east-1 is unreachable), Route 53 automatically serves the SECONDARY
+  # records created by infra/api-domain-secondary.yml.
+  # ---------------------------------------------------------------------------
+
+  ApiDomainAFailoverRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: HasFailoverConfig
+    DependsOn: ApiGatewayDomainName
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref ApiSubdomain
+      Type: A
+      Failover: PRIMARY
+      SetIdentifier: primary-us-east-1
+      HealthCheckId: !Ref ApiHealthCheck
+      AliasTarget:
+        DNSName: !GetAtt ApiGatewayDomainName.RegionalDomainName
+        HostedZoneId: !GetAtt ApiGatewayDomainName.RegionalHostedZoneId
+        EvaluateTargetHealth: false
+
+  ApiDomainAAAAFailoverRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: HasFailoverConfig
+    DependsOn: ApiGatewayDomainName
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref ApiSubdomain
+      Type: AAAA
+      Failover: PRIMARY
+      SetIdentifier: primary-us-east-1
+      HealthCheckId: !Ref ApiHealthCheck
       AliasTarget:
         DNSName: !GetAtt ApiGatewayDomainName.RegionalDomainName
         HostedZoneId: !GetAtt ApiGatewayDomainName.RegionalHostedZoneId
@@ -111,3 +207,7 @@ Outputs:
   RegionalDomainName:
     Description: API Gateway regional domain name (for reference / debugging)
     Value: !GetAtt ApiGatewayDomainName.RegionalDomainName
+
+  FailoverMode:
+    Description: Whether Route 53 failover routing is active for this stack
+    Value: !If [HasFailoverConfig, 'active', 'disabled (simple routing)']
