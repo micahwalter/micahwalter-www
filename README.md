@@ -667,49 +667,69 @@ Both workflows follow an event-driven architecture — command handlers validate
 ```mermaid
 %%{init: {"flowchart": {"curve": "linear"}} }%%
 flowchart TD
-    Visitor([Visitor]) -->|POST /subscribe| APIGW[API Gateway]
+    Visitor([Visitor]) --> R53[Route 53\napi.micahwalter.com\nfailover routing]
+    HC{{Health Check\nGET /health · 30s}} -.->|monitors| APIGW1
+    HC -->|3 failures → failover\n~90s RTO| R53
 
-    APIGW --> SubFn[subscribe-fn]
-    APIGW --> ConFn[confirm-fn]
-    APIGW --> UnsFn[unsubscribe-fn]
+    R53 -->|primary| APIGW1[API Gateway\nus-east-1]
+    R53 -. outage failover .-> APIGW2[API Gateway\nus-east-2]
 
-    SubFn & ConFn & UnsFn -->|GetSecretValue| SM[(Secrets Manager)]
+    APIGW1 --> SubFn[subscribe-fn]
+    APIGW1 --> ConFn[confirm-fn]
+    APIGW1 --> UnsFn[unsubscribe-fn]
 
-    SubFn -->|write PENDING| DDB[(newsletter_subscribers)]
+    SubFn & ConFn & UnsFn -->|GetSecretValue| SM[(Secrets Manager\nus-east-1 + us-east-2 replica)]
+    SubFn -->|write PENDING| DDB[(newsletter_subscribers\nDynamoDB Global Table\nus-east-1 ↔ us-east-2)]
     ConFn -->|write ACTIVE| DDB
     UnsFn -->|write UNSUBSCRIBED| DDB
 
-    SubFn -->|SignupRequested| EB{{newsletter-bus}}
-    SubFn -->|ConfirmationResent| EB
-    ConFn -->|SubscriberConfirmed| EB
-    UnsFn -->|UnsubscribeRequested| EB
-
-    EB -->|route-to-email rule| SQS1[email-send-queue]
+    SubFn & ConFn & UnsFn -->|domain events| EB1{{newsletter-bus\nus-east-1}}
+    EB1 -->|route-to-email rule| SQS1[email-send-queue]
     SQS1 -->|max 3 retries| EmailFn[email-fn]
     SQS1 -->|persistent failure| DLQ1[email DLQ + alarm]
-    EmailFn -->|SendTemplatedEmail| SES[AWS SES]
+    EmailFn -->|SendTemplatedEmail| SES1[SES us-east-1]
 
-    Dev([Developer]) -->|blog email:send slug| EB
-    EB -->|route-newsletter-send rule| SQS2[dispatch-queue]
-    SQS2 -->|max 3 retries| DispFn[dispatch-fn]
+    Dev([Developer]) -->|blog email:send slug| EB1
+    EB1 -->|route-newsletter-send rule| SQS2[dispatch-queue]
+    SQS2 -->|max 3 retries| DispFn[dispatch-fn\nus-east-1 only]
     SQS2 -->|persistent failure| DLQ2[dispatch DLQ + alarm]
-
     DispFn -->|query StatusIndex| DDB
-    DispFn -->|write send record| Sends[(newsletter_sends)]
+    DispFn -->|write send record| Sends[(newsletter_sends\nus-east-1 only)]
     DispFn -->|GetSecretValue| SM
-    DispFn -->|SendBulkTemplatedEmail| SES
+    DispFn -->|SendBulkTemplatedEmail| SES1
+
+    APIGW2 --> SubFn2[subscribe-fn]
+    APIGW2 --> ConFn2[confirm-fn]
+    APIGW2 --> UnsFn2[unsubscribe-fn]
+
+    SubFn2 & ConFn2 & UnsFn2 -->|GetSecretValue| SM
+    SubFn2 -->|write PENDING| DDB
+    ConFn2 -->|write ACTIVE| DDB
+    UnsFn2 -->|write UNSUBSCRIBED| DDB
+
+    SubFn2 & ConFn2 & UnsFn2 -->|domain events| EB2{{newsletter-bus\nus-east-2}}
+    EB2 -->|route-to-email rule| SQS3[email-send-queue\nus-east-2]
+    SQS3 -->|max 3 retries| EmailFn2[email-fn\nus-east-2]
+    SQS3 -->|persistent failure| DLQ3[email DLQ + alarm\nus-east-2]
+    EmailFn2 -->|SendTemplatedEmail| SES2[SES us-east-2]
 
     classDef people fill:#F5B684,stroke:#c47d3e,color:#191919
     classDef lambda fill:#b3d9f5,stroke:#3a8fc7,color:#191919
+    classDef lambda2 fill:#b3d9f5,stroke:#3a8fc7,color:#191919,stroke-dasharray:4 2
     classDef storage fill:#c8f0d8,stroke:#3da85e,color:#191919
     classDef messaging fill:#e0d4f5,stroke:#8a5ec7,color:#191919
+    classDef messaging2 fill:#e0d4f5,stroke:#8a5ec7,color:#191919,stroke-dasharray:4 2
     classDef email fill:#f5e6b3,stroke:#c7a83a,color:#191919
+    classDef dns fill:#c9e6f0,stroke:#5ba3be,color:#191919
 
     class Visitor,Dev people
     class SubFn,ConFn,UnsFn,EmailFn,DispFn lambda
+    class SubFn2,ConFn2,UnsFn2,EmailFn2 lambda2
     class DDB,Sends,SM storage
-    class APIGW,EB,SQS1,SQS2,DLQ1,DLQ2 messaging
-    class SES email
+    class APIGW1,EB1,SQS1,SQS2,DLQ1,DLQ2 messaging
+    class APIGW2,EB2,SQS3,DLQ3 messaging2
+    class SES1,SES2 email
+    class R53,HC dns
 ```
 
 ### Subscriber Journey
@@ -837,7 +857,7 @@ make deploy  # or: AWS_PROFILE=www aws cloudformation deploy ...
 # 2. Add us-east-2 replica to the newsletter_subscribers DynamoDB table (one-time)
 AWS_PROFILE=www aws dynamodb update-table \
   --table-name newsletter_subscribers \
-  --replica-updates Create=[{RegionName=us-east-2}] \
+  --replica-updates 'Create={RegionName=us-east-2}' \
   --region us-east-1
 
 # 3. Create the secondary S3 artifacts bucket
@@ -847,7 +867,8 @@ make deploy-bootstrap-secondary
 make build
 make upload-secondary
 
-# 5. Deploy the secondary API Gateway domain (us-east-2)
+# 5. Deploy the secondary API Gateway domain (us-east-2) — Route 53 records OFF for now
+#    (SECONDARY failover records can't coexist with simple records; add them in step 7b)
 AWS_PROFILE=www aws cloudformation deploy \
   --stack-name micahwalter-api-domain-secondary \
   --template-file infra/api-domain-secondary.yml \
@@ -857,7 +878,21 @@ AWS_PROFILE=www aws cloudformation deploy \
 # 6. Deploy the secondary newsletter stack
 make deploy-secondary
 
-# 7. Activate Route 53 failover on the primary api-domain stack
+# 7a. Manually delete the existing simple Route 53 A and AAAA records for api.micahwalter.com
+#     (PRIMARY failover records can't coexist with simple records; CloudFormation can't do
+#      this atomically — you must delete them out-of-band first)
+AWS_PROFILE=www aws route53 change-resource-record-sets \
+  --hosted-zone-id Z05804121WRFHZZEYWGT5 \
+  --change-batch '{
+    "Changes": [
+      {"Action":"DELETE","ResourceRecordSet":{"Name":"api.micahwalter.com.","Type":"A",
+        "AliasTarget":{"HostedZoneId":"<apigw-hz-id>","DNSName":"<apigw-regional-domain>.","EvaluateTargetHealth":false}}},
+      {"Action":"DELETE","ResourceRecordSet":{"Name":"api.micahwalter.com.","Type":"AAAA",
+        "AliasTarget":{"HostedZoneId":"<apigw-hz-id>","DNSName":"<apigw-regional-domain>.","EvaluateTargetHealth":false}}}
+    ]
+  }'
+
+# 7b. Activate Route 53 PRIMARY failover routing on the api-domain stack
 PRIMARY_API_DOMAIN=$(AWS_PROFILE=www aws cloudformation describe-stacks \
   --stack-name micahwalter-newsletter \
   --region us-east-1 \
@@ -871,6 +906,15 @@ AWS_PROFILE=www aws cloudformation deploy \
   --parameter-overrides \
     HostedZoneId=Z05804121WRFHZZEYWGT5 \
     PrimaryApiRegionalDomain=$PRIMARY_API_DOMAIN
+
+# 7c. Now add the SECONDARY Route 53 failover records (safe now that PRIMARY exists)
+AWS_PROFILE=www aws cloudformation deploy \
+  --stack-name micahwalter-api-domain-secondary \
+  --template-file infra/api-domain-secondary.yml \
+  --region us-east-2 \
+  --parameter-overrides \
+    HostedZoneId=Z05804121WRFHZZEYWGT5 \
+    CreateRoute53Records=true
 
 # 8. Update GitHub Actions IAM role (adds us-east-2 permissions)
 AWS_PROFILE=www aws cloudformation deploy \
