@@ -26,6 +26,21 @@ Parameters:
     Default: Z05804121WRFHZZEYWGT5
     Description: Route53 hosted zone ID for micahwalter.com
 
+  CreateRoute53Records:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+    Description: >
+      Set to true once the primary api-domain.yml stack has been updated to
+      PRIMARY failover routing. SECONDARY failover records cannot be created
+      while a simple (non-failover) record for the same name/type still exists.
+
+# ---------------------------------------------------------------------------
+# Conditions
+# ---------------------------------------------------------------------------
+Conditions:
+  ShouldCreateRoute53Records: !Equals [!Ref CreateRoute53Records, 'true']
+
 # ---------------------------------------------------------------------------
 # Resources
 # ---------------------------------------------------------------------------
@@ -78,6 +93,7 @@ Resources:
 
   ApiDomainASecondaryRecord:
     Type: AWS::Route53::RecordSet
+    Condition: ShouldCreateRoute53Records
     DependsOn: ApiGatewayDomainName
     Properties:
       HostedZoneId: !Ref HostedZoneId
@@ -92,6 +108,7 @@ Resources:
 
   ApiDomainAAAASecondaryRecord:
     Type: AWS::Route53::RecordSet
+    Condition: ShouldCreateRoute53Records
     DependsOn: ApiGatewayDomainName
     Properties:
       HostedZoneId: !Ref HostedZoneId
