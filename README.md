@@ -120,7 +120,7 @@ The unified `blog` CLI manages all content and image operations. It must be link
 | `blog post:new` | Create new post with template |
 | `blog post:new "Title"` | Create post with title (skip prompt) |
 | `blog photos:import <dir>` | Import photos with EXIF extraction |
-| `blog photos:tag <folder>` | AI-powered photo tagging with Claude Vision |
+| `blog photos:tag <folder>` | AI-powered photo tagging via Amazon Bedrock |
 | `blog photos:tag --all` | Tag all photos with AI suggestions |
 | `blog images:optimize` | Process images (400/800/1200px WebP+JPEG) |
 | `blog images:upload` | Upload originals + processed to S3 |
@@ -267,7 +267,7 @@ Set `draft: false` when ready to publish.
 
 ## Photo Archive System
 
-The site includes a complete photo archive system with automatic EXIF extraction and AI-powered tagging using Claude Vision API.
+The site includes a complete photo archive system with automatic EXIF extraction and AI-powered tagging using Claude via Amazon Bedrock.
 
 ### Photo Import with EXIF Extraction
 
@@ -303,20 +303,17 @@ This separation lets you post old photos while preserving when they were actuall
 
 ### AI-Powered Photo Tagging
 
-Use Claude Vision API to analyze photos and suggest relevant tags:
+Use Claude via Amazon Bedrock to analyze photos and suggest relevant tags. Authentication reuses the existing `www` AWS profile — no separate API key is needed.
 
 ```bash
-# Set your Anthropic API key
-export ANTHROPIC_API_KEY=your-key-here
-
 # Tag a specific photo
-blog photos:tag 2026-02-16-sunset-park
+blog photos:tag 2026-02-16-sunset-park --profile www
 
 # Tag all photos interactively
-blog photos:tag --all
+blog photos:tag --all --profile www
 
 # Auto-approve all suggestions
-blog photos:tag --all --auto-approve
+blog photos:tag --all --auto-approve --profile www
 
 # Preview suggestions without updating
 blog photos:tag --all --dry-run
@@ -413,9 +410,8 @@ Complete workflow from import to publish:
 # 1. Import photos with EXIF extraction
 blog photos:import ~/Desktop/vacation-photos
 
-# 2. AI-tag the photos
-export ANTHROPIC_API_KEY=your-key
-blog photos:tag --all
+# 2. AI-tag the photos (uses existing AWS profile — no separate API key needed)
+blog photos:tag --all --profile www
 
 # 3. Review and edit generated posts
 # Edit content/posts/2026-02-16-*/index.mdx
@@ -436,18 +432,10 @@ git push
 
 To use AI photo tagging, you need:
 
-1. **Anthropic API Key**: Get from https://console.anthropic.com/
-2. **Set environment variable**:
-   ```bash
-   export ANTHROPIC_API_KEY=your-key-here
-   ```
-3. **Model**: Uses Claude Sonnet 4.5 for vision analysis
-4. **Cost**: ~$0.01-0.02 per photo analyzed
-
-**Recommended setup** (add to `~/.zshrc` or `~/.bashrc`):
-```bash
-export ANTHROPIC_API_KEY=your-key-here
-```
+1. **AWS Profile**: The existing `www` profile is used — no separate API key required.
+2. **Bedrock model access**: Enable `us.anthropic.claude-sonnet-4-6` in the AWS Bedrock console under **Model access** in `us-east-1`.
+3. **IAM permissions**: The `www` IAM user/role needs `bedrock:InvokeModel` permission for the model ARN.
+4. **Cost**: ~$0.01-0.02 per photo analyzed (Bedrock on-demand pricing).
 
 ## Image Workflow
 
@@ -827,6 +815,10 @@ make update-functions
 - `micahwalter-newsletter-bootstrap` — S3 artifacts bucket
 - `micahwalter-newsletter` — all newsletter resources (DynamoDB tables, EventBridge bus + rules, SQS queues, API Gateway, Lambdas, SES identity, CloudWatch alarms)
 
+### Spam Protection
+
+The subscribe endpoint is protected by a signed form token mechanism. Before the subscribe form is shown, the frontend fetches a short-lived HMAC-signed token from `GET /newsletter/form-token` (handled by the `formtoken` Lambda). The token is included in the `POST /subscribe` body and validated server-side by `subscribe-fn`. Submissions without a valid token are rejected silently, blocking bots that POST directly to the endpoint without first loading the page.
+
 ---
 
 ## Infrastructure
@@ -1017,7 +1009,7 @@ Defined in `tailwind.config.ts`:
 ### Photo Archive Features
 - ✅ Unified content system (photos as posts with `type: photo`)
 - ✅ Bulk photo import with EXIF extraction
-- ✅ AI-powered tagging with Claude Vision API
+- ✅ AI-powered tagging via Amazon Bedrock (no separate API key — reuses `www` AWS profile)
 - ✅ EXIF metadata display (camera, lens, settings, capture date)
 - ✅ Photo-optimized layouts (4:3 aspect ratio cards)
 - ✅ Photo-only filtering route (`/photos`)
@@ -1028,6 +1020,7 @@ Defined in `tailwind.config.ts`:
 
 ### Newsletter Features
 - ✅ Double opt-in subscription (confirmation email required)
+- ✅ Spam protection via HMAC-signed form tokens (`formtoken` Lambda + `GET /newsletter/form-token`)
 - ✅ HMAC-SHA256 signed tokens (no raw emails in URLs)
 - ✅ Dual-key rotation support for zero-downtime key changes
 - ✅ Idempotent, non-revealing unsubscribe endpoint
