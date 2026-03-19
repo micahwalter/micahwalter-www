@@ -22,7 +22,7 @@ Parameters:
 
   HostedZoneId:
     Type: String
-    Default: Z05804121WRFHZZEYWGT5
+    Default: ''
     Description: Route53 hosted zone ID for micahwalter.com
 
   DomainName:

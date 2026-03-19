@@ -30,7 +30,7 @@ const AWS_PROFILE = profileIndex !== -1 && args[profileIndex + 1] ? args[profile
 // Configuration
 const POSTS_DIR = path.join(process.cwd(), 'content/posts');
 const PROCESSED_DIR = path.join(process.cwd(), '.optimized-images/posts');
-const BUCKET_NAME = process.env.IMAGES_BUCKET || process.env.IMAGES_BUCKET_NAME || 'micahwalter-www-images';
+const BUCKET_NAME = process.env.IMAGES_BUCKET || process.env.IMAGES_BUCKET_NAME;
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 
 // S3 prefixes

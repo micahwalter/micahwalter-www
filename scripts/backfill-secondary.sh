@@ -18,11 +18,12 @@ set -euo pipefail
 
 AWS_PROFILE="${AWS_PROFILE:-www}"
 
-PRIMARY_WEBSITE="micahwalter-www-website"
-SECONDARY_WEBSITE="micahwalter-www-secondary-website"
+# Set these via environment variables or edit below for your deployment
+PRIMARY_WEBSITE="${PRIMARY_WEBSITE_BUCKET:?Set PRIMARY_WEBSITE_BUCKET env var}"
+SECONDARY_WEBSITE="${SECONDARY_WEBSITE_BUCKET:?Set SECONDARY_WEBSITE_BUCKET env var}"
 
-PRIMARY_IMAGES="micahwalter-www-images"
-SECONDARY_IMAGES="micahwalter-www-secondary-images"
+PRIMARY_IMAGES="${PRIMARY_IMAGES_BUCKET:?Set PRIMARY_IMAGES_BUCKET env var}"
+SECONDARY_IMAGES="${SECONDARY_IMAGES_BUCKET:?Set SECONDARY_IMAGES_BUCKET env var}"
 
 echo "==> Backfilling website bucket..."
 echo "    s3://${PRIMARY_WEBSITE}/ -> s3://${SECONDARY_WEBSITE}/"

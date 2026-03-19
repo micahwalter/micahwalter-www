@@ -577,6 +577,10 @@ npm run images:dev       # Optimize + copy to public/ for dev
 | Secret | Description |
 |--------|-------------|
 | `AWS_ROLE_ARN` | IAM role ARN for OIDC deployment |
+| `S3_BUCKET` | S3 bucket name for website content (CloudFormation output: WebsiteBucketName) |
+| `IMAGES_BUCKET` | S3 bucket name for images (CloudFormation output: ImagesBucketName) |
+| `CLOUDFRONT_DISTRIBUTION_ID` | CloudFront distribution ID (CloudFormation output: CloudFrontDistributionId) |
+| `ROUTE53_HOSTED_ZONE_ID` | Route53 hosted zone ID for micahwalter.com |
 | `NEXT_PUBLIC_FATHOM_SITE_ID` | Fathom Analytics site ID (baked in at build time) |
 | `NEXT_PUBLIC_NEWSLETTER_API_URL` | Newsletter API Gateway base URL (baked in at build time) |
 
@@ -585,7 +589,7 @@ Create `.env.local`:
 
 ```bash
 NEXT_PUBLIC_FATHOM_SITE_ID=your-fathom-site-id
-NEXT_PUBLIC_NEWSLETTER_API_URL=https://79zhxk7xu9.execute-api.us-east-1.amazonaws.com
+NEXT_PUBLIC_NEWSLETTER_API_URL=https://api.micahwalter.com/newsletter
 ```
 
 ## Build Process
@@ -873,7 +877,7 @@ AWS_PROFILE=www aws cloudformation deploy \
   --stack-name micahwalter-api-domain-secondary \
   --template-file infra/api-domain-secondary.yml \
   --region us-east-2 \
-  --parameter-overrides HostedZoneId=Z05804121WRFHZZEYWGT5
+  --parameter-overrides HostedZoneId=<your-hosted-zone-id>
 
 # 6. Deploy the secondary newsletter stack
 make deploy-secondary
@@ -882,7 +886,7 @@ make deploy-secondary
 #     (PRIMARY failover records can't coexist with simple records; CloudFormation can't do
 #      this atomically — you must delete them out-of-band first)
 AWS_PROFILE=www aws route53 change-resource-record-sets \
-  --hosted-zone-id Z05804121WRFHZZEYWGT5 \
+  --hosted-zone-id <your-hosted-zone-id> \
   --change-batch '{
     "Changes": [
       {"Action":"DELETE","ResourceRecordSet":{"Name":"api.micahwalter.com.","Type":"A",
@@ -904,7 +908,7 @@ AWS_PROFILE=www aws cloudformation deploy \
   --template-file infra/api-domain.yml \
   --region us-east-1 \
   --parameter-overrides \
-    HostedZoneId=Z05804121WRFHZZEYWGT5 \
+    HostedZoneId=<your-hosted-zone-id> \
     PrimaryApiRegionalDomain=$PRIMARY_API_DOMAIN
 
 # 7c. Now add the SECONDARY Route 53 failover records (safe now that PRIMARY exists)
@@ -913,7 +917,7 @@ AWS_PROFILE=www aws cloudformation deploy \
   --template-file infra/api-domain-secondary.yml \
   --region us-east-2 \
   --parameter-overrides \
-    HostedZoneId=Z05804121WRFHZZEYWGT5 \
+    HostedZoneId=<your-hosted-zone-id> \
     CreateRoute53Records=true
 
 # 8. Update GitHub Actions IAM role (adds us-east-2 permissions)
@@ -1247,7 +1251,7 @@ Multi-region resilience adds ~$0.003/month for this site size. CloudFront origin
 
 1. **Check S3**: Verify images uploaded
    ```bash
-   aws s3 ls s3://micahwalter-www-images/images/posts/{slug}/ --profile www
+   aws s3 ls s3://<your-images-bucket>/images/posts/{slug}/ --profile www
    ```
 
 2. **Check CloudFront**: May take a few minutes. Try invalidating:

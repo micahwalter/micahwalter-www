@@ -127,7 +127,7 @@ jobs:
             --query "Stacks[0].Outputs[?OutputKey=='ApiRegionalDomainName'].OutputValue" \
             --output text 2>/dev/null || echo "")
 
-          PARAMS="HostedZoneId=Z05804121WRFHZZEYWGT5"
+          PARAMS="HostedZoneId=${{ secrets.ROUTE53_HOSTED_ZONE_ID }}"
           if [ -n "$PRIMARY_API_DOMAIN" ]; then
             PARAMS="$PARAMS PrimaryApiRegionalDomain=$PRIMARY_API_DOMAIN"
             echo "Activating failover routing with health check on: $PRIMARY_API_DOMAIN"
@@ -148,7 +148,7 @@ jobs:
             --stack-name micahwalter-api-domain-secondary \
             --template-file infra/api-domain-secondary.yml \
             --region ${{ env.AWS_REGION_SECONDARY }} \
-            --parameter-overrides HostedZoneId=Z05804121WRFHZZEYWGT5
+            --parameter-overrides HostedZoneId=${{ secrets.ROUTE53_HOSTED_ZONE_ID }}
 
       - name: Deploy primary newsletter stack via CloudFormation (newsletter.yml changed)
         if: steps.changed.outputs.primary_template_changed == 'true'
@@ -176,7 +176,7 @@ jobs:
             --template-file infra/api-domain.yml \
             --region ${{ env.AWS_REGION }} \
             --parameter-overrides \
-              HostedZoneId=Z05804121WRFHZZEYWGT5 \
+              HostedZoneId=${{ secrets.ROUTE53_HOSTED_ZONE_ID }} \
               PrimaryApiRegionalDomain=$PRIMARY_API_DOMAIN
 
       - name: Deploy secondary newsletter stack via CloudFormation (newsletter-secondary.yml changed)

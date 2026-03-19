@@ -24,15 +24,15 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
-  # Update these values with your CloudFormation stack outputs
-  S3_BUCKET: micahwalter-www-website  # From CloudFormation output: WebsiteBucketName
-  IMAGES_BUCKET: micahwalter-www-images  # From CloudFormation output: ImagesBucketName
-  CLOUDFRONT_DISTRIBUTION_ID: E1SZIKPZ79BHDU  # From CloudFormation output: CloudFrontDistributionId
 
 jobs:
   deploy:
     name: Build and deploy Next.js website
     runs-on: ubuntu-latest
+    env:
+      S3_BUCKET: ${{ secrets.S3_BUCKET }}
+      IMAGES_BUCKET: ${{ secrets.IMAGES_BUCKET }}
+      CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
 
     steps:
       - name: Checkout code

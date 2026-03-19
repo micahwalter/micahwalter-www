@@ -14,13 +14,18 @@ Parameters:
 
   WebsiteBucketName:
     Type: String
-    Default: micahwalter-www-website
+    Default: ''
     Description: S3 bucket name for website content
 
   CloudFrontDistributionId:
     Type: String
-    Default: E1SZIKPZ79BHDU
+    Default: ''
     Description: CloudFront distribution ID
+
+  HostedZoneId:
+    Type: String
+    Default: ''
+    Description: Route53 hosted zone ID for micahwalter.com
 
 Resources:
   # GitHub OIDC Provider
@@ -137,7 +142,7 @@ Resources:
                   - route53:ListHostedZones
                   - route53:GetChange
                 Resource:
-                  - !Sub 'arn:aws:route53:::hostedzone/Z05804121WRFHZZEYWGT5'
+                  - !Sub 'arn:aws:route53:::hostedzone/${HostedZoneId}'
                   - 'arn:aws:route53:::change/*'
               # API Gateway — custom domain names, HTTP APIs, routes, integrations, tags, etc.
               # CloudFormation accesses many sub-paths (/apis/*, /domainnames/*, /tags/*, etc.)

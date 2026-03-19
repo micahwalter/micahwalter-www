@@ -8,7 +8,7 @@ Description: 'Secondary region buckets for micahwalter-www cross-region failover
 #     --template-file infra/infra-secondary.yml \
 #     --region us-east-2 \
 #     --parameter-overrides \
-#       CloudFrontDistributionId=E1SZIKPZ79BHDU
+#       CloudFrontDistributionId=<your-cloudfront-distribution-id>
 #
 # After deploying, run the primary stack update (infra.yml) to enable CRR and origin groups.
 # Then run scripts/backfill-secondary.sh to sync existing objects into the secondary buckets.
@@ -16,7 +16,7 @@ Description: 'Secondary region buckets for micahwalter-www cross-region failover
 Parameters:
   CloudFrontDistributionId:
     Type: String
-    Default: E1SZIKPZ79BHDU
+    Default: ''
     Description: CloudFront distribution ID from primary stack (infra.yml output)
 
 Resources:
