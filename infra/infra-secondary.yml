@@ -1,0 +1,147 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Secondary region buckets for micahwalter-www cross-region failover (us-east-2)'
+
+# Deploy this stack to us-east-2 BEFORE updating the primary infra.yml stack:
+#
+#   AWS_PROFILE=www aws cloudformation deploy \
+#     --stack-name micahwalter-www-secondary \
+#     --template-file infra/infra-secondary.yml \
+#     --region us-east-2 \
+#     --parameter-overrides \
+#       CloudFrontDistributionId=E1SZIKPZ79BHDU
+#
+# After deploying, run the primary stack update (infra.yml) to enable CRR and origin groups.
+# Then run scripts/backfill-secondary.sh to sync existing objects into the secondary buckets.
+
+Parameters:
+  CloudFrontDistributionId:
+    Type: String
+    Default: E1SZIKPZ79BHDU
+    Description: CloudFront distribution ID from primary stack (infra.yml output)
+
+Resources:
+  # Secondary S3 bucket for website content (us-east-2)
+  # Versioning must be enabled for CRR destination buckets.
+  SecondaryWebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: micahwalter-www-secondary-website
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 365
+      Tags:
+        - Key: Project
+          Value: micahwalter-www
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: StaticWebsite
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Purpose
+          Value: SecondaryWebsiteContent
+        - Key: Region
+          Value: Secondary
+
+  # Secondary S3 bucket for optimized blog post images (us-east-2)
+  SecondaryImagesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: micahwalter-www-secondary-images
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 365
+      Tags:
+        - Key: Project
+          Value: micahwalter-www
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: StaticWebsite
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Purpose
+          Value: SecondaryBlogImages
+        - Key: Region
+          Value: Secondary
+
+  # Allow the primary CloudFront distribution to read from the secondary website bucket via OAC.
+  # OAC signs requests with SigV4; CloudFront presents as cloudfront.amazonaws.com with the
+  # distribution ARN in AWS:SourceArn.
+  SecondaryWebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SecondaryWebsiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontOAC
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${SecondaryWebsiteBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistributionId}'
+
+  # Allow the primary CloudFront distribution to read from the secondary images bucket via OAC.
+  SecondaryImagesBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SecondaryImagesBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontOAC
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${SecondaryImagesBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistributionId}'
+
+Outputs:
+  SecondaryWebsiteBucketName:
+    Description: Secondary website bucket name (us-east-2)
+    Value: !Ref SecondaryWebsiteBucket
+
+  SecondaryWebsiteBucketArn:
+    Description: Secondary website bucket ARN (us-east-2)
+    Value: !GetAtt SecondaryWebsiteBucket.Arn
+
+  SecondaryImagesBucketName:
+    Description: Secondary images bucket name (us-east-2)
+    Value: !Ref SecondaryImagesBucket
+
+  SecondaryImagesBucketArn:
+    Description: Secondary images bucket ARN (us-east-2)
+    Value: !GetAtt SecondaryImagesBucket.Arn

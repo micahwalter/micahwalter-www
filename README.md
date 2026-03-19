@@ -9,12 +9,17 @@ A modern, statically-exported blog and photo archive built with Next.js 15 and h
 flowchart TD
     Visitor([Visitor]) --> R53[Route53 DNS]
 
-    R53 -->|www.micahwalter.com| CFMain[CloudFront Main Distribution]
+    R53 -->|www.micahwalter.com| CFMain[CloudFront\nOrigin Groups]
     R53 -->|micahwalter.com| CFApex[CloudFront Apex Redirect]
     CFApex -->|301 to www| CFMain
 
-    CFMain -->|HTML / CSS / JS| S3Web[(S3 Website Bucket)]
-    CFMain -->|Images| S3Img[(S3 Images Bucket)]
+    CFMain -->|HTML / CSS / JS\nprimary| S3Web[(S3 Website\nus-east-1)]
+    CFMain -->|Images\nprimary| S3Img[(S3 Images\nus-east-1)]
+    CFMain -. failover .-> S3WebSec[(S3 Website\nus-east-2)]
+    CFMain -. failover .-> S3ImgSec[(S3 Images\nus-east-2)]
+
+    S3Web -->|CRR| S3WebSec
+    S3Img -->|CRR| S3ImgSec
 
     Dev([Developer]) -->|git push| GH[GitHub]
     Dev -->|blog images:sync| S3Img
@@ -26,12 +31,14 @@ flowchart TD
     classDef dns fill:#c9e6f0,stroke:#5ba3be,color:#191919
     classDef cdn fill:#b3d9f5,stroke:#3a8fc7,color:#191919
     classDef storage fill:#c8f0d8,stroke:#3da85e,color:#191919
+    classDef secondary fill:#d8f0c8,stroke:#5a9e3a,color:#191919
     classDef cicd fill:#e0d4f5,stroke:#8a5ec7,color:#191919
 
     class Visitor,Dev people
     class R53 dns
     class CFMain,CFApex cdn
     class S3Web,S3Img storage
+    class S3WebSec,S3ImgSec secondary
     class GH,Build cicd
 ```
 
@@ -826,16 +833,22 @@ make update-functions
 
 ### AWS Resources
 
-**Main Stack (CloudFormation — `infra/infra.yml`):**
-- S3 Website Bucket (static HTML/JS/CSS)
-- S3 Images Bucket (optimized images)
-- S3 Logs Bucket (access logs)
-- ACM Certificate (`www.micahwalter.com` + `micahwalter.com`, DNS validated)
-- CloudFront Distribution (CDN for `www.micahwalter.com`)
-- CloudFront Apex Redirect Distribution (`micahwalter.com` → 301 → `www.micahwalter.com`)
-- CloudFront Functions (SPA routing + apex redirect)
+**Main Stack (CloudFormation — `infra/infra.yml`, us-east-1):**
+- S3 Website Bucket — static HTML/JS/CSS (versioned, AES256, OAC)
+- S3 Images Bucket — optimized images (versioned, AES256, OAC)
+- S3 Logs Bucket — CloudFront + S3 access logs (90-day lifecycle)
+- ACM Certificate — `www.micahwalter.com` + `micahwalter.com` (DNS validated)
+- CloudFront Distribution — origin groups with automatic failover to us-east-2
+- CloudFront Apex Redirect Distribution — `micahwalter.com` → 301 → `www.micahwalter.com`
+- CloudFront Functions — SPA routing + apex redirect
 - Route53 A/AAAA alias records for both domains
-- Origin Access Control (secure S3 access)
+- Origin Access Control (OAC) — primary + secondary origins
+- IAM Replication Role — S3 Cross-Region Replication to us-east-2
+
+**Secondary Stack (CloudFormation — `infra/infra-secondary.yml`, us-east-2):**
+- S3 Secondary Website Bucket — CRR destination, versioned
+- S3 Secondary Images Bucket — CRR destination, versioned
+- Bucket policies allowing the primary CloudFront distribution via OAC
 
 **GitHub Actions Stack (`infra/github-actions-role.yml`):**
 - IAM Role with OIDC provider
@@ -844,32 +857,37 @@ make update-functions
 ### Initial Infrastructure Setup
 
 ```bash
-# Deploy main infrastructure (requires HostedZoneId from Route53)
-aws cloudformation create-stack \
-  --stack-name micahwalter-www \
-  --template-body file://infra/infra.yml \
-  --parameters \
-    ParameterKey=HostedZoneId,ParameterValue=<your-hosted-zone-id> \
-    ParameterKey=DomainName,ParameterValue=micahwalter.com \
-    ParameterKey=WWWDomainName,ParameterValue=www.micahwalter.com \
-  --profile www \
-  --region us-east-1
+# 1. Deploy secondary stack first (CRR destination must exist before source)
+AWS_PROFILE=www aws cloudformation deploy \
+  --stack-name micahwalter-www-secondary \
+  --template-file infra/infra-secondary.yml \
+  --region us-east-2 \
+  --parameter-overrides CloudFrontDistributionId=<dist-id>
 
-# Deploy GitHub Actions OIDC role
-aws cloudformation create-stack \
-  --stack-name micahwalter-www-github-actions \
-  --template-body file://infra/github-actions-role.yml \
+# 2. Deploy main infrastructure (requires HostedZoneId from Route53)
+#    CAPABILITY_NAMED_IAM required for the S3 replication IAM role
+AWS_PROFILE=www aws cloudformation deploy \
+  --stack-name micahwalter-www \
+  --template-file infra/infra.yml \
+  --region us-east-1 \
   --capabilities CAPABILITY_NAMED_IAM \
-  --profile www \
-  --region us-east-1
+  --parameter-overrides \
+    HostedZoneId=<your-hosted-zone-id> \
+    DomainName=micahwalter.com \
+    WWWDomainName=www.micahwalter.com
 
-# Wait for completion (5-15 minutes)
-aws cloudformation wait stack-create-complete \
-  --stack-name micahwalter-www \
-  --profile www \
-  --region us-east-1
+# 3. Backfill existing objects into secondary buckets
+#    (CRR only replicates objects created after the rule is enabled)
+./scripts/backfill-secondary.sh
 
-# Get IAM role ARN for GitHub Actions
+# 4. Deploy GitHub Actions OIDC role
+AWS_PROFILE=www aws cloudformation deploy \
+  --stack-name micahwalter-www-github-actions \
+  --template-file infra/github-actions-role.yml \
+  --region us-east-1 \
+  --capabilities CAPABILITY_NAMED_IAM
+
+# 5. Add GitHub Actions secrets
 aws cloudformation describe-stacks \
   --stack-name micahwalter-www-github-actions \
   --profile www \
@@ -877,7 +895,6 @@ aws cloudformation describe-stacks \
   --query 'Stacks[0].Outputs[?OutputKey==`RoleArn`].OutputValue' \
   --output text
 
-# Add role ARN as GitHub secret
 gh secret set AWS_ROLE_ARN --body "<role-arn>"
 ```
 
@@ -903,24 +920,29 @@ aws cloudformation describe-stacks \
 ### Update Infrastructure
 
 ```bash
-# Update main stack
-aws cloudformation update-stack \
+# Update secondary stack (us-east-2)
+AWS_PROFILE=www aws cloudformation deploy \
+  --stack-name micahwalter-www-secondary \
+  --template-file infra/infra-secondary.yml \
+  --region us-east-2
+
+# Update main stack (us-east-1)
+AWS_PROFILE=www aws cloudformation deploy \
   --stack-name micahwalter-www \
-  --template-body file://infra/infra.yml \
-  --parameters \
-    ParameterKey=HostedZoneId,ParameterValue=<your-hosted-zone-id> \
-    ParameterKey=DomainName,ParameterValue=micahwalter.com \
-    ParameterKey=WWWDomainName,ParameterValue=www.micahwalter.com \
-  --profile www \
-  --region us-east-1
+  --template-file infra/infra.yml \
+  --region us-east-1 \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides \
+    HostedZoneId=<your-hosted-zone-id> \
+    DomainName=micahwalter.com \
+    WWWDomainName=www.micahwalter.com
 
 # Update GitHub Actions role
-aws cloudformation update-stack \
+AWS_PROFILE=www aws cloudformation deploy \
   --stack-name micahwalter-www-github-actions \
-  --template-body file://infra/github-actions-role.yml \
-  --capabilities CAPABILITY_NAMED_IAM \
-  --profile www \
-  --region us-east-1
+  --template-file infra/github-actions-role.yml \
+  --region us-east-1 \
+  --capabilities CAPABILITY_NAMED_IAM
 ```
 
 ### Manual Deployment (Advanced)
@@ -1035,6 +1057,9 @@ Defined in `tailwind.config.ts`:
 - ✅ Access logging for S3 and CloudFront
 - ✅ Origin Access Control (OAC)
 - ✅ Smart caching (1 year static, revalidate HTML)
+- ✅ Multi-region resilience — secondary buckets in us-east-2 with S3 Cross-Region Replication
+- ✅ Automatic per-request failover via CloudFront origin groups (no DNS changes, no manual intervention)
+- ✅ Delete marker replication — secondary stays in sync when content is removed
 
 ### CI/CD Features
 - ✅ Automated build and deployment
@@ -1070,12 +1095,14 @@ For a blog with 100 posts, 1 cover image each, 10K pageviews/month:
 
 | Service | Usage | Cost |
 |---------|-------|------|
-| S3 Storage | 60 MB images + 10 MB site | $0.002 |
+| S3 Storage (primary) | 60 MB images + 10 MB site | $0.002 |
+| S3 Storage (secondary, us-east-2) | Same data replicated | $0.002 |
+| S3 CRR transfer | ~70 MB/month inter-region | $0.001 |
 | S3 Requests | Minimal (CI uploads only) | $0.001 |
 | CloudFront | 1 GB transfer (optimized images) | $0.085 |
 | **Total** | | **~$0.09/month** |
 
-Without optimization: ~$0.70/month (87% savings)
+Multi-region resilience adds ~$0.003/month for this site size. CloudFront origin groups are free.
 
 ## Troubleshooting
 

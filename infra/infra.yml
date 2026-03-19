@@ -16,7 +16,73 @@ Parameters:
     Default: www.micahwalter.com
     Description: WWW subdomain name
 
+  SecondaryWebsiteBucketName:
+    Type: String
+    Default: micahwalter-www-secondary-website
+    Description: Secondary S3 bucket name for website content (us-east-2, from infra-secondary.yml)
+
+  SecondaryImagesBucketName:
+    Type: String
+    Default: micahwalter-www-secondary-images
+    Description: Secondary S3 bucket name for images (us-east-2, from infra-secondary.yml)
+
 Resources:
+  # IAM role used by S3 Cross-Region Replication (CRR) to copy objects to the secondary buckets.
+  # Must be created before the buckets that reference it via ReplicationConfiguration.
+  ReplicationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-replication-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: s3.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: S3CRRPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ReadSourceBuckets
+                Effect: Allow
+                Action:
+                  - s3:GetReplicationConfiguration
+                  - s3:ListBucket
+                Resource:
+                  - !Sub 'arn:aws:s3:::${AWS::StackName}-website'
+                  - !Sub 'arn:aws:s3:::${AWS::StackName}-images'
+              - Sid: ReadSourceObjects
+                Effect: Allow
+                Action:
+                  - s3:GetObjectVersionForReplication
+                  - s3:GetObjectVersionAcl
+                  - s3:GetObjectVersionTagging
+                Resource:
+                  - !Sub 'arn:aws:s3:::${AWS::StackName}-website/*'
+                  - !Sub 'arn:aws:s3:::${AWS::StackName}-images/*'
+              - Sid: WriteDestinationBuckets
+                Effect: Allow
+                Action:
+                  - s3:ReplicateObject
+                  - s3:ReplicateDelete
+                  - s3:ReplicateTags
+                Resource:
+                  - !Sub 'arn:aws:s3:::${SecondaryWebsiteBucketName}/*'
+                  - !Sub 'arn:aws:s3:::${SecondaryImagesBucketName}/*'
+      Tags:
+        - Key: Project
+          Value: micahwalter-www
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: StaticWebsite
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Purpose
+          Value: S3CrossRegionReplication
+
   # S3 Bucket for access logs
   LogsBucket:
     Type: AWS::S3::Bucket
@@ -75,6 +141,23 @@ Resources:
           - Id: DeleteOldVersions
             Status: Enabled
             NoncurrentVersionExpirationInDays: 365
+      # CRR: asynchronously copy every new/updated object to the secondary bucket in us-east-2.
+      # Only objects created/modified AFTER this rule is enabled are replicated automatically;
+      # run scripts/backfill-secondary.sh once to sync pre-existing objects.
+      ReplicationConfiguration:
+        Role: !GetAtt ReplicationRole.Arn
+        Rules:
+          - Id: ReplicateWebsiteToSecondary
+            Status: Enabled
+            Priority: 1
+            # Filter + Priority required by V2 schema to enable DeleteMarkerReplication
+            Filter:
+              Prefix: ''
+            Destination:
+              Bucket: !Sub 'arn:aws:s3:::${SecondaryWebsiteBucketName}'
+              StorageClass: STANDARD
+            DeleteMarkerReplication:
+              Status: Enabled
       Tags:
         - Key: Project
           Value: micahwalter-www
@@ -111,6 +194,19 @@ Resources:
           - Id: DeleteOldVersions
             Status: Enabled
             NoncurrentVersionExpirationInDays: 365
+      ReplicationConfiguration:
+        Role: !GetAtt ReplicationRole.Arn
+        Rules:
+          - Id: ReplicateImagesToSecondary
+            Status: Enabled
+            Priority: 1
+            Filter:
+              Prefix: ''
+            Destination:
+              Bucket: !Sub 'arn:aws:s3:::${SecondaryImagesBucketName}'
+              StorageClass: STANDARD
+            DeleteMarkerReplication:
+              Status: Enabled
       Tags:
         - Key: Project
           Value: micahwalter-www
@@ -163,6 +259,26 @@ Resources:
     Properties:
       OriginAccessControlConfig:
         Name: !Sub '${AWS::StackName}-images-OAC'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # CloudFront Origin Access Control for secondary website bucket (us-east-2)
+  CloudFrontSecondaryWebsiteOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${AWS::StackName}-secondary-website-OAC'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # CloudFront Origin Access Control for secondary images bucket (us-east-2)
+  CloudFrontSecondaryImagesOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${AWS::StackName}-secondary-images-OAC'
         OriginAccessControlOriginType: s3
         SigningBehavior: always
         SigningProtocol: sigv4
@@ -220,6 +336,9 @@ Resources:
         Runtime: cloudfront-js-1.0
 
   # Main CloudFront Distribution (www.micahwalter.com)
+  # Uses origin groups for automatic per-request failover to us-east-2 secondary buckets.
+  # On a 403/5xx from the primary origin, CloudFront immediately retries the secondary.
+  # No DNS changes or manual intervention required during a regional S3 outage.
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -235,20 +354,61 @@ Resources:
           SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1.2_2021
         Origins:
+          # Primary website bucket (us-east-1)
           - Id: S3Origin
             DomainName: !GetAtt WebsiteBucket.RegionalDomainName
             S3OriginConfig:
               OriginAccessIdentity: ''
             OriginAccessControlId: !Ref CloudFrontOAC
+          # Primary images bucket (us-east-1)
           - Id: ImagesOrigin
             DomainName: !GetAtt ImagesBucket.RegionalDomainName
             S3OriginConfig:
               OriginAccessIdentity: ''
             OriginAccessControlId: !Ref CloudFrontImagesOAC
+          # Secondary website bucket (us-east-2) — failover target
+          - Id: S3OriginSecondary
+            DomainName: !Sub '${SecondaryWebsiteBucketName}.s3.us-east-2.amazonaws.com'
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !Ref CloudFrontSecondaryWebsiteOAC
+          # Secondary images bucket (us-east-2) — failover target
+          - Id: ImagesOriginSecondary
+            DomainName: !Sub '${SecondaryImagesBucketName}.s3.us-east-2.amazonaws.com'
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !Ref CloudFrontSecondaryImagesOAC
+        # Origin groups enable automatic per-request failover.
+        # 403: S3 can return this during bucket-level access failures (not just "file not found").
+        # 5xx: covers connection timeouts and service errors.
+        # 404 is intentionally excluded — a missing page on primary is a real 404, not a failure.
+        OriginGroups:
+          Quantity: 2
+          Items:
+            - Id: WebsiteOriginGroup
+              FailoverCriteria:
+                StatusCodes:
+                  Quantity: 5
+                  Items: [403, 500, 502, 503, 504]
+              Members:
+                Quantity: 2
+                Items:
+                  - OriginId: S3Origin
+                  - OriginId: S3OriginSecondary
+            - Id: ImagesOriginGroup
+              FailoverCriteria:
+                StatusCodes:
+                  Quantity: 5
+                  Items: [403, 500, 502, 503, 504]
+              Members:
+                Quantity: 2
+                Items:
+                  - OriginId: ImagesOrigin
+                  - OriginId: ImagesOriginSecondary
         CacheBehaviors:
-          # Cache behavior for optimized blog post images
+          # Cache behavior for optimized blog post images — uses images origin group
           - PathPattern: '/images/*'
-            TargetOriginId: ImagesOrigin
+            TargetOriginId: ImagesOriginGroup
             ViewerProtocolPolicy: redirect-to-https
             AllowedMethods:
               - GET
@@ -261,7 +421,7 @@ Resources:
             Compress: true
             CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # Managed-CachingOptimized
         DefaultCacheBehavior:
-          TargetOriginId: S3Origin
+          TargetOriginId: WebsiteOriginGroup
           ViewerProtocolPolicy: redirect-to-https
           AllowedMethods:
             - GET
@@ -276,6 +436,8 @@ Resources:
           FunctionAssociations:
             - EventType: viewer-request
               FunctionARN: !GetAtt StaticHTMLRoutingFunction.FunctionARN
+        # Custom error responses apply after both origins in a group have been tried.
+        # 403 and 404 from S3 (with OAC) both map to the themed 404 page.
         CustomErrorResponses:
           - ErrorCode: 403
             ResponseCode: 404
