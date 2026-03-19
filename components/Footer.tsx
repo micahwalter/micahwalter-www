@@ -23,6 +23,10 @@ export default function Footer() {
             <a href="/emails" className="hover:text-charcoal transition-colors no-underline">
               Email Archive
             </a>
+            {" · "}
+            <a href="/colophon" className="hover:text-charcoal transition-colors no-underline">
+              Colophon
+            </a>
           </p>
         </div>
       </div>
