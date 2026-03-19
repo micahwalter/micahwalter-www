@@ -349,7 +349,11 @@ AWS_PROFILE=www aws cloudformation deploy \
   --stack-name micahwalter-www-github-actions \
   --template-file infra/github-actions-role.yml \
   --region us-east-1 \
-  --capabilities CAPABILITY_NAMED_IAM
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides \
+    HostedZoneId=<your-hosted-zone-id> \
+    WebsiteBucketName=<your-website-bucket> \
+    CloudFrontDistributionId=<your-cloudfront-distribution-id>
 ```
 
 ### Key files
