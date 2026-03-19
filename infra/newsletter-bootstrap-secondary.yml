@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Newsletter artifacts bucket (us-east-2) — deploy this ONCE before the secondary newsletter stack.
+  Stores compiled Lambda zip files uploaded during the build process.
+  Deploy newsletter-bootstrap.yml in us-east-1 first, then this stack in us-east-2.
+
+Resources:
+
+  NewsletterArtifactsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: micahwalter-newsletter-artifacts-secondary
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireOldVersions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 30
+      Tags:
+        - Key: Project
+          Value: micahwalter-newsletter
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: NewsletterSubscription
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Region
+          Value: secondary
+
+Outputs:
+
+  BucketName:
+    Description: S3 bucket for secondary Lambda deployment artifacts
+    Value: !Ref NewsletterArtifactsBucket
+    Export:
+      Name: micahwalter-newsletter-artifacts-bucket-secondary

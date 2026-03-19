@@ -7,7 +7,9 @@ on:
     paths:
       - 'infra/newsletter-lambdas/**'
       - 'infra/newsletter.yml'
+      - 'infra/newsletter-secondary.yml'
       - 'infra/api-domain.yml'
+      - 'infra/api-domain-secondary.yml'
       - '.github/workflows/newsletter-deploy.yml'
 
   workflow_dispatch:  # Allow manual triggering
@@ -18,14 +20,19 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
+  AWS_REGION_SECONDARY: us-east-2
   ARTIFACTS_BUCKET: micahwalter-newsletter-artifacts
+  ARTIFACTS_BUCKET_SECONDARY: micahwalter-newsletter-artifacts-secondary
   ARTIFACTS_PREFIX: newsletter/lambda
   STACK_NAME: micahwalter-newsletter
-  FUNCTIONS: subscribe confirm unsubscribe email dispatch formtoken
+  STACK_NAME_SECONDARY: micahwalter-newsletter-secondary
+  # All functions deployed to primary; dispatch is excluded from secondary
+  FUNCTIONS_PRIMARY: subscribe confirm unsubscribe email dispatch formtoken health
+  FUNCTIONS_SECONDARY: subscribe confirm unsubscribe email formtoken health
 
 jobs:
   deploy:
-    name: Build and deploy newsletter Lambda stack
+    name: Build and deploy newsletter Lambda stacks
     runs-on: ubuntu-latest
 
     steps:
@@ -44,15 +51,31 @@ jobs:
         id: changed
         run: |
           CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          echo "Changed files:"
+          echo "$CHANGED"
+
           if echo "$CHANGED" | grep -q '^infra/newsletter\.yml$'; then
-            echo "template_changed=true" >> "$GITHUB_OUTPUT"
+            echo "primary_template_changed=true" >> "$GITHUB_OUTPUT"
           else
-            echo "template_changed=false" >> "$GITHUB_OUTPUT"
+            echo "primary_template_changed=false" >> "$GITHUB_OUTPUT"
           fi
+
+          if echo "$CHANGED" | grep -q '^infra/newsletter-secondary\.yml$'; then
+            echo "secondary_template_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "secondary_template_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
           if echo "$CHANGED" | grep -q '^infra/api-domain\.yml$'; then
             echo "api_domain_changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "api_domain_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$CHANGED" | grep -q '^infra/api-domain-secondary\.yml$'; then
+            echo "api_domain_secondary_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "api_domain_secondary_changed=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build Lambda functions
@@ -65,26 +88,70 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Upload Lambda zips to S3
+      # -----------------------------------------------------------------------
+      # Upload Lambda zips to both regions' artifact buckets
+      # -----------------------------------------------------------------------
+
+      - name: Upload Lambda zips to primary S3 bucket (us-east-1)
         working-directory: infra/newsletter-lambdas
         run: |
-          for fn in ${{ env.FUNCTIONS }}; do
-            echo "  uploading ${fn}.zip..."
+          for fn in ${{ env.FUNCTIONS_PRIMARY }}; do
+            echo "  uploading ${fn}.zip to us-east-1..."
             aws s3 cp dist/${fn}.zip \
               s3://${{ env.ARTIFACTS_BUCKET }}/${{ env.ARTIFACTS_PREFIX }}/${fn}.zip \
               --region ${{ env.AWS_REGION }}
           done
 
-      - name: Deploy api-domain stack (api-domain.yml changed)
+      - name: Upload Lambda zips to secondary S3 bucket (us-east-2)
+        working-directory: infra/newsletter-lambdas
+        run: |
+          for fn in ${{ env.FUNCTIONS_SECONDARY }}; do
+            echo "  uploading ${fn}.zip to us-east-2..."
+            aws s3 cp dist/${fn}.zip \
+              s3://${{ env.ARTIFACTS_BUCKET_SECONDARY }}/${{ env.ARTIFACTS_PREFIX }}/${fn}.zip \
+              --region ${{ env.AWS_REGION_SECONDARY }}
+          done
+
+      # -----------------------------------------------------------------------
+      # CloudFormation stack deploys (only when templates change)
+      # -----------------------------------------------------------------------
+
+      - name: Deploy api-domain stack (us-east-1, api-domain.yml changed)
         if: steps.changed.outputs.api_domain_changed == 'true'
         run: |
+          # Retrieve primary API GW regional domain from the newsletter stack output
+          # to activate/refresh the Route 53 health check configuration.
+          PRIMARY_API_DOMAIN=$(aws cloudformation describe-stacks \
+            --stack-name ${{ env.STACK_NAME }} \
+            --region ${{ env.AWS_REGION }} \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiRegionalDomainName'].OutputValue" \
+            --output text 2>/dev/null || echo "")
+
+          PARAMS="HostedZoneId=Z05804121WRFHZZEYWGT5"
+          if [ -n "$PRIMARY_API_DOMAIN" ]; then
+            PARAMS="$PARAMS PrimaryApiRegionalDomain=$PRIMARY_API_DOMAIN"
+            echo "Activating failover routing with health check on: $PRIMARY_API_DOMAIN"
+          else
+            echo "Newsletter stack not found — deploying with simple routing"
+          fi
+
           aws cloudformation deploy \
             --stack-name micahwalter-api-domain \
             --template-file infra/api-domain.yml \
-            --region ${{ env.AWS_REGION }}
+            --region ${{ env.AWS_REGION }} \
+            --parameter-overrides $PARAMS
 
-      - name: Deploy via CloudFormation (template changed)
-        if: steps.changed.outputs.template_changed == 'true'
+      - name: Deploy api-domain-secondary stack (us-east-2, api-domain-secondary.yml changed)
+        if: steps.changed.outputs.api_domain_secondary_changed == 'true'
+        run: |
+          aws cloudformation deploy \
+            --stack-name micahwalter-api-domain-secondary \
+            --template-file infra/api-domain-secondary.yml \
+            --region ${{ env.AWS_REGION_SECONDARY }} \
+            --parameter-overrides HostedZoneId=Z05804121WRFHZZEYWGT5
+
+      - name: Deploy primary newsletter stack via CloudFormation (newsletter.yml changed)
+        if: steps.changed.outputs.primary_template_changed == 'true'
         run: |
           aws cloudformation deploy \
             --stack-name ${{ env.STACK_NAME }} \
@@ -95,11 +162,49 @@ jobs:
               LambdaArtifactsBucket=${{ env.ARTIFACTS_BUCKET }} \
               LambdaArtifactsKeyPrefix=${{ env.ARTIFACTS_PREFIX }}
 
-      - name: Update function code only (Go source changed)
-        if: steps.changed.outputs.template_changed == 'false'
+          # After primary deploys, refresh api-domain failover config with the
+          # (potentially new) API GW regional domain.
+          PRIMARY_API_DOMAIN=$(aws cloudformation describe-stacks \
+            --stack-name ${{ env.STACK_NAME }} \
+            --region ${{ env.AWS_REGION }} \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiRegionalDomainName'].OutputValue" \
+            --output text)
+
+          echo "Refreshing api-domain failover config with: $PRIMARY_API_DOMAIN"
+          aws cloudformation deploy \
+            --stack-name micahwalter-api-domain \
+            --template-file infra/api-domain.yml \
+            --region ${{ env.AWS_REGION }} \
+            --parameter-overrides \
+              HostedZoneId=Z05804121WRFHZZEYWGT5 \
+              PrimaryApiRegionalDomain=$PRIMARY_API_DOMAIN
+
+      - name: Deploy secondary newsletter stack via CloudFormation (newsletter-secondary.yml changed)
+        if: steps.changed.outputs.secondary_template_changed == 'true'
         run: |
-          for fn in ${{ env.FUNCTIONS }}; do
-            echo "  updating newsletter-${fn}..."
+          aws cloudformation deploy \
+            --stack-name ${{ env.STACK_NAME_SECONDARY }} \
+            --template-file infra/newsletter-secondary.yml \
+            --region ${{ env.AWS_REGION_SECONDARY }} \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              LambdaArtifactsBucket=${{ env.ARTIFACTS_BUCKET_SECONDARY }} \
+              LambdaArtifactsKeyPrefix=${{ env.ARTIFACTS_PREFIX }}
+
+      # -----------------------------------------------------------------------
+      # Lambda code-only updates (when only Go source changed, not templates)
+      # Runs in both regions for faster deploys.
+      # -----------------------------------------------------------------------
+
+      - name: Update primary function code only (Go source changed, no template change)
+        if: >
+          steps.changed.outputs.primary_template_changed == 'false' &&
+          steps.changed.outputs.secondary_template_changed == 'false' &&
+          steps.changed.outputs.api_domain_changed == 'false' &&
+          steps.changed.outputs.api_domain_secondary_changed == 'false'
+        run: |
+          for fn in ${{ env.FUNCTIONS_PRIMARY }}; do
+            echo "  updating newsletter-${fn} (us-east-1)..."
             aws lambda update-function-code \
               --function-name newsletter-${fn} \
               --s3-bucket ${{ env.ARTIFACTS_BUCKET }} \
@@ -108,12 +213,49 @@ jobs:
               --no-cli-pager
           done
 
+      - name: Update secondary function code only (Go source changed, no template change)
+        if: >
+          steps.changed.outputs.primary_template_changed == 'false' &&
+          steps.changed.outputs.secondary_template_changed == 'false' &&
+          steps.changed.outputs.api_domain_changed == 'false' &&
+          steps.changed.outputs.api_domain_secondary_changed == 'false'
+        run: |
+          for fn in ${{ env.FUNCTIONS_SECONDARY }}; do
+            echo "  updating newsletter-${fn} (us-east-2)..."
+            aws lambda update-function-code \
+              --function-name newsletter-${fn} \
+              --s3-bucket ${{ env.ARTIFACTS_BUCKET_SECONDARY }} \
+              --s3-key ${{ env.ARTIFACTS_PREFIX }}/${fn}.zip \
+              --region ${{ env.AWS_REGION_SECONDARY }} \
+              --no-cli-pager
+          done
+
+      # -----------------------------------------------------------------------
+      # Summary
+      # -----------------------------------------------------------------------
+
       - name: Deployment summary
         run: |
-          echo "Deploy mode: ${{ steps.changed.outputs.template_changed == 'true' && 'CloudFormation stack update' || 'Lambda function code update' }}"
+          PRIMARY_CHANGED="${{ steps.changed.outputs.primary_template_changed }}"
+          SECONDARY_CHANGED="${{ steps.changed.outputs.secondary_template_changed }}"
+          API_DOMAIN_CHANGED="${{ steps.changed.outputs.api_domain_changed }}"
+          API_DOMAIN_SEC_CHANGED="${{ steps.changed.outputs.api_domain_secondary_changed }}"
+
+          if [ "$PRIMARY_CHANGED" = "true" ] || [ "$SECONDARY_CHANGED" = "true" ] || \
+             [ "$API_DOMAIN_CHANGED" = "true" ] || [ "$API_DOMAIN_SEC_CHANGED" = "true" ]; then
+            echo "Deploy mode: CloudFormation stack update(s)"
+          else
+            echo "Deploy mode: Lambda function code update (both regions)"
+          fi
           echo ""
-          echo "Functions deployed:"
-          for fn in ${{ env.FUNCTIONS }}; do
+          echo "Functions deployed (primary):"
+          for fn in ${{ env.FUNCTIONS_PRIMARY }}; do
+            size=$(stat -c%s infra/newsletter-lambdas/dist/${fn}.zip 2>/dev/null || echo "?")
+            echo "  newsletter-${fn}  (${size} bytes)"
+          done
+          echo ""
+          echo "Functions deployed (secondary):"
+          for fn in ${{ env.FUNCTIONS_SECONDARY }}; do
             size=$(stat -c%s infra/newsletter-lambdas/dist/${fn}.zip 2>/dev/null || echo "?")
             echo "  newsletter-${fn}  (${size} bytes)"
           done
