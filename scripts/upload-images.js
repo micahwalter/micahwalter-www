@@ -19,6 +19,20 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// Load .env.local if present
+const envLocalPath = path.join(process.cwd(), '.env.local');
+if (fs.existsSync(envLocalPath)) {
+  const lines = fs.readFileSync(envLocalPath, 'utf8').split('\n');
+  for (const line of lines) {
+    const match = line.match(/^([^#=]+)=(.*)$/);
+    if (match) {
+      const key = match[1].trim();
+      const val = match[2].trim();
+      if (!process.env[key]) process.env[key] = val;
+    }
+  }
+}
+
 // Parse command-line arguments
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');
