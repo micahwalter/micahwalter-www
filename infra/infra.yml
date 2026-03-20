@@ -301,13 +301,11 @@ Resources:
               request.uri = '/index.html';
             } else if (uri.endsWith('/')) {
               // Redirect trailing-slash URLs to their canonical non-slash version
-              var redirectUri = uri.slice(0, -1);
-              var qs = request.querystring ? '?' + request.querystring : '';
               return {
                 statusCode: 301,
                 statusDescription: 'Moved Permanently',
                 headers: {
-                  location: { value: redirectUri + qs }
+                  location: { value: uri.slice(0, -1) }
                 }
               };
             } else {
