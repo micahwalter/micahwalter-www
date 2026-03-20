@@ -70,7 +70,9 @@ jobs:
             --exclude "*.txt"
 
           # Sync HTML, JSON, and txt files with no cache (for dynamic content)
+          # --delete removes orphaned files (e.g. posts set to draft) that are no longer in the build
           aws s3 sync out/ s3://${{ env.S3_BUCKET }}/ \
+            --delete \
             --cache-control "public, max-age=0, must-revalidate" \
             --exclude "*" \
             --include "*.html" \
