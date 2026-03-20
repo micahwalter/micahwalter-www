@@ -45,6 +45,14 @@ const commands = {
       'blog photos:tag --all --auto-approve --profile www'
     ]
   },
+  'photos:update-exif': {
+    description: 'Extract EXIF metadata from an existing photo post and update its frontmatter',
+    script: 'scripts/update-photo-exif.js',
+    examples: [
+      'blog photos:update-exif 2026-02-16-photo-img-0803',
+      'blog photos:update-exif 2026-02-16-photo-img-0803 --dry-run'
+    ]
+  },
   'images:optimize': {
     description: 'Process images into multiple sizes and formats',
     script: 'scripts/optimize-images.js',
