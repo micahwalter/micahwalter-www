@@ -1,0 +1,92 @@
+name: Deploy Infrastructure CloudFormation Stacks
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/infra.yml'
+      - 'infra/infra-secondary.yml'
+      - '.github/workflows/infra-deploy.yml'
+
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  AWS_REGION_SECONDARY: us-east-2
+
+jobs:
+  deploy:
+    name: Deploy infrastructure stacks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need previous commit to detect changed files
+
+      - name: Detect what changed
+        id: changed
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          echo "Changed files:"
+          echo "$CHANGED"
+
+          if echo "$CHANGED" | grep -q '^infra/infra\.yml$'; then
+            echo "primary_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "primary_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$CHANGED" | grep -q '^infra/infra-secondary\.yml$'; then
+            echo "secondary_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "secondary_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy primary stack (infra.yml → micahwalter-www, us-east-1)
+        if: steps.changed.outputs.primary_changed == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          aws cloudformation deploy \
+            --stack-name micahwalter-www \
+            --template-file infra/infra.yml \
+            --region ${{ env.AWS_REGION }} \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              HostedZoneId=${{ secrets.ROUTE53_HOSTED_ZONE_ID }} \
+              DomainName=micahwalter.com \
+              WWWDomainName=www.micahwalter.com
+
+      - name: Deploy secondary stack (infra-secondary.yml → micahwalter-www-secondary, us-east-2)
+        if: steps.changed.outputs.secondary_changed == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          aws cloudformation deploy \
+            --stack-name micahwalter-www-secondary \
+            --template-file infra/infra-secondary.yml \
+            --region ${{ env.AWS_REGION_SECONDARY }} \
+            --parameter-overrides \
+              CloudFrontDistributionId=${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+
+      - name: Deployment summary
+        run: |
+          PRIMARY="${{ steps.changed.outputs.primary_changed }}"
+          SECONDARY="${{ steps.changed.outputs.secondary_changed }}"
+          MANUAL="${{ github.event_name }}"
+
+          if [ "$MANUAL" = "workflow_dispatch" ]; then
+            echo "Deploy mode: manual (workflow_dispatch) — both stacks deployed"
+          else
+            [ "$PRIMARY" = "true" ]   && echo "Deployed: micahwalter-www (us-east-1)"
+            [ "$SECONDARY" = "true" ] && echo "Deployed: micahwalter-www-secondary (us-east-2)"
+          fi
