@@ -30,6 +30,7 @@ export default function PhotoLayout({ post, children }: PhotoLayoutProps) {
             priority={true}
             sizes="(max-width: 768px) 100vw, 1340px"
             zoomable={true}
+            viewportFit={true}
           />
         </div>
       )}

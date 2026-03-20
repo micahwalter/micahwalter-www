@@ -41,6 +41,8 @@ interface ResponsiveImageProps {
   height?: number;
   /** Enable zoom on click (desktop only, defaults to false) */
   zoomable?: boolean;
+  /** Constrain image to viewport height on desktop so the full image is visible without scrolling (Flickr-style) */
+  viewportFit?: boolean;
 }
 
 const SIZES = [400, 800, 1200];
@@ -70,6 +72,7 @@ export default function ResponsiveImage({
   width,
   height,
   zoomable = false,
+  viewportFit = false,
 }: ResponsiveImageProps) {
   const [isZoomed, setIsZoomed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -134,6 +137,18 @@ export default function ResponsiveImage({
     ? `${className} cursor-zoom-in hover:opacity-90 transition-opacity`
     : className;
 
+  // When viewportFit, constrain the image to viewport height on desktop so
+  // the full image (portrait or landscape) is always visible without scrolling.
+  const imgStyle = viewportFit
+    ? { width: '100%', height: 'auto' }
+    : aspectRatio
+      ? { aspectRatio: `${width} / ${height}`, width: '100%', height: 'auto' }
+      : { width: '100%', height: 'auto' };
+
+  const imgClassName = viewportFit
+    ? 'object-contain md:max-h-[calc(100vh-180px)]'
+    : 'object-cover';
+
   return (
     <>
       <picture className={pictureClassName} onClick={handleClick}>
@@ -149,16 +164,8 @@ export default function ResponsiveImage({
           alt={alt}
           loading={priority ? 'eager' : 'lazy'}
           decoding="async"
-          style={
-            aspectRatio
-              ? {
-                  aspectRatio: `${width} / ${height}`,
-                  width: '100%',
-                  height: 'auto',
-                }
-              : { width: '100%', height: 'auto' }
-          }
-          className="object-cover"
+          style={imgStyle}
+          className={imgClassName}
         />
       </picture>
 

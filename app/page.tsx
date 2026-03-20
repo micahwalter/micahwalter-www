@@ -22,6 +22,7 @@ export default function Home() {
           className="rounded-lg"
           priority={true}
           sizes="(max-width: 768px) 100vw, 1340px"
+          viewportFit={true}
         />
       </Link>
       <p className="mt-4 text-center text-charcoal">
