@@ -86,7 +86,9 @@ jobs:
 
           if [ "$MANUAL" = "workflow_dispatch" ]; then
             echo "Deploy mode: manual (workflow_dispatch) — both stacks deployed"
-          else
+          elif [ "$PRIMARY" = "true" ] || [ "$SECONDARY" = "true" ]; then
             [ "$PRIMARY" = "true" ]   && echo "Deployed: micahwalter-www (us-east-1)"
             [ "$SECONDARY" = "true" ] && echo "Deployed: micahwalter-www-secondary (us-east-2)"
+          else
+            echo "No infra templates changed — nothing deployed"
           fi
