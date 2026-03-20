@@ -300,8 +300,16 @@ Resources:
               // Root path serves index.html
               request.uri = '/index.html';
             } else if (uri.endsWith('/')) {
-              // Directory paths get index.html appended
-              request.uri = uri + 'index.html';
+              // Redirect trailing-slash URLs to their canonical non-slash version
+              var redirectUri = uri.slice(0, -1);
+              var qs = request.querystring ? '?' + request.querystring : '';
+              return {
+                statusCode: 301,
+                statusDescription: 'Moved Permanently',
+                headers: {
+                  location: { value: redirectUri + qs }
+                }
+              };
             } else {
               // All other clean URLs map to their .html equivalent.
               // If the file doesn't exist in S3, CloudFront returns 404.html.
@@ -312,7 +320,7 @@ Resources:
           return request;
         }
       FunctionConfig:
-        Comment: Routes clean URLs to static HTML files; missing files produce a 404
+        Comment: Routes clean URLs to static HTML files; redirects trailing slashes; missing files produce a 404
         Runtime: cloudfront-js-1.0
 
   # CloudFront Function for apex domain redirect to www
