@@ -27,10 +27,6 @@ export default function Home() {
           viewportFit={true}
         />
       </Link>
-      <p className="mt-4 text-center text-charcoal">
-        Please enjoy this snowy photo while the site undergoes some maintenance.
-      </p>
-
       {recentPosts.length > 0 && (
         <section className="mt-16 max-w-reading mx-auto">
           <h2 className="font-serif font-semibold text-2xl text-charcoal mb-6">
