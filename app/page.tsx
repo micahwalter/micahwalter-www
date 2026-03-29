@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { getAllPosts } from "@/lib/content";
+import { getAllPosts, getBlogPosts } from "@/lib/content";
 import { CoverImage } from "@/components/ResponsiveImage";
 
 export default function Home() {
   const posts = getAllPosts();
   const post = posts.find((p) => p.id === "126");
+
+  const recentPosts = getBlogPosts().slice(0, 5);
 
   if (!post || !post.coverImage) return null;
 
@@ -25,9 +27,43 @@ export default function Home() {
           viewportFit={true}
         />
       </Link>
-      <p className="mt-4 text-center text-charcoal">
-        Please enjoy this snowy photo while the site undergoes some maintenance.
-      </p>
+      {recentPosts.length > 0 && (
+        <section className="mt-16 max-w-reading mx-auto">
+          <h2 className="font-serif font-semibold text-2xl text-charcoal mb-6">
+            Recent Posts
+          </h2>
+          <ul className="space-y-4">
+            {recentPosts.map((p) => (
+              <li key={p.slug} className="border-b border-gray/20 pb-4">
+                <Link
+                  href={`/posts/${p.slug}`}
+                  className="group no-underline"
+                >
+                  <span className="font-serif text-lg text-charcoal group-hover:text-accent transition-colors">
+                    {p.title}
+                  </span>
+                  <span className="block text-sm text-gray mt-1">
+                    {new Date(p.publishedAt).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      timeZone: "UTC",
+                    })}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-8">
+            <Link
+              href="/posts"
+              className="font-serif text-charcoal hover:text-accent transition-colors no-underline"
+            >
+              View all posts →
+            </Link>
+          </div>
+        </section>
+      )}
     </main>
   );
 }
