@@ -4,6 +4,7 @@ const matter = require("gray-matter");
 
 const postsDirectory = path.join(process.cwd(), "content/posts");
 const outputPath = path.join(process.cwd(), "public/sitemap.xml");
+const mastodonJsonPath = path.join(process.cwd(), "public/mastodon.json");
 const baseUrl = "https://micahwalter.com";
 
 function getAllPosts() {
@@ -41,6 +42,12 @@ function getAllPosts() {
   return posts;
 }
 
+function getAllToots() {
+  if (!fs.existsSync(mastodonJsonPath)) return [];
+  const raw = fs.readFileSync(mastodonJsonPath, "utf8");
+  return JSON.parse(raw);
+}
+
 function getAllCategories() {
   const posts = getAllPosts();
   const categories = new Set(posts.map((post) => post.category));
@@ -50,6 +57,7 @@ function getAllCategories() {
 function generateSitemap() {
   const posts = getAllPosts();
   const categories = getAllCategories();
+  const toots = getAllToots();
 
   const postUrls = posts.map((post) => {
     const lastmod = new Date(post.publishedAt).toISOString().split("T")[0];
@@ -72,30 +80,51 @@ function generateSitemap() {
   </url>`;
   }).join("");
 
+  const today = new Date().toISOString().split("T")[0];
+
+  const tootUrls = toots.map((toot) => {
+    const lastmod = new Date(toot.createdAt).toISOString().split("T")[0];
+    return `
+  <url>
+    <loc>${baseUrl}/micro/${toot.id}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>never</changefreq>
+    <priority>0.4</priority>
+  </url>`;
+  }).join("");
+
+  const microIndexUrl = toots.length > 0 ? `
+  <url>
+    <loc>${baseUrl}/micro</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>` : "";
+
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>${baseUrl}</loc>
-    <lastmod>${new Date().toISOString().split("T")[0]}</lastmod>
+    <lastmod>${today}</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>${baseUrl}/about</loc>
-    <lastmod>${new Date().toISOString().split("T")[0]}</lastmod>
+    <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>${baseUrl}/sketches</loc>
-    <lastmod>${new Date().toISOString().split("T")[0]}</lastmod>
+    <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
-  </url>${postUrls}${categoryUrls}
+  </url>${microIndexUrl}${postUrls}${categoryUrls}${tootUrls}
 </urlset>`;
 
   fs.writeFileSync(outputPath, sitemap);
-  console.log(`Generated ${outputPath} with ${posts.length} posts and ${categories.length} categories`);
+  console.log(`Generated ${outputPath} with ${posts.length} posts, ${categories.length} categories, and ${toots.length} toots`);
 }
 
 generateSitemap();
