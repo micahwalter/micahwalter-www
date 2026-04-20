@@ -115,6 +115,20 @@ pre .hljs-deletion {
   }
 }
 
+/* Mastodon toot HTML content */
+.toot-content p {
+  margin-bottom: 0.75em;
+}
+
+.toot-content p:last-child {
+  margin-bottom: 0;
+}
+
+.toot-content a.mention,
+.toot-content a.hashtag {
+  text-decoration-color: #F5B684;
+}
+
 /* Image zoom animations */
 @keyframes fadeIn {
   from {
