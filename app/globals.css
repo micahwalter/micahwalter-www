@@ -116,6 +116,12 @@ pre .hljs-deletion {
 }
 
 /* Mastodon toot HTML content */
+.toot-content {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
+}
+
 .toot-content p {
   margin-bottom: 0.75em;
 }
