@@ -32,9 +32,14 @@ interface Props {
 
 export default function GalleryViewer({ photos }: Props) {
   const [index, setIndex] = useState<number | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const thumbsRef = useRef<HTMLDivElement>(null);
+  const lightboxRef = useRef<HTMLDivElement>(null);
 
-  const close = useCallback(() => setIndex(null), []);
+  const close = useCallback(() => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    setIndex(null);
+  }, []);
   const prev = useCallback(
     () => setIndex((i) => (i !== null && i > 0 ? i - 1 : i)),
     []
@@ -43,21 +48,32 @@ export default function GalleryViewer({ photos }: Props) {
     () => setIndex((i) => (i !== null && i < photos.length - 1 ? i + 1 : i)),
     [photos.length]
   );
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      lightboxRef.current?.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  }, []);
 
   useEffect(() => {
     if (index === null) return;
     const handle = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      if (e.key === "Escape" && !document.fullscreenElement) close();
       if (e.key === "ArrowLeft") prev();
       if (e.key === "ArrowRight") next();
+      if (e.key === "f" || e.key === "F") toggleFullscreen();
     };
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("keydown", handle);
+    document.addEventListener("fullscreenchange", onFsChange);
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", handle);
+      document.removeEventListener("fullscreenchange", onFsChange);
       document.body.style.overflow = "";
     };
-  }, [index, close, prev, next]);
+  }, [index, close, prev, next, toggleFullscreen]);
 
   // Keep active thumbnail scrolled into view
   useEffect(() => {
@@ -146,7 +162,7 @@ export default function GalleryViewer({ photos }: Props) {
 
       {/* ── Lightbox ───────────────────────────────────────────────── */}
       {index !== null && current && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-charcoal/[0.97]">
+        <div ref={lightboxRef} className="fixed inset-0 z-50 flex flex-col bg-charcoal/[0.97]">
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 flex-shrink-0">
             <div className="min-w-0 mr-4">
@@ -157,13 +173,31 @@ export default function GalleryViewer({ photos }: Props) {
                 {index + 1} / {photos.length}
               </span>
             </div>
-            <button
-              onClick={close}
-              className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-cream/60 hover:text-cream hover:bg-cream/10 transition-colors text-2xl font-light"
-              aria-label="Close viewer"
-            >
-              ×
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={toggleFullscreen}
+                className="w-9 h-9 flex items-center justify-center rounded-full text-cream/60 hover:text-cream hover:bg-cream/10 transition-colors"
+                aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                title={isFullscreen ? "Exit fullscreen (F)" : "Fullscreen (F)"}
+              >
+                {isFullscreen ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={close}
+                className="w-9 h-9 flex items-center justify-center rounded-full text-cream/60 hover:text-cream hover:bg-cream/10 transition-colors text-2xl font-light"
+                aria-label="Close viewer"
+              >
+                ×
+              </button>
+            </div>
           </div>
 
           {/* Image + arrows */}
