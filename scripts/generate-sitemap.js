@@ -3,6 +3,7 @@ const path = require("path");
 const matter = require("gray-matter");
 
 const postsDirectory = path.join(process.cwd(), "content/posts");
+const galleriesDirectory = path.join(process.cwd(), "content/galleries");
 const outputPath = path.join(process.cwd(), "public/sitemap.xml");
 const mastodonJsonPath = path.join(process.cwd(), "public/mastodon.json");
 const baseUrl = "https://micahwalter.com";
@@ -42,6 +43,24 @@ function getAllPosts() {
   return posts;
 }
 
+function getAllGalleries() {
+  if (!fs.existsSync(galleriesDirectory)) return [];
+
+  return fs.readdirSync(galleriesDirectory)
+    .filter((folder) => fs.statSync(path.join(galleriesDirectory, folder)).isDirectory())
+    .map((folder) => {
+      const fullPath = path.join(galleriesDirectory, folder, "index.mdx");
+      if (!fs.existsSync(fullPath)) return null;
+      const { data } = matter(fs.readFileSync(fullPath, "utf8"));
+      return {
+        slug: data.slug || folder,
+        publishedAt: data.publishedAt || "",
+        draft: data.draft || false,
+      };
+    })
+    .filter((g) => g !== null && !g.draft);
+}
+
 function getAllToots() {
   if (!fs.existsSync(mastodonJsonPath)) return [];
   const raw = fs.readFileSync(mastodonJsonPath, "utf8");
@@ -57,6 +76,7 @@ function getAllCategories() {
 function generateSitemap() {
   const posts = getAllPosts();
   const categories = getAllCategories();
+  const galleries = getAllGalleries();
   const toots = getAllToots();
 
   const postUrls = posts.map((post) => {
@@ -93,6 +113,25 @@ function generateSitemap() {
   </url>`;
   }).join("");
 
+  const galleryIndexUrl = `
+  <url>
+    <loc>${baseUrl}/galleries</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+
+  const galleryUrls = galleries.map((gallery) => {
+    const lastmod = new Date(gallery.publishedAt).toISOString().split("T")[0];
+    return `
+  <url>
+    <loc>${baseUrl}/galleries/${gallery.slug}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+  }).join("");
+
   const microIndexUrl = toots.length > 0 ? `
   <url>
     <loc>${baseUrl}/micro</loc>
@@ -120,11 +159,11 @@ function generateSitemap() {
     <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
-  </url>${microIndexUrl}${postUrls}${categoryUrls}${tootUrls}
+  </url>${galleryIndexUrl}${galleryUrls}${microIndexUrl}${postUrls}${categoryUrls}${tootUrls}
 </urlset>`;
 
   fs.writeFileSync(outputPath, sitemap);
-  console.log(`Generated ${outputPath} with ${posts.length} posts, ${categories.length} categories, and ${toots.length} toots`);
+  console.log(`Generated ${outputPath} with ${posts.length} posts, ${categories.length} categories, ${galleries.length} galleries, and ${toots.length} toots`);
 }
 
 generateSitemap();
