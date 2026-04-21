@@ -67,6 +67,14 @@ export default function MobileMenu({ isOpen, onClose, onSearchOpen }: MobileMenu
             </Link>
 
             <Link
+              href="/galleries"
+              onClick={onClose}
+              className="block px-4 py-3 text-lg text-charcoal no-underline hover:bg-charcoal/5 rounded-lg transition-colors"
+            >
+              Galleries
+            </Link>
+
+            <Link
               href="/micro"
               onClick={onClose}
               className="block px-4 py-3 text-lg text-charcoal no-underline hover:bg-charcoal/5 rounded-lg transition-colors"
