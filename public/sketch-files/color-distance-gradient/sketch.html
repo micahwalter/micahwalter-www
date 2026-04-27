@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <!-- Fathom - beautiful, simple website analytics -->
+    <script src="https://cdn.usefathom.com/script.js" data-site="BQSMBQKX" defer></script>
+    <!-- / Fathom -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            pixelDensity(1);
+            noLoop();
+        }
+
+        function draw() {
+            loadPixels();
+            
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const maxDist = dist(0, 0, centerX, centerY);
+            
+            // Define center and edge colors (RGB values)
+            const centerColor = {r: 255, g: 0, b: 128};    // Pink
+            const edgeColor = {r: 0, g: 255, b: 255};      // Cyan
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const d = dist(x, y, centerX, centerY);
+                    const ratio = d / maxDist;  // How far we are from center (0 to 1)
+                    
+                    // Interpolate between center and edge colors
+                    const r = lerp(centerColor.r, edgeColor.r, ratio);
+                    const g = lerp(centerColor.g, edgeColor.g, ratio);
+                    const b = lerp(centerColor.b, edgeColor.b, ratio);
+                    
+                    const idx = (x + y * width) * 4;
+                    pixels[idx] = r;     // R
+                    pixels[idx + 1] = g; // G
+                    pixels[idx + 2] = b; // B
+                    pixels[idx + 3] = 255;  // A
+                }
+            }
+            
+            updatePixels();
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+            draw();
+        }
+    </script>
+
+    <!-- Footer Navigation -->
+    <div id="sketch-footer" style="
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+        padding: 12px 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 24px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        z-index: 1000;
+    ">
+        <a href="index.html" style="color: #fff; text-decoration: none; opacity: 0.9; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">← Home</a>
+        <a id="github-source-link" href="#" style="color: #fff; text-decoration: none; opacity: 0.9; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">View Source</a>
+        <a href="https://micahwalter.com" target="_blank" rel="noopener" style="color: #fff; text-decoration: none; opacity: 0.9; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">micahwalter.com →</a>
+    </div>
+    <script>
+        // Set GitHub source link dynamically
+        (function() {
+            const filename = window.location.pathname.split('/').pop();
+            const githubLink = document.getElementById('github-source-link');
+            githubLink.href = `https://github.com/micahwalter/sketches/blob/main/${filename}`;
+        })();
+    </script>
+</body>
+</html>

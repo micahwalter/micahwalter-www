@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vim Cheatsheet</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'EB Garamond', Georgia, serif;
+    background: #fafaf2;
+    color: #191919;
+    padding: 2rem 1.5rem 3rem;
+    line-height: 1.5;
+  }
+
+  h1 {
+    font-size: 2.25rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  .subtitle {
+    color: #5f5f5f;
+    font-size: 1.05rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.75rem;
+  }
+
+  section {
+    border: 1px solid rgba(25,25,25,0.12);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem 1.5rem;
+  }
+
+  section h2 {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #5f5f5f;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(25,25,25,0.08);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  tr + tr td { padding-top: 0.4rem; }
+
+  td:first-child {
+    width: 45%;
+    padding-right: 1rem;
+    vertical-align: top;
+  }
+
+  kbd {
+    font-family: 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
+    font-size: 0.78rem;
+    background: #191919;
+    color: #fafaf2;
+    padding: 0.15em 0.45em;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  td:last-child {
+    color: #5f5f5f;
+    vertical-align: top;
+    font-size: 0.88rem;
+  }
+
+  footer {
+    margin-top: 2.5rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #5f5f5f;
+  }
+</style>
+</head>
+<body>
+
+<h1>Vim Cheatsheet</h1>
+<p class="subtitle">Essential commands for everyday editing</p>
+
+<div class="grid">
+
+  <section>
+    <h2>Modes</h2>
+    <table>
+      <tr><td><kbd>i</kbd></td><td>Insert before cursor</td></tr>
+      <tr><td><kbd>I</kbd></td><td>Insert at line start</td></tr>
+      <tr><td><kbd>a</kbd></td><td>Append after cursor</td></tr>
+      <tr><td><kbd>A</kbd></td><td>Append at line end</td></tr>
+      <tr><td><kbd>o</kbd></td><td>Open new line below</td></tr>
+      <tr><td><kbd>O</kbd></td><td>Open new line above</td></tr>
+      <tr><td><kbd>v</kbd></td><td>Visual (character)</td></tr>
+      <tr><td><kbd>V</kbd></td><td>Visual (line)</td></tr>
+      <tr><td><kbd>Ctrl-v</kbd></td><td>Visual (block)</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Return to Normal</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Navigation</h2>
+    <table>
+      <tr><td><kbd>h</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>l</kbd></td><td>← ↓ ↑ →</td></tr>
+      <tr><td><kbd>w</kbd> / <kbd>b</kbd></td><td>Next / prev word</td></tr>
+      <tr><td><kbd>W</kbd> / <kbd>B</kbd></td><td>Next / prev WORD</td></tr>
+      <tr><td><kbd>e</kbd> / <kbd>ge</kbd></td><td>End of next / prev word</td></tr>
+      <tr><td><kbd>0</kbd> / <kbd>^</kbd></td><td>Line start / first non-blank</td></tr>
+      <tr><td><kbd>$</kbd></td><td>Line end</td></tr>
+      <tr><td><kbd>gg</kbd> / <kbd>G</kbd></td><td>File start / end</td></tr>
+      <tr><td><kbd>{</kbd> / <kbd>}</kbd></td><td>Prev / next paragraph</td></tr>
+      <tr><td><kbd>Ctrl-d</kbd> / <kbd>Ctrl-u</kbd></td><td>Scroll half page</td></tr>
+      <tr><td><kbd>%</kbd></td><td>Jump to matching bracket</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Editing</h2>
+    <table>
+      <tr><td><kbd>x</kbd></td><td>Delete char under cursor</td></tr>
+      <tr><td><kbd>dd</kbd></td><td>Delete line</td></tr>
+      <tr><td><kbd>D</kbd></td><td>Delete to end of line</td></tr>
+      <tr><td><kbd>cc</kbd></td><td>Change (replace) line</td></tr>
+      <tr><td><kbd>C</kbd></td><td>Change to end of line</td></tr>
+      <tr><td><kbd>yy</kbd></td><td>Yank (copy) line</td></tr>
+      <tr><td><kbd>p</kbd> / <kbd>P</kbd></td><td>Paste after / before</td></tr>
+      <tr><td><kbd>u</kbd> / <kbd>Ctrl-r</kbd></td><td>Undo / redo</td></tr>
+      <tr><td><kbd>.`</kbd></td><td>Repeat last change</td></tr>
+      <tr><td><kbd>~</kbd></td><td>Toggle case</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Operators + Motions</h2>
+    <table>
+      <tr><td><kbd>d</kbd><kbd>w</kbd></td><td>Delete word</td></tr>
+      <tr><td><kbd>c</kbd><kbd>w</kbd></td><td>Change word</td></tr>
+      <tr><td><kbd>y</kbd><kbd>w</kbd></td><td>Yank word</td></tr>
+      <tr><td><kbd>d</kbd><kbd>i</kbd><kbd>w</kbd></td><td>Delete inner word</td></tr>
+      <tr><td><kbd>c</kbd><kbd>i</kbd><kbd>"</kbd></td><td>Change inside quotes</td></tr>
+      <tr><td><kbd>d</kbd><kbd>a</kbd><kbd>(</kbd></td><td>Delete around parens</td></tr>
+      <tr><td><kbd>y</kbd><kbd>i</kbd><kbd>p</kbd></td><td>Yank inner paragraph</td></tr>
+      <tr><td><kbd>g</kbd><kbd>u</kbd><kbd>w</kbd></td><td>Lowercase word</td></tr>
+      <tr><td><kbd>g</kbd><kbd>U</kbd><kbd>w</kbd></td><td>Uppercase word</td></tr>
+      <tr><td><kbd>&gt;</kbd><kbd>&gt;</kbd> / <kbd>&lt;</kbd><kbd>&lt;</kbd></td><td>Indent / dedent line</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Search &amp; Replace</h2>
+    <table>
+      <tr><td><kbd>/</kbd><em>pattern</em></td><td>Search forward</td></tr>
+      <tr><td><kbd>?</kbd><em>pattern</em></td><td>Search backward</td></tr>
+      <tr><td><kbd>n</kbd> / <kbd>N</kbd></td><td>Next / prev match</td></tr>
+      <tr><td><kbd>*</kbd> / <kbd>#</kbd></td><td>Search word under cursor →/←</td></tr>
+      <tr><td><kbd>:%s/old/new/g</kbd></td><td>Replace all in file</td></tr>
+      <tr><td><kbd>:%s/old/new/gc</kbd></td><td>Replace with confirmation</td></tr>
+      <tr><td><kbd>:s/old/new/</kbd></td><td>Replace on current line</td></tr>
+      <tr><td><kbd>:noh</kbd></td><td>Clear search highlight</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Files &amp; Buffers</h2>
+    <table>
+      <tr><td><kbd>:w</kbd></td><td>Save file</td></tr>
+      <tr><td><kbd>:q</kbd></td><td>Quit</td></tr>
+      <tr><td><kbd>:wq</kbd> / <kbd>ZZ</kbd></td><td>Save and quit</td></tr>
+      <tr><td><kbd>:q!</kbd></td><td>Quit without saving</td></tr>
+      <tr><td><kbd>:e</kbd> <em>file</em></td><td>Open file</td></tr>
+      <tr><td><kbd>:bn</kbd> / <kbd>:bp</kbd></td><td>Next / prev buffer</td></tr>
+      <tr><td><kbd>:ls</kbd></td><td>List buffers</td></tr>
+      <tr><td><kbd>:bd</kbd></td><td>Delete (close) buffer</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Windows &amp; Splits</h2>
+    <table>
+      <tr><td><kbd>Ctrl-w s</kbd></td><td>Horizontal split</td></tr>
+      <tr><td><kbd>Ctrl-w v</kbd></td><td>Vertical split</td></tr>
+      <tr><td><kbd>Ctrl-w w</kbd></td><td>Cycle windows</td></tr>
+      <tr><td><kbd>Ctrl-w h/j/k/l</kbd></td><td>Move between windows</td></tr>
+      <tr><td><kbd>Ctrl-w =</kbd></td><td>Equalize window sizes</td></tr>
+      <tr><td><kbd>Ctrl-w q</kbd></td><td>Close window</td></tr>
+      <tr><td><kbd>:tabnew</kbd></td><td>Open new tab</td></tr>
+      <tr><td><kbd>gt</kbd> / <kbd>gT</kbd></td><td>Next / prev tab</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Marks &amp; Jumps</h2>
+    <table>
+      <tr><td><kbd>m</kbd><em>a</em></td><td>Set mark <em>a</em></td></tr>
+      <tr><td><kbd>`</kbd><em>a</em></td><td>Jump to mark <em>a</em></td></tr>
+      <tr><td><kbd>''</kbd></td><td>Jump to last position</td></tr>
+      <tr><td><kbd>Ctrl-o</kbd> / <kbd>Ctrl-i</kbd></td><td>Older / newer jump</td></tr>
+      <tr><td><kbd>:</kbd><em>n</em></td><td>Go to line <em>n</em></td></tr>
+      <tr><td><kbd>H</kbd> / <kbd>M</kbd> / <kbd>L</kbd></td><td>Top / middle / bottom of screen</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Macros &amp; Registers</h2>
+    <table>
+      <tr><td><kbd>q</kbd><em>a</em></td><td>Record macro into register <em>a</em></td></tr>
+      <tr><td><kbd>q</kbd></td><td>Stop recording</td></tr>
+      <tr><td><kbd>@</kbd><em>a</em></td><td>Play macro <em>a</em></td></tr>
+      <tr><td><kbd>@@</kbd></td><td>Repeat last macro</td></tr>
+      <tr><td><kbd>"</kbd><em>a</em><kbd>yy</kbd></td><td>Yank line into register <em>a</em></td></tr>
+      <tr><td><kbd>"</kbd><em>a</em><kbd>p</kbd></td><td>Paste from register <em>a</em></td></tr>
+      <tr><td><kbd>:reg</kbd></td><td>Show all registers</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Useful Tricks</h2>
+    <table>
+      <tr><td><kbd>Ctrl-a</kbd> / <kbd>Ctrl-x</kbd></td><td>Increment / decrement number</td></tr>
+      <tr><td><kbd>J</kbd></td><td>Join line with next</td></tr>
+      <tr><td><kbd>gd</kbd></td><td>Go to local definition</td></tr>
+      <tr><td><kbd>K</kbd></td><td>Keyword lookup (man page)</td></tr>
+      <tr><td><kbd>:sort</kbd></td><td>Sort selected lines</td></tr>
+      <tr><td><kbd>:!</kbd><em>cmd</em></td><td>Run shell command</td></tr>
+      <tr><td><kbd>gg=G</kbd></td><td>Auto-indent entire file</td></tr>
+      <tr><td><kbd>Ctrl-n</kbd></td><td>Autocomplete (insert mode)</td></tr>
+    </table>
+  </section>
+
+</div>
+
+<footer>micahwalter.com &mdash; press <kbd>Esc</kbd> :)</footer>
+
+</body>
+</html>

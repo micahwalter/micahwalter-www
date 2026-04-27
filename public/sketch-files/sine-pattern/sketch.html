@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Sinusoidal Test Pattern</title>
+    <!-- Fathom - beautiful, simple website analytics -->
+    <script src="https://cdn.usefathom.com/script.js" data-site="BQSMBQKX" defer></script>
+    <!-- / Fathom -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        #controls {
+            padding: 20px;
+            background: #333;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #canvas-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div class="control-group">
+            <label for="frequency">Frequency:</label>
+            <input type="range" id="frequency" min="1" max="50" value="10" step="1">
+            <span id="freq-value">10</span>
+        </div>
+        <div class="control-group">
+            <label for="amplitude">Amplitude:</label>
+            <input type="range" id="amplitude" min="0" max="255" value="127" step="1">
+            <span id="amp-value">127</span>
+        </div>
+    </div>
+    <div id="canvas-container"></div>
+
+    <script>
+        let frequency = 10;
+        let amplitude = 127;
+
+        function setup() {
+            const canvas = createCanvas(windowWidth, windowHeight - document.getElementById('controls').offsetHeight);
+            canvas.parent('canvas-container');
+            pixelDensity(1);
+            noStroke();
+            
+            // Add event listeners for controls
+            document.getElementById('frequency').addEventListener('input', (e) => {
+                frequency = parseInt(e.target.value);
+                document.getElementById('freq-value').textContent = frequency;
+            });
+            
+            document.getElementById('amplitude').addEventListener('input', (e) => {
+                amplitude = parseInt(e.target.value);
+                document.getElementById('amp-value').textContent = amplitude;
+            });
+        }
+
+        function draw() {
+            background(0);
+            loadPixels();
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const normalizedX = (x / width) * frequency * TWO_PI;
+                    
+                    // Calculate sine wave value (-1 to 1)
+                    const sineValue = sin(normalizedX);
+                    
+                    // Convert to pixel value (0 to 255)
+                    const pixelValue = 128 + (sineValue * amplitude);
+                    
+                    // Calculate pixel index
+                    const idx = 4 * (y * width + x);
+                    pixels[idx] = pixelValue;     // R
+                    pixels[idx + 1] = pixelValue; // G
+                    pixels[idx + 2] = pixelValue; // B
+                    pixels[idx + 3] = 255;        // A
+                }
+            }
+            
+            updatePixels();
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight - document.getElementById('controls').offsetHeight);
+        }
+    </script>
+
+    <!-- Footer Navigation -->
+    <div id="sketch-footer" style="
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+        padding: 12px 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 24px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        z-index: 1000;
+    ">
+        <a href="index.html" style="color: #fff; text-decoration: none; opacity: 0.9; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">← Home</a>
+        <a id="github-source-link" href="#" style="color: #fff; text-decoration: none; opacity: 0.9; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">View Source</a>
+        <a href="https://micahwalter.com" target="_blank" rel="noopener" style="color: #fff; text-decoration: none; opacity: 0.9; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">micahwalter.com →</a>
+    </div>
+    <script>
+        // Set GitHub source link dynamically
+        (function() {
+            const filename = window.location.pathname.split('/').pop();
+            const githubLink = document.getElementById('github-source-link');
+            githubLink.href = `https://github.com/micahwalter/sketches/blob/main/${filename}`;
+        })();
+    </script>
+</body>
+</html>

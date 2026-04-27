@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Electrical Panel Manager</title>
+    <!-- Fathom - beautiful, simple website analytics -->
+    <script src="https://cdn.usefathom.com/script.js" data-site="BQSMBQKX" defer></script>
+    <!-- / Fathom -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        * {
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Icon components using inline SVG
+        const Settings = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M12 1v6m0 6v6m-9-9h6m6 0h6"></path>
+                <path d="M4.22 4.22l1.42 1.42m12.72 0l1.42-1.42M4.22 19.78l1.42-1.42m12.72 0l1.42 1.42"></path>
+            </svg>
+        );
+
+        const Plus = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        );
+
+        const Minus = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        );
+
+        const Zap = ({ size = 24, color = "currentColor" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+        );
+
+        const ZapOff = ({ size = 24, color = "currentColor" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="12.41 6.75 13 2 10.57 4.92"></polyline>
+                <polyline points="18.57 12.91 21 10 15.66 10"></polyline>
+                <polyline points="8 8 3 14 12 14 11 22 16 16"></polyline>
+                <line x1="2" y1="2" x2="22" y2="22"></line>
+            </svg>
+        );
+
+        const Edit2 = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+            </svg>
+        );
+
+        const Share2 = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+        );
+
+        const Check = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+        );
+
+        // Encode/decode state to/from URL
+        const encodeState = (breakers, totalBreakers) => {
+            const state = { breakers, totalBreakers };
+            const json = JSON.stringify(state);
+            return btoa(encodeURIComponent(json));
+        };
+
+        const decodeState = (encoded) => {
+            try {
+                const json = decodeURIComponent(atob(encoded));
+                return JSON.parse(json);
+            } catch (e) {
+                return null;
+            }
+        };
+
+        const getInitialState = () => {
+            const hash = window.location.hash.slice(1);
+            if (hash) {
+                const decoded = decodeState(hash);
+                if (decoded) {
+                    return decoded;
+                }
+            }
+
+            const initial = [];
+            for (let i = 1; i <= 20; i++) {
+                initial.push({
+                    id: i,
+                    number: i,
+                    amps: i % 2 === 0 ? 20 : 15,
+                    label: '',
+                    isOn: true,
+                    isDouble: false,
+                    side: i % 2 === 0 ? 'right' : 'left'
+                });
+            }
+            return { breakers: initial, totalBreakers: 20 };
+        };
+
+        const BreakerComponent = ({
+            breaker,
+            nextBreaker,
+            side,
+            onToggle,
+            onEdit,
+            onMakeDouble,
+            isEditing,
+            onUpdate,
+            onCloseEdit
+        }) => {
+            const [editAmps, setEditAmps] = useState(breaker.amps);
+            const [editLabel, setEditLabel] = useState(breaker.label);
+
+            const isDouble = breaker.isDouble && nextBreaker;
+            const isMobile = window.innerWidth < 640;
+            const height = isDouble ? (isMobile ? '108px' : '128px') : (isMobile ? '50px' : '60px');
+            const switchWidth = isMobile ? '50px' : '60px';
+
+            const handleSave = () => {
+                onUpdate({ amps: parseInt(editAmps) || 15, label: editLabel });
+                onCloseEdit();
+            };
+
+            return (
+                <>
+                    {isEditing && (
+                        <>
+                            <div
+                                onClick={onCloseEdit}
+                                style={{
+                                    position: 'fixed',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    background: 'rgba(0, 0, 0, 0.7)',
+                                    zIndex: 1000,
+                                    backdropFilter: 'blur(4px)'
+                                }}
+                            />
+
+                            <div style={{
+                                position: 'fixed',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                background: '#1f2937',
+                                padding: 'clamp(1rem, 3vw, 1.5rem)',
+                                borderRadius: '0.75rem',
+                                border: '2px solid #3b82f6',
+                                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(59, 130, 246, 0.2)',
+                                zIndex: 1001,
+                                minWidth: 'min(300px, 90vw)',
+                                maxWidth: '400px'
+                            }}>
+                                <h3 style={{
+                                    margin: '0 0 1rem',
+                                    fontSize: 'clamp(1rem, 3vw, 1.1rem)',
+                                    fontWeight: '600',
+                                    color: '#60a5fa'
+                                }}>
+                                    Edit Breaker #{breaker.number}
+                                </h3>
+
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <label style={{
+                                        fontSize: 'clamp(0.8rem, 2vw, 0.85rem)',
+                                        color: '#9ca3af',
+                                        display: 'block',
+                                        marginBottom: '0.5rem',
+                                        fontWeight: '500'
+                                    }}>
+                                        Amp Rating:
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={editAmps}
+                                        onChange={(e) => setEditAmps(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: 'clamp(0.625rem, 2vw, 0.75rem)',
+                                            background: '#374151',
+                                            border: '1px solid #4b5563',
+                                            borderRadius: '0.5rem',
+                                            color: 'white',
+                                            fontSize: 'clamp(0.95rem, 2.5vw, 1rem)',
+                                            fontFamily: "'JetBrains Mono', monospace",
+                                            fontWeight: '600'
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ marginBottom: '1.5rem' }}>
+                                    <label style={{
+                                        fontSize: 'clamp(0.8rem, 2vw, 0.85rem)',
+                                        color: '#9ca3af',
+                                        display: 'block',
+                                        marginBottom: '0.5rem',
+                                        fontWeight: '500'
+                                    }}>
+                                        Label:
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={editLabel}
+                                        onChange={(e) => setEditLabel(e.target.value)}
+                                        placeholder="e.g., Kitchen Outlets"
+                                        style={{
+                                            width: '100%',
+                                            padding: 'clamp(0.625rem, 2vw, 0.75rem)',
+                                            background: '#374151',
+                                            border: '1px solid #4b5563',
+                                            borderRadius: '0.5rem',
+                                            color: 'white',
+                                            fontSize: 'clamp(0.9rem, 2.5vw, 0.95rem)'
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                    <button
+                                        onClick={handleSave}
+                                        style={{
+                                            flex: 1,
+                                            padding: 'clamp(0.75rem, 2vw, 0.875rem)',
+                                            background: '#3b82f6',
+                                            border: 'none',
+                                            borderRadius: '0.5rem',
+                                            color: 'white',
+                                            fontSize: 'clamp(0.9rem, 2.5vw, 0.95rem)',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onMouseOver={(e) => e.target.style.background = '#2563eb'}
+                                        onMouseOut={(e) => e.target.style.background = '#3b82f6'}
+                                    >
+                                        Save
+                                    </button>
+                                    <button
+                                        onClick={onCloseEdit}
+                                        style={{
+                                            flex: 1,
+                                            padding: 'clamp(0.75rem, 2vw, 0.875rem)',
+                                            background: '#4b5563',
+                                            border: 'none',
+                                            borderRadius: '0.5rem',
+                                            color: 'white',
+                                            fontSize: 'clamp(0.9rem, 2.5vw, 0.95rem)',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onMouseOver={(e) => e.target.style.background = '#6b7280'}
+                                        onMouseOut={(e) => e.target.style.background = '#4b5563'}
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: side === 'left' ? 'row' : 'row-reverse',
+                        gap: 'clamp(0.375rem, 1.5vw, 0.75rem)',
+                        alignItems: 'flex-start',
+                        height: height,
+                        transition: 'all 0.3s'
+                    }}>
+                        <div style={{
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.25rem',
+                            justifyContent: 'center',
+                            height: '100%',
+                            minWidth: 0
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 'clamp(0.25rem, 1vw, 0.5rem)',
+                                justifyContent: side === 'left' ? 'flex-end' : 'flex-start',
+                                flexWrap: 'wrap'
+                            }}>
+                                <span style={{
+                                    fontFamily: "'JetBrains Mono', monospace",
+                                    fontSize: 'clamp(0.75rem, 2vw, 0.95rem)',
+                                    fontWeight: '700',
+                                    color: breaker.isOn ? '#22c55e' : '#6b7280',
+                                    whiteSpace: 'nowrap'
+                                }}>
+                                    #{breaker.number} {isDouble && nextBreaker && `• #${nextBreaker.number}`}
+                                </span>
+                                <span style={{
+                                    background: breaker.isOn ? '#065f46' : '#374151',
+                                    padding: '0.125rem clamp(0.375rem, 1.5vw, 0.5rem)',
+                                    borderRadius: '0.25rem',
+                                    fontSize: 'clamp(0.65rem, 1.8vw, 0.75rem)',
+                                    fontWeight: '700',
+                                    fontFamily: "'JetBrains Mono', monospace",
+                                    color: breaker.isOn ? '#34d399' : '#9ca3af',
+                                    whiteSpace: 'nowrap'
+                                }}>
+                                    {breaker.amps}A
+                                </span>
+                            </div>
+                            <div style={{
+                                fontSize: 'clamp(0.7rem, 2vw, 0.8rem)',
+                                color: '#9ca3af',
+                                textAlign: side === 'left' ? 'right' : 'left',
+                                minHeight: '1.2em',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                            }}>
+                                {breaker.label || 'Unlabeled'}
+                            </div>
+                            <div style={{
+                                display: 'flex',
+                                gap: 'clamp(0.25rem, 1vw, 0.375rem)',
+                                justifyContent: side === 'left' ? 'flex-end' : 'flex-start',
+                                marginTop: '0.25rem',
+                                flexWrap: 'wrap'
+                            }}>
+                                <button
+                                    onClick={onEdit}
+                                    style={{
+                                        padding: 'clamp(0.25rem, 1vw, 0.25rem) clamp(0.4rem, 1.5vw, 0.5rem)',
+                                        background: '#374151',
+                                        border: 'none',
+                                        borderRadius: '0.25rem',
+                                        color: '#9ca3af',
+                                        fontSize: 'clamp(0.6rem, 1.8vw, 0.7rem)',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.25rem',
+                                        fontWeight: '600',
+                                        minHeight: '28px'
+                                    }}
+                                >
+                                    <Edit2 size={isMobile ? 9 : 10} />
+                                    Edit
+                                </button>
+                                <button
+                                    onClick={onMakeDouble}
+                                    style={{
+                                        padding: 'clamp(0.25rem, 1vw, 0.25rem) clamp(0.4rem, 1.5vw, 0.5rem)',
+                                        background: breaker.isDouble ? '#3b82f6' : '#374151',
+                                        border: 'none',
+                                        borderRadius: '0.25rem',
+                                        color: breaker.isDouble ? 'white' : '#9ca3af',
+                                        fontSize: 'clamp(0.6rem, 1.8vw, 0.7rem)',
+                                        cursor: 'pointer',
+                                        fontWeight: '700',
+                                        fontFamily: "'JetBrains Mono', monospace",
+                                        minHeight: '28px'
+                                    }}
+                                >
+                                    2P
+                                </button>
+                            </div>
+                        </div>
+
+                        <div
+                            onClick={onToggle}
+                            style={{
+                                width: switchWidth,
+                                height: height,
+                                background: breaker.isOn
+                                    ? 'linear-gradient(135deg, #1f2937 0%, #111827 100%)'
+                                    : 'linear-gradient(135deg, #374151 0%, #1f2937 100%)',
+                                borderRadius: '0.5rem',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 'clamp(0.25rem, 1vw, 0.5rem)',
+                                cursor: 'pointer',
+                                border: breaker.isOn ? '2px solid #22c55e' : '2px solid #4b5563',
+                                boxShadow: breaker.isOn
+                                    ? '0 4px 16px rgba(34, 197, 94, 0.3), inset 0 2px 4px rgba(0,0,0,0.3)'
+                                    : '0 2px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(0,0,0,0.3)',
+                                transition: 'all 0.3s',
+                                position: 'relative',
+                                overflow: 'hidden',
+                                minWidth: '44px',
+                                flexShrink: 0
+                            }}
+                        >
+                            <div style={{
+                                position: 'absolute',
+                                top: isMobile ? '6px' : '8px',
+                                width: isMobile ? '6px' : '8px',
+                                height: isMobile ? '6px' : '8px',
+                                borderRadius: '50%',
+                                background: breaker.isOn ? '#22c55e' : '#4b5563',
+                                boxShadow: breaker.isOn ? '0 0 12px #22c55e' : 'none',
+                                transition: 'all 0.3s'
+                            }} />
+
+                            {breaker.isOn ? <Zap size={isMobile ? 20 : 24} color="#22c55e" /> : <ZapOff size={isMobile ? 20 : 24} color="#6b7280" />}
+
+                            <div style={{
+                                fontSize: 'clamp(0.6rem, 1.8vw, 0.65rem)',
+                                fontWeight: '700',
+                                color: breaker.isOn ? '#22c55e' : '#6b7280',
+                                fontFamily: "'JetBrains Mono', monospace",
+                                letterSpacing: '0.05em'
+                            }}>
+                                {breaker.isOn ? 'ON' : 'OFF'}
+                            </div>
+                        </div>
+                    </div>
+                </>
+            );
+        };
+
+        const ElectricalPanelManager = () => {
+            const initialState = getInitialState();
+            const [totalBreakers, setTotalBreakers] = useState(initialState.totalBreakers);
+            const [breakers, setBreakers] = useState(initialState.breakers);
+            const [editingBreaker, setEditingBreaker] = useState(null);
+            const [showSettings, setShowSettings] = useState(false);
+            const [copied, setCopied] = useState(false);
+
+            useEffect(() => {
+                const encoded = encodeState(breakers, totalBreakers);
+                window.history.replaceState(null, '', `#${encoded}`);
+            }, [breakers, totalBreakers]);
+
+            const copyLink = async () => {
+                const url = window.location.href;
+                await navigator.clipboard.writeText(url);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            };
+
+            const updateBreakerCount = (newCount) => {
+                if (newCount < 2 || newCount > 42) return;
+
+                setTotalBreakers(newCount);
+                setBreakers(prev => {
+                    const updated = [...prev];
+
+                    if (newCount > prev.length) {
+                        for (let i = prev.length + 1; i <= newCount; i++) {
+                            updated.push({
+                                id: i,
+                                number: i,
+                                amps: 15,
+                                label: '',
+                                isOn: false,
+                                isDouble: false,
+                                side: i % 2 === 0 ? 'right' : 'left'
+                            });
+                        }
+                    } else {
+                        return updated.slice(0, newCount);
+                    }
+
+                    return updated;
+                });
+            };
+
+            const toggleBreaker = (id) => {
+                setBreakers(prev => prev.map(b =>
+                    b.id === id ? { ...b, isOn: !b.isOn } : b
+                ));
+            };
+
+            const updateBreaker = (id, updates) => {
+                setBreakers(prev => prev.map(b =>
+                    b.id === id ? { ...b, ...updates } : b
+                ));
+            };
+
+            const makeDoubleBreaker = (id) => {
+                const breaker = breakers.find(b => b.id === id);
+                if (!breaker) return;
+
+                const nextId = breaker.side === 'left' ? id + 2 : id - 2;
+                const nextBreaker = breakers.find(b => b.id === nextId);
+
+                if (nextBreaker && nextBreaker.side === breaker.side) {
+                    setBreakers(prev => prev.map(b => {
+                        if (b.id === id || b.id === nextId) {
+                            return { ...b, isDouble: !b.isDouble };
+                        }
+                        return b;
+                    }));
+                }
+            };
+
+            const leftBreakers = breakers.filter(b => b.side === 'left').sort((a, b) => a.number - b.number);
+            const rightBreakers = breakers.filter(b => b.side === 'right').sort((a, b) => a.number - b.number);
+
+            return (
+                <div style={{
+                    minHeight: '100vh',
+                    background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
+                    padding: 'clamp(0.75rem, 3vw, 2rem)',
+                    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                    color: '#e0e0e0'
+                }}>
+                    <div style={{
+                        maxWidth: '1400px',
+                        margin: '0 auto clamp(1rem, 3vw, 2rem)',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '1rem'
+                    }}>
+                        <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+                            <h1 style={{
+                                fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
+                                fontWeight: '800',
+                                margin: 0,
+                                background: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                letterSpacing: '-0.02em'
+                            }}>
+                                Panel Manager
+                            </h1>
+                            <p style={{
+                                margin: '0.5rem 0 0',
+                                color: '#9ca3af',
+                                fontSize: 'clamp(0.75rem, 2vw, 0.95rem)',
+                                fontFamily: "'JetBrains Mono', monospace"
+                            }}>
+                                {totalBreakers} positions • {breakers.filter(b => b.isOn).length} active
+                            </p>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <button
+                                onClick={copyLink}
+                                style={{
+                                    padding: 'clamp(0.5rem, 2vw, 0.75rem) clamp(0.75rem, 3vw, 1.25rem)',
+                                    background: copied ? '#22c55e' : '#374151',
+                                    border: 'none',
+                                    borderRadius: '0.5rem',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontSize: 'clamp(0.8rem, 2vw, 0.95rem)',
+                                    fontWeight: '600',
+                                    transition: 'all 0.2s',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                                }}
+                            >
+                                {copied ? <Check size={16} /> : <Share2 size={16} />}
+                                <span style={{ display: window.innerWidth < 400 ? 'none' : 'inline' }}>
+                                    {copied ? 'Copied!' : 'Share'}
+                                </span>
+                            </button>
+
+                            <button
+                                onClick={() => setShowSettings(!showSettings)}
+                                style={{
+                                    padding: 'clamp(0.5rem, 2vw, 0.75rem) clamp(0.75rem, 3vw, 1.25rem)',
+                                    background: showSettings ? '#3b82f6' : '#374151',
+                                    border: 'none',
+                                    borderRadius: '0.5rem',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontSize: 'clamp(0.8rem, 2vw, 0.95rem)',
+                                    fontWeight: '600',
+                                    transition: 'all 0.2s',
+                                    boxShadow: showSettings ? '0 4px 12px rgba(59, 130, 246, 0.4)' : '0 2px 8px rgba(0,0,0,0.3)'
+                                }}
+                            >
+                                <Settings size={16} />
+                                <span style={{ display: window.innerWidth < 400 ? 'none' : 'inline' }}>
+                                    Settings
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {showSettings && (
+                        <div style={{
+                            maxWidth: '1400px',
+                            margin: '0 auto clamp(1rem, 3vw, 2rem)',
+                            background: '#252525',
+                            padding: 'clamp(1rem, 3vw, 1.5rem)',
+                            borderRadius: '0.75rem',
+                            border: '1px solid #3f3f3f',
+                            boxShadow: '0 4px 16px rgba(0,0,0,0.3)'
+                        }}>
+                            <h3 style={{
+                                margin: '0 0 1rem',
+                                fontSize: 'clamp(0.95rem, 2.5vw, 1.1rem)',
+                                fontWeight: '600'
+                            }}>
+                                Panel Configuration
+                            </h3>
+                            <div style={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                alignItems: 'center',
+                                gap: 'clamp(0.5rem, 2vw, 1rem)'
+                            }}>
+                                <label style={{
+                                    fontSize: 'clamp(0.85rem, 2vw, 0.95rem)',
+                                    color: '#9ca3af',
+                                    whiteSpace: 'nowrap'
+                                }}>
+                                    Total Breakers:
+                                </label>
+                                <button
+                                    onClick={() => updateBreakerCount(totalBreakers - 2)}
+                                    style={{
+                                        padding: 'clamp(0.4rem, 2vw, 0.5rem)',
+                                        background: '#374151',
+                                        border: 'none',
+                                        borderRadius: '0.375rem',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        minWidth: '36px',
+                                        minHeight: '36px',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    <Minus size={16} />
+                                </button>
+                                <span style={{
+                                    padding: '0.5rem clamp(1rem, 3vw, 1.5rem)',
+                                    background: '#1f2937',
+                                    borderRadius: '0.375rem',
+                                    fontWeight: '600',
+                                    fontFamily: "'JetBrains Mono', monospace",
+                                    minWidth: '60px',
+                                    textAlign: 'center',
+                                    fontSize: 'clamp(0.9rem, 2.5vw, 1rem)'
+                                }}>
+                                    {totalBreakers}
+                                </span>
+                                <button
+                                    onClick={() => updateBreakerCount(totalBreakers + 2)}
+                                    style={{
+                                        padding: 'clamp(0.4rem, 2vw, 0.5rem)',
+                                        background: '#374151',
+                                        border: 'none',
+                                        borderRadius: '0.375rem',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        minWidth: '36px',
+                                        minHeight: '36px',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    <Plus size={16} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div style={{
+                        maxWidth: '1400px',
+                        margin: '0 auto',
+                        background: '#3a3a3a',
+                        padding: 'clamp(1rem, 3vw, 2rem)',
+                        borderRadius: '1rem',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)',
+                        border: '2px solid #4a4a4a'
+                    }}>
+                        <div style={{
+                            background: '#2a2a2a',
+                            padding: 'clamp(0.75rem, 2vw, 1rem)',
+                            borderRadius: '0.5rem',
+                            marginBottom: 'clamp(1rem, 3vw, 2rem)',
+                            border: '1px solid #4a4a4a',
+                            textAlign: 'center'
+                        }}>
+                            <div style={{
+                                fontFamily: "'JetBrains Mono', monospace",
+                                fontSize: 'clamp(0.65rem, 2vw, 0.85rem)',
+                                color: '#fbbf24',
+                                fontWeight: '700',
+                                letterSpacing: '0.1em'
+                            }}>
+                                ⚠ ELECTRICAL PANEL • 120/240V AC
+                            </div>
+                        </div>
+
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: window.innerWidth < 640
+                                ? '1fr minmax(40px, 60px) 1fr'
+                                : '1fr 80px 1fr',
+                            gap: 'clamp(0.5rem, 2vw, 1rem)',
+                            alignItems: 'start'
+                        }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                {leftBreakers.map((breaker, idx) => {
+                                    const nextBreaker = leftBreakers[idx + 1];
+                                    const isPartOfDouble = breaker.isDouble;
+
+                                    if (isPartOfDouble && nextBreaker && nextBreaker.isDouble && idx % 2 === 1) {
+                                        return null;
+                                    }
+
+                                    return (
+                                        <BreakerComponent
+                                            key={breaker.id}
+                                            breaker={breaker}
+                                            nextBreaker={isPartOfDouble && nextBreaker?.isDouble ? nextBreaker : null}
+                                            side="left"
+                                            onToggle={() => toggleBreaker(breaker.id)}
+                                            onEdit={() => setEditingBreaker(breaker.id)}
+                                            onMakeDouble={() => makeDoubleBreaker(breaker.id)}
+                                            isEditing={editingBreaker === breaker.id}
+                                            onUpdate={(updates) => updateBreaker(breaker.id, updates)}
+                                            onCloseEdit={() => setEditingBreaker(null)}
+                                        />
+                                    );
+                                })}
+                            </div>
+
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}>
+                                {leftBreakers.map((_, idx) => (
+                                    <div key={idx} style={{
+                                        height: window.innerWidth < 640 ? '50px' : '60px',
+                                        width: 'clamp(3px, 1vw, 4px)',
+                                        background: 'linear-gradient(to right, #ef4444, #dc2626)',
+                                        borderRadius: '2px',
+                                        boxShadow: '0 0 10px rgba(239, 68, 68, 0.5)'
+                                    }} />
+                                ))}
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                {rightBreakers.map((breaker, idx) => {
+                                    const nextBreaker = rightBreakers[idx + 1];
+                                    const isPartOfDouble = breaker.isDouble;
+
+                                    if (isPartOfDouble && nextBreaker && nextBreaker.isDouble && idx % 2 === 1) {
+                                        return null;
+                                    }
+
+                                    return (
+                                        <BreakerComponent
+                                            key={breaker.id}
+                                            breaker={breaker}
+                                            nextBreaker={isPartOfDouble && nextBreaker?.isDouble ? nextBreaker : null}
+                                            side="right"
+                                            onToggle={() => toggleBreaker(breaker.id)}
+                                            onEdit={() => setEditingBreaker(breaker.id)}
+                                            onMakeDouble={() => makeDoubleBreaker(breaker.id)}
+                                            isEditing={editingBreaker === breaker.id}
+                                            onUpdate={(updates) => updateBreaker(breaker.id, updates)}
+                                            onCloseEdit={() => setEditingBreaker(null)}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{
+                        maxWidth: '1400px',
+                        margin: 'clamp(1rem, 3vw, 2rem) auto 0',
+                        padding: 'clamp(1rem, 3vw, 1.5rem)',
+                        background: 'rgba(37, 37, 37, 0.6)',
+                        borderRadius: '0.75rem',
+                        border: '1px solid #3f3f3f'
+                    }}>
+                        <h3 style={{
+                            margin: '0 0 1rem',
+                            fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                            fontWeight: '600',
+                            color: '#60a5fa'
+                        }}>
+                            Quick Guide
+                        </h3>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: 'clamp(0.5rem, 2vw, 1rem)',
+                            fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                            color: '#9ca3af'
+                        }}>
+                            <div>• Click breaker switch to toggle ON/OFF</div>
+                            <div>• Click "Edit" to modify amp rating and label</div>
+                            <div>• Click "2P" to create/break double breakers</div>
+                            <div>• Use settings to add/remove breaker positions</div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<ElectricalPanelManager />, document.getElementById('root'));
+    </script>
+
+    <!-- Footer Navigation -->
+    <div id="sketch-footer" style="
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+        padding: 12px 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 24px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        z-index: 1000;
+    ">
+        <a href="index.html" style="color: #fff; text-decoration: none; opacity: 0.9; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">← Home</a>
+        <a id="github-source-link" href="#" style="color: #fff; text-decoration: none; opacity: 0.9; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">View Source</a>
+        <a href="https://micahwalter.com" target="_blank" rel="noopener" style="color: #fff; text-decoration: none; opacity: 0.9; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">micahwalter.com →</a>
+    </div>
+    <script>
+        // Set GitHub source link dynamically
+        (function() {
+            const filename = window.location.pathname.split('/').pop();
+            const githubLink = document.getElementById('github-source-link');
+            githubLink.href = `https://github.com/micahwalter/sketches/blob/main/${filename}`;
+        })();
+    </script>
+</body>
+</html>
