@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <!-- Fathom - beautiful, simple website analytics -->
+    <script src="https://cdn.usefathom.com/script.js" data-site="BQSMBQKX" defer></script>
+    <!-- / Fathom -->
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="auroraCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('auroraCanvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        let skylinePoints = [];
+        const waves = [];
+        const numWaves = 5;
+        const colors = [
+            'rgba(255, 135, 66, 0.5)',  // Increased opacity
+            'rgba(255, 89, 158, 0.5)',
+            'rgba(165, 95, 238, 0.5)',
+            'rgba(255, 183, 77, 0.5)',
+            'rgba(255, 51, 102, 0.5)'
+        ];
+
+        function generateSkyline() {
+            skylinePoints = [];
+            const numBuildings = Math.floor(canvas.width / 50);
+            let x = 0;
+            
+            skylinePoints.push({ x: 0, y: canvas.height });
+            
+            while (x < canvas.width) {
+                const buildingWidth = 30 + Math.random() * 70;
+                const height = 50 + Math.random() * 150;
+                
+                skylinePoints.push({ x, y: canvas.height - height });
+                skylinePoints.push({ x: x + buildingWidth, y: canvas.height - height });
+                
+                if (Math.random() > 0.5) {
+                    const spireHeight = 20 + Math.random() * 40;
+                    const spireX = x + buildingWidth/2;
+                    skylinePoints.push({ x: spireX - 10, y: canvas.height - height });
+                    skylinePoints.push({ x: spireX, y: canvas.height - height - spireHeight });
+                    skylinePoints.push({ x: spireX + 10, y: canvas.height - height });
+                }
+                
+                x += buildingWidth;
+            }
+            
+            skylinePoints.push({ x: canvas.width, y: canvas.height });
+        }
+
+        function initStars() {
+            stars = [];
+            for (let i = 0; i < 200; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height * 0.7,
+                    size: Math.random() * 2,
+                    brightness: Math.random() * 0.7 + 0.3
+                });
+            }
+        }
+
+        for (let i = 0; i < numWaves; i++) {
+            waves.push({
+                points: [],
+                color: colors[i],
+                speed: 0.001 + (Math.random() * 0.002),
+                offset: Math.random() * Math.PI * 2,
+                amplitude: 50 + Math.random() * 60,  // Increased amplitude
+                frequency: 1.5 + Math.random() * 2.5,  // Increased frequency
+                secondaryAmplitude: 30 + Math.random() * 50,  // Increased secondary amplitude
+                secondaryFrequency: 0.8 + Math.random() * 2,  // Increased secondary frequency
+                phase: Math.random() * Math.PI * 2,
+                verticalOffset: (Math.random() - 0.5) * 150  // Increased vertical spread
+            });
+        }
+
+        function initWavePoints() {
+            const numPoints = Math.ceil(canvas.width / 15);  // More points for smoother curves
+            waves.forEach(wave => {
+                wave.points = [];
+                for (let i = 0; i <= numPoints; i++) {
+                    wave.points.push({
+                        x: (canvas.width * i) / numPoints,
+                        y: canvas.height / 2
+                    });
+                }
+            });
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initStars();
+            generateSkyline();
+            initWavePoints();
+        }
+
+        let time = 0;
+        function animate() {
+            ctx.fillStyle = '#150726';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            stars.forEach(star => {
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.brightness})`;
+                ctx.fillRect(star.x, star.y, star.size, star.size);
+            });
+
+            waves.forEach((wave, waveIndex) => {
+                ctx.beginPath();
+                wave.points.forEach((point, i) => {
+                    const normalizedX = i / wave.points.length;
+                    
+                    const y = canvas.height * 0.25 + wave.verticalOffset +  // Moved waves up slightly
+                            wave.amplitude * Math.sin(time * wave.speed + normalizedX * wave.frequency + wave.offset) +
+                            wave.secondaryAmplitude * Math.sin(time * wave.speed * 1.5 + normalizedX * wave.secondaryFrequency + wave.phase) +
+                            Math.sin(time * wave.speed * 0.5 + normalizedX * 3) * (30 + Math.sin(time * 0.001) * 15);  // Increased tertiary wave
+                    
+                    point.y = y;
+
+                    if (i === 0) {
+                        ctx.moveTo(point.x, point.y);
+                    } else {
+                        const cp1x = point.x - 20;
+                        const cp2x = point.x - 10;
+                        ctx.bezierCurveTo(cp1x, point.y, cp2x, point.y, point.x, point.y);
+                    }
+                });
+
+                ctx.lineTo(canvas.width, canvas.height);
+                ctx.lineTo(0, canvas.height);
+                ctx.closePath();
+
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, wave.color);
+                gradient.addColorStop(0.7, 'rgba(0,0,0,0)');  // Adjusted gradient
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            });
+
+            ctx.beginPath();
+            ctx.moveTo(skylinePoints[0].x, skylinePoints[0].y);
+            skylinePoints.forEach(point => {
+                ctx.lineTo(point.x, point.y);
+            });
+            ctx.fillStyle = '#000000';
+            ctx.fill();
+
+            time += 1;
+            requestAnimationFrame(animate);
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        animate();
+    </script>
+
+    <!-- Footer Navigation -->
+    <div id="sketch-footer" style="
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+        padding: 12px 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 24px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        z-index: 1000;
+    ">
+        <a href="index.html" style="color: #fff; text-decoration: none; opacity: 0.9; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">← Home</a>
+        <a id="github-source-link" href="#" style="color: #fff; text-decoration: none; opacity: 0.9; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">View Source</a>
+        <a href="https://micahwalter.com" target="_blank" rel="noopener" style="color: #fff; text-decoration: none; opacity: 0.9; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">micahwalter.com →</a>
+    </div>
+    <script>
+        // Set GitHub source link dynamically
+        (function() {
+            const filename = window.location.pathname.split('/').pop();
+            const githubLink = document.getElementById('github-source-link');
+            githubLink.href = `https://github.com/micahwalter/sketches/blob/main/${filename}`;
+        })();
+    </script>
+</body>
+</html>
