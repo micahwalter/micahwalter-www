@@ -162,7 +162,7 @@ export default function UploadForm() {
           id="photo"
           type="file"
           required
-          accept="image/jpeg,image/png,image/heic,image/heif"
+          accept="image/jpeg,image/png"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           className="w-full text-charcoal"
           style={labelStyle}

@@ -33,7 +33,8 @@ const commands = {
     examples: [
       'blog photos:import ~/Desktop/photos',
       'blog photos:import ./photos --dry-run',
-      'blog photos:import ~/trips --category Travel'
+      'blog photos:import ~/trips --category Travel',
+      'blog photos:import ./photos --featured'
     ]
   },
   'photos:tag': {
