@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { getAllPosts, getBlogPosts } from "@/lib/content";
+import { getBlogPosts, getFeaturedPhoto } from "@/lib/content";
 import { CoverImage } from "@/components/ResponsiveImage";
 
 export default function Home() {
-  const posts = getAllPosts();
-  const post = posts.find((p) => p.id === "126");
+  const post = getFeaturedPhoto();
 
   const recentPosts = getBlogPosts().slice(0, 5);
 

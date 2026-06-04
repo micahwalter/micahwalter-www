@@ -16,6 +16,7 @@ export interface Post {
   draft: boolean;
   content: string;
   type?: 'blog' | 'photo' | 'email'; // Content type (defaults to 'blog')
+  featured?: boolean; // When true on a photo post, eligible for the homepage hero
 
   // Photo-specific metadata (optional, extracted from EXIF)
   camera?: string; // e.g., "Canon EOS R5"
@@ -70,6 +71,7 @@ export function getAllPosts(): Post[] {
         draft: data.draft || false,
         content,
         type: data.type || 'blog',
+        featured: data.featured || false,
         // Photo-specific metadata
         camera: data.camera,
         lens: data.lens,
@@ -154,6 +156,16 @@ export function getPostsByTag(tag: string): Post[] {
 
 export function getPhotos(): Post[] {
   return getSortedPosts().filter(post => post.type === 'photo');
+}
+
+/**
+ * Returns the photo to feature on the homepage hero: the most recent photo
+ * post flagged `featured: true`. Falls back to the most recent photo post if
+ * none are flagged, so the homepage always has a hero image.
+ */
+export function getFeaturedPhoto(): Post | null {
+  const photos = getPhotos(); // already sorted newest-first
+  return photos.find(post => post.featured) || photos[0] || null;
 }
 
 export function getBlogPosts(): Post[] {
