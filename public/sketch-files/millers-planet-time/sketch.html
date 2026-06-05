@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Miller's Planet Time</title>
+    <!-- Fathom - beautiful, simple website analytics -->
+    <script src="https://cdn.usefathom.com/script.js" data-site="BQSMBQKX" defer></script>
+    <!-- / Fathom -->
+    <style>
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #05060a;
+            overflow: hidden;
+            font-family: Georgia, 'Times New Roman', serif;
+            color: #f4f1e8;
+        }
+        #scene { position: fixed; inset: 0; }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        #overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 28px 28px 64px;
+            pointer-events: none;
+        }
+
+        .title-block { max-width: 620px; text-shadow: 0 2px 18px rgba(0,0,0,0.9); }
+        .title-block h1 {
+            margin: 0 0 6px;
+            font-size: clamp(22px, 3.4vw, 34px);
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+        .title-block p {
+            margin: 0;
+            font-size: clamp(13px, 1.5vw, 15px);
+            line-height: 1.5;
+            color: #cfc8b6;
+            font-style: italic;
+        }
+
+        .clocks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: flex-end;
+        }
+        .clock {
+            background: rgba(8, 10, 16, 0.55);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(244, 241, 232, 0.14);
+            border-radius: 12px;
+            padding: 16px 20px;
+            min-width: 220px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .clock .label {
+            display: block;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 11px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: #8b93a7;
+            margin-bottom: 8px;
+        }
+        .clock.miller .label { color: #f0a868; }
+        .clock .value {
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            font-variant-numeric: tabular-nums;
+            font-size: clamp(20px, 2.6vw, 28px);
+            font-weight: 600;
+            line-height: 1.2;
+            color: #f4f1e8;
+        }
+        .clock.miller .value { color: #ffd9ad; text-shadow: 0 0 24px rgba(240,168,104,0.45); }
+        .clock .sub {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 11px;
+            color: #6f7689;
+            margin-top: 6px;
+        }
+
+        .ratio {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 12px;
+            color: #9aa1b3;
+            align-self: center;
+            max-width: 180px;
+            line-height: 1.45;
+        }
+        .ratio b { color: #f0a868; font-weight: 600; }
+
+        #sketch-footer {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 11px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 24px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 13px;
+            z-index: 1000;
+        }
+        #sketch-footer a {
+            color: #fff;
+            text-decoration: none;
+            opacity: 0.85;
+            transition: opacity 0.2s;
+        }
+        #sketch-footer a:hover { opacity: 1; }
+
+        @media (max-width: 560px) {
+            #overlay { padding: 18px 18px 60px; }
+            .clock { min-width: 0; flex: 1 1 100%; }
+            .ratio { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="scene"><canvas id="c"></canvas></div>
+
+    <div id="overlay">
+        <div class="title-block">
+            <h1>Miller's Planet</h1>
+            <p>&ldquo;Every hour we spend on that planet, seven years pass on Earth.&rdquo;</p>
+        </div>
+
+        <div class="clocks">
+            <div class="clock earth">
+                <span class="label">Earth &mdash; since release</span>
+                <span class="value" id="earth-clock">&mdash;</span>
+                <span class="sub">since November 7, 2014</span>
+            </div>
+            <div class="ratio">1 hour here &nbsp;=&nbsp; <b>7 years</b> back on Earth</div>
+            <div class="clock miller">
+                <span class="label">Miller's Planet &mdash; elapsed</span>
+                <span class="value" id="miller-clock">&mdash;</span>
+                <span class="sub">time dilation factor &times;61,362</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Navigation -->
+    <div id="sketch-footer">
+        <a href="/sketches" target="_parent">&larr; Sketches</a>
+        <a href="https://github.com/micahwalter/micahwalter-www/blob/main/public/sketch-files/millers-planet-time/sketch.html" target="_blank" rel="noopener">View Source</a>
+        <a href="https://micahwalter.com" target="_parent">micahwalter.com &rarr;</a>
+    </div>
+
+    <script>
+    (function () {
+        // --- Time dilation model -------------------------------------------------
+        // Interstellar U.S. theatrical release: November 7, 2014.
+        // Romilly: one hour on Miller's Planet == seven years on Earth.
+        // Dilation factor = 7 years * 365.25 days * 24 hours = 61,362 Earth seconds
+        // per Miller second.
+        var RELEASE = Date.UTC(2014, 10, 7, 0, 0, 0); // months are 0-indexed
+        var DILATION = 7 * 365.25 * 24; // 61362
+
+        var SEC = 1000, MIN = 60 * SEC, HOUR = 60 * MIN, DAY = 24 * HOUR;
+        var YEAR = 365.25 * DAY;
+
+        function pad(n, w) {
+            n = Math.floor(n).toString();
+            while (n.length < w) n = '0' + n;
+            return n;
+        }
+
+        function updateClocks() {
+            var now = Date.now();
+            var earthMs = Math.max(0, now - RELEASE);
+
+            // Earth: years / days / hh:mm:ss
+            var years = Math.floor(earthMs / YEAR);
+            var rem = earthMs - years * YEAR;
+            var days = Math.floor(rem / DAY); rem -= days * DAY;
+            var eh = Math.floor(rem / HOUR); rem -= eh * HOUR;
+            var em = Math.floor(rem / MIN); rem -= em * MIN;
+            var es = Math.floor(rem / SEC);
+            document.getElementById('earth-clock').textContent =
+                years + 'y ' + days + 'd ' + pad(eh, 2) + ':' + pad(em, 2) + ':' + pad(es, 2);
+
+            // Miller: the same interval, divided by the dilation factor.
+            // Show 6 decimal places so you can actually watch it creep forward.
+            var millerSec = earthMs / 1000 / DILATION;
+            var mh = Math.floor(millerSec / 3600);
+            var mm = Math.floor((millerSec % 3600) / 60);
+            var ms = millerSec % 60;
+            document.getElementById('miller-clock').textContent =
+                pad(mh, 2) + ':' + pad(mm, 2) + ':' + ms.toFixed(6).padStart(9, '0');
+        }
+
+        // --- Scene ---------------------------------------------------------------
+        var canvas = document.getElementById('c');
+        var ctx = canvas.getContext('2d');
+        var W = 0, H = 0, DPR = 1;
+        var stars = [];
+
+        function resize() {
+            DPR = Math.min(window.devicePixelRatio || 1, 2);
+            W = window.innerWidth;
+            H = window.innerHeight;
+            canvas.width = W * DPR;
+            canvas.height = H * DPR;
+            ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+            stars = [];
+            var horizon = H * 0.52;
+            for (var i = 0; i < 160; i++) {
+                stars.push({
+                    x: Math.random() * W,
+                    y: Math.random() * horizon,
+                    r: Math.random() * 1.3 + 0.2,
+                    p: Math.random() * Math.PI * 2,
+                    s: 0.6 + Math.random() * 1.6
+                });
+            }
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function drawGargantua(t) {
+            var cx = W * 0.72;
+            var cy = H * 0.24;
+            var R = Math.min(W, H) * 0.16;
+
+            // outer glow
+            var glow = ctx.createRadialGradient(cx, cy, R * 0.4, cx, cy, R * 2.4);
+            glow.addColorStop(0, 'rgba(255, 196, 120, 0.35)');
+            glow.addColorStop(0.5, 'rgba(120, 90, 60, 0.10)');
+            glow.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = glow;
+            ctx.fillRect(cx - R * 3, cy - R * 3, R * 6, R * 6);
+
+            // accretion disk (a bright ellipse ring behind + a lensed arc over the top)
+            ctx.save();
+            ctx.translate(cx, cy);
+
+            // back/front disk as a thin glowing ellipse
+            ctx.lineWidth = R * 0.16;
+            var disk = ctx.createLinearGradient(-R * 1.6, 0, R * 1.6, 0);
+            disk.addColorStop(0, 'rgba(255, 150, 70, 0.15)');
+            disk.addColorStop(0.5, 'rgba(255, 224, 170, 0.95)');
+            disk.addColorStop(1, 'rgba(255, 150, 70, 0.15)');
+            ctx.strokeStyle = disk;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, R * 1.55, R * 0.42, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // event horizon (black sphere)
+            var sphere = ctx.createRadialGradient(-R * 0.2, -R * 0.2, R * 0.1, 0, 0, R);
+            sphere.addColorStop(0, '#0a0a0d');
+            sphere.addColorStop(1, '#000');
+            ctx.fillStyle = sphere;
+            ctx.beginPath();
+            ctx.arc(0, 0, R, 0, Math.PI * 2);
+            ctx.fill();
+
+            // gravitationally-lensed arc curving over the top
+            ctx.lineWidth = R * 0.13;
+            var arc = ctx.createLinearGradient(-R, 0, R, 0);
+            arc.addColorStop(0, 'rgba(255, 170, 90, 0.0)');
+            arc.addColorStop(0.5, 'rgba(255, 236, 190, 0.95)');
+            arc.addColorStop(1, 'rgba(255, 170, 90, 0.0)');
+            ctx.strokeStyle = arc;
+            ctx.beginPath();
+            ctx.arc(0, 0, R * 1.12, Math.PI * 1.12, Math.PI * 1.88);
+            ctx.stroke();
+
+            ctx.restore();
+            return { cx: cx, cy: cy, R: R };
+        }
+
+        function drawOcean(t, g) {
+            var horizon = H * 0.52;
+
+            // sky-to-water gradient already handled by background; draw water body
+            var water = ctx.createLinearGradient(0, horizon, 0, H);
+            water.addColorStop(0, '#0c2230');
+            water.addColorStop(0.5, '#08131c');
+            water.addColorStop(1, '#03070b');
+            ctx.fillStyle = water;
+            ctx.fillRect(0, horizon, W, H - horizon);
+
+            // distant giant wave silhouette (the iconic tidal wall), slowly rolling
+            var waveX = (t * 0.012) % (W + 600) - 300;
+            ctx.fillStyle = 'rgba(4, 16, 24, 0.9)';
+            ctx.beginPath();
+            ctx.moveTo(0, horizon + 4);
+            for (var x = 0; x <= W; x += 8) {
+                var hump = Math.exp(-Math.pow((x - waveX) / (W * 0.26), 2)) * (H * 0.30);
+                var ripple = Math.sin(x * 0.02 + t * 0.002) * 4;
+                ctx.lineTo(x, horizon + 4 - hump + ripple);
+            }
+            ctx.lineTo(W, horizon + 4);
+            ctx.closePath();
+            ctx.fill();
+
+            // shimmering reflection of Gargantua on the water
+            var refX = g.cx;
+            for (var i = 0; i < 60; i++) {
+                var ry = horizon + (i / 60) * (H - horizon);
+                var spread = (i / 60) * W * 0.22 + 6;
+                var wob = Math.sin(t * 0.004 + i * 0.6) * spread * 0.4;
+                var alpha = (1 - i / 60) * 0.22;
+                ctx.fillStyle = 'rgba(255, 200, 140, ' + alpha + ')';
+                ctx.fillRect(refX - spread / 2 + wob, ry, spread, 2.5);
+            }
+
+            // foreground wave highlights
+            ctx.strokeStyle = 'rgba(160, 200, 220, 0.08)';
+            ctx.lineWidth = 1;
+            for (var l = 0; l < 5; l++) {
+                var baseY = horizon + (H - horizon) * (0.2 + l * 0.18);
+                ctx.beginPath();
+                for (var xx = 0; xx <= W; xx += 6) {
+                    var amp = 3 + l * 2;
+                    var yy = baseY + Math.sin(xx * 0.03 + t * 0.003 + l) * amp
+                                   + Math.sin(xx * 0.011 - t * 0.002) * amp * 0.6;
+                    if (xx === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+                }
+                ctx.stroke();
+            }
+        }
+
+        function drawStars(t) {
+            for (var i = 0; i < stars.length; i++) {
+                var s = stars[i];
+                var tw = 0.5 + 0.5 * Math.sin(t * 0.001 * s.s + s.p);
+                ctx.globalAlpha = 0.25 + tw * 0.6;
+                ctx.fillStyle = '#cdd6ea';
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        function frame(t) {
+            // background sky
+            var sky = ctx.createLinearGradient(0, 0, 0, H * 0.52);
+            sky.addColorStop(0, '#070912');
+            sky.addColorStop(1, '#0c1018');
+            ctx.fillStyle = sky;
+            ctx.fillRect(0, 0, W, H * 0.52);
+
+            drawStars(t);
+            var g = drawGargantua(t);
+            drawOcean(t, g);
+
+            updateClocks();
+            requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+    })();
+    </script>
+</body>
+</html>
