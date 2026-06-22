@@ -65,10 +65,11 @@ async function processObject(bucket, key) {
   // 2. EXIF + dimensions
   const exif = await extractExif(buffer);
 
-  // 3. resize → upload processed to images/posts/<folder>/photo-<size>.<fmt>
+  // 3 + 4. resize and upload everything (processed variants + original) in
+  // parallel — they are independent, so there's no reason to serialize them.
   const variants = await optimize(buffer, 'photo');
-  await Promise.all(
-    variants.map((v) =>
+  await Promise.all([
+    ...variants.map((v) =>
       s3.send(new PutObjectCommand({
         Bucket: IMAGES_BUCKET,
         Key: `images/posts/${folder}/${v.filename}`,
@@ -76,52 +77,60 @@ async function processObject(bucket, key) {
         ContentType: v.contentType,
         CacheControl: CACHE_CONTROL,
       }))
-    )
-  );
+    ),
+    s3.send(new PutObjectCommand({
+      Bucket: IMAGES_BUCKET,
+      Key: `images/originals/posts/${folder}/${photoFilename}`,
+      Body: buffer,
+      ContentType: obj.ContentType || 'application/octet-stream',
+      CacheControl: CACHE_CONTROL,
+    })),
+  ]);
 
-  // 4. upload original to images/originals/posts/<folder>/photo.<ext>
-  await s3.send(new PutObjectCommand({
-    Bucket: IMAGES_BUCKET,
-    Key: `images/originals/posts/${folder}/${photoFilename}`,
-    Body: buffer,
-    ContentType: obj.ContentType || 'application/octet-stream',
-    CacheControl: CACHE_CONTROL,
-  }));
-
-  // 5. assign post id by reading + bumping the repo's counter
+  // 5 + 6. Assign the post id by reading + bumping the repo's counter, then
+  // commit the post in one commit. Two near-simultaneous uploads can read the
+  // same counter; the loser's non-fast-forward ref update fails, so retry the
+  // whole read→build→commit sequence (re-reading the counter each time) with
+  // backoff. Pushing to the branch triggers the existing deploy workflow.
   const secret = await getSecret();
   const token = secret.githubToken;
-
-  const counterRaw = await getTextFile(token, GITHUB_REPO, GITHUB_BRANCH, COUNTER_PATH);
-  const current = parseInt((counterRaw || '0').trim(), 10) || 0;
-  const id = current + 1;
-
   const title = titleMeta || titleFromFilename(origFilename);
-  const indexMdx = buildFrontmatter({
-    id,
-    title,
-    date,
-    excerpt: exif.camera ? `Photo taken with ${exif.camera}` : 'A new photo',
-    category: 'Photography',
-    tags: ['photography'],
-    photoFilename,
-    featured,
-    exif,
-  });
+  const excerpt = exif.camera ? `Photo taken with ${exif.camera}` : 'A new photo';
 
-  // 6. single commit: the new post + the bumped counter. Pushing to the branch
-  //    triggers the existing deploy workflow.
-  const commitSha = await commitFiles({
-    token,
-    repo: GITHUB_REPO,
-    branch: GITHUB_BRANCH,
-    message: `Add photo post: ${title} (#${id})${featured ? ' [featured]' : ''}`,
-    files: [
-      { path: `content/posts/${folder}/index.mdx`, content: indexMdx },
-      { path: COUNTER_PATH, content: String(id) },
-    ],
-  });
-  console.log(`Committed ${commitSha} — post id ${id}, folder ${folder}`);
+  const MAX_ATTEMPTS = 4;
+  let committed;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const counterRaw = await getTextFile(token, GITHUB_REPO, GITHUB_BRANCH, COUNTER_PATH);
+    const id = (parseInt((counterRaw || '0').trim(), 10) || 0) + 1;
+
+    const indexMdx = buildFrontmatter({
+      id, title, date, excerpt,
+      category: 'Photography',
+      tags: ['photography'],
+      photoFilename, featured, exif,
+    });
+
+    try {
+      const commitSha = await commitFiles({
+        token,
+        repo: GITHUB_REPO,
+        branch: GITHUB_BRANCH,
+        message: `Add photo post: ${title} (#${id})${featured ? ' [featured]' : ''}`,
+        files: [
+          { path: `content/posts/${folder}/index.mdx`, content: indexMdx },
+          { path: COUNTER_PATH, content: String(id) },
+        ],
+      });
+      committed = { commitSha, id };
+      break;
+    } catch (err) {
+      if (attempt === MAX_ATTEMPTS) throw err;
+      const delay = 250 * 2 ** (attempt - 1); // 250ms, 500ms, 1s
+      console.warn(`Commit attempt ${attempt} failed (${err.message}); retrying in ${delay}ms`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  console.log(`Committed ${committed.commitSha} — post id ${committed.id}, folder ${folder}`);
 
   // 7. clean up the incoming original
   await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));

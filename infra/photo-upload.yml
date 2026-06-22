@@ -135,6 +135,15 @@ Resources:
       ApiId: !Ref PhotoApi
       StageName: $default
       AutoDeploy: true
+      # Cap request rates to blunt passcode brute-forcing and abuse. /auth is
+      # throttled hardest since it is the only unauthenticated route.
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 10
+        ThrottlingRateLimit: 5
+      RouteSettings:
+        'POST /auth':
+          ThrottlingBurstLimit: 3
+          ThrottlingRateLimit: 1
 
   PhotoApiMapping:
     Type: AWS::ApiGatewayV2::ApiMapping

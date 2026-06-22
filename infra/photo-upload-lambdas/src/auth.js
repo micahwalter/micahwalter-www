@@ -27,6 +27,10 @@ exports.handler = async (event) => {
 
   const secret = await getSecret();
   if (!safeEqual(passcode, secret.passcode)) {
+    // Slow down brute-force attempts. This is a per-request delay only; the
+    // hard rate limit is enforced by API Gateway throttling on the /auth route
+    // (see infra/photo-upload.yml). A strong passcode remains the real control.
+    await new Promise((r) => setTimeout(r, 1000));
     return json(401, { message: 'Incorrect passcode' });
   }
 
