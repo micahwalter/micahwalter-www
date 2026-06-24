@@ -47,3 +47,11 @@
 **Context**: Requirements Analysis complete; awaiting approval before Workflow Planning.
 
 ---
+
+## Requirements Analysis — Backlog Convention Change
+**Timestamp**: 2026-06-24T13:00:00Z
+**User Input**: "I don;t think we need to document the open GH issue. Github is where I prefer to keep a running list of improvements, issues, etc.. Can we incportate that into this workflow?"
+**AI Response**: Removed FR-4 open issue list from requirements.md. Created aidlc-docs/workflow-conventions.md defining GitHub Issues as backlog source of truth. Updated requirements NFRs and aidlc-state.md. AI-DLC shall reference GitHub issues by number/URL when scoping work, not duplicate issue lists in aidlc-docs.
+**Context**: Requirements updated per user preference; awaiting re-approval.
+
+---

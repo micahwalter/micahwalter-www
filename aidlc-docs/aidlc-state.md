@@ -13,7 +13,12 @@
 ## Code Location Rules
 - **Application Code**: Workspace root (NEVER in aidlc-docs/)
 - **Documentation**: aidlc-docs/ only
+- **Backlog / Issues**: GitHub Issues (NEVER duplicated in aidlc-docs/)
 - **Structure patterns**: See code-generation.md Critical Rules
+
+## Project Conventions
+- **Workflow integration**: See `aidlc-docs/workflow-conventions.md`
+- **Backlog**: GitHub Issues is the source of truth for improvements, bugs, and features
 
 ## Workspace Analysis Summary
 - **Programming Languages**: TypeScript, JavaScript, Go, MDX
