@@ -7,6 +7,7 @@ The original request was to **examine the current state** of this brownfield pro
 ---
 
 ## Question 1
+
 What is the primary goal for this AI-DLC engagement?
 
 A) Documentation and analysis only — establish a baseline understanding of the brownfield project (examination complete; no implementation planned yet)
@@ -19,11 +20,12 @@ D) Ongoing baseline — use AI-DLC artifacts as living documentation to support 
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: D
 
 ---
 
 ## Question 2
+
 If you plan to implement changes after examination, which area is the highest priority?
 
 A) Static site (Next.js app, components, content layer)
@@ -40,11 +42,12 @@ F) Not applicable — no implementation planned at this time
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: X - Still thinking about this. No priority for now but all are on the table
 
 ---
 
 ## Question 3
+
 What is the expected scope of any planned work?
 
 A) Single file or isolated fix
@@ -59,11 +62,12 @@ E) Not applicable — examination only
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: E
 
 ---
 
 ## Question 4
+
 Are there known pain points or issues you want addressed? (Select the closest match.)
 
 A) No known issues — examination is exploratory
@@ -80,11 +84,12 @@ F) Infrastructure or deployment concerns
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: I'd like to improve the CLI, I'd like the deployment process to be better and more automated, I'd like to triage and reoslve all the open GitHub issues
 
 ---
 
 ## Question 5
+
 Should the User Stories stage be included in the workflow?
 
 A) Skip User Stories — examination/analysis work does not need formal user stories
@@ -95,11 +100,12 @@ C) Decide later — skip for now, revisit if implementation scope emerges
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: C
 
 ---
 
 ## Question 6: Security Extensions
+
 Should security extension rules be enforced for this project?
 
 A) Yes — enforce all SECURITY rules as blocking constraints (recommended for production-grade applications)
@@ -108,11 +114,12 @@ B) No — skip all SECURITY rules (suitable for PoCs, prototypes, and experiment
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: B
 
 ---
 
 ## Question 7: Resiliency Extensions
+
 Should the resiliency baseline be applied to this project?
 
 **What this extension is.** Enabling it applies directional, design-time best practices for building resilient systems, derived from the AWS Well-Architected Framework (Reliability Pillar). It steers requirements, design, and code toward fault tolerance, high availability, observability, and recoverability.
@@ -125,11 +132,12 @@ B) No — skip the resiliency baseline (suitable for PoCs, prototypes, and exper
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: B
 
 ---
 
 ## Question 8: Property-Based Testing Extension
+
 Should property-based testing (PBT) rules be enforced for this project?
 
 A) Yes — enforce all PBT rules as blocking constraints (recommended for projects with business logic, data transformations, serialization, or stateful components)
@@ -140,11 +148,12 @@ C) No — skip all PBT rules (suitable for simple CRUD applications, UI-only pro
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: C
 
 ---
 
 ## Question 9
+
 What requirements depth is appropriate for this engagement?
 
 A) Minimal — document intent and baseline understanding only (appropriate for examination-only work)
@@ -155,11 +164,12 @@ C) Comprehensive — detailed requirements with traceability (appropriate for co
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: A
 
 ---
 
 ## Question 10
+
 What are the success criteria for this AI-DLC engagement?
 
 A) Complete reverse engineering artifacts and baseline documentation (already largely done)
@@ -172,4 +182,4 @@ D) Living documentation foundation for ongoing development
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]:
+[Answer]: D
