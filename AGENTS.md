@@ -22,5 +22,9 @@ Dependencies (`npm install`) are refreshed automatically on startup. Notes below
 ### Images / AWS features are optional for local dev
 - Post images are stored in S3/CDN and are NOT in the repo, so they render as broken image placeholders locally. This is expected. Pulling them requires AWS credentials (`blog images:download --profile www`). AWS-backed features (newsletter API, image upload, analytics, SES Lambdas under `infra/`) are not needed to run or develop the site UI locally.
 
+### AWS CLI
+- AWS CLI v2 is installed at `/usr/local/bin/aws` (a system dependency captured by the VM snapshot, not by `npm install`). If a fresh VM is ever missing it, reinstall with: `curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/awscliv2.zip && cd /tmp && unzip -q awscliv2.zip && sudo ./aws/install --update`.
+- This account uses AWS Identity Center (SSO). Credentials are obtained interactively per session — there are no static keys. The repo convention is the `www` profile (region `us-east-1`). First-time config: `aws configure sso --profile www`; subsequent sessions: `aws sso login --profile www`. SSO tokens are short-lived and do not survive across VMs, so expect to re-authenticate each session. Verify with `aws sts get-caller-identity --profile www`.
+
 ### Content authoring caveat
 - `scripts/create-post.js` (`blog post:new`) is interactive via stdin prompts and does not work when stdin is piped/non-interactive. To create a post programmatically, write `content/posts/YYYY-MM-DD-<slug>/index.mdx` directly (frontmatter shape is in `CLAUDE.md`) and increment `content/post-counter`. The dev server hot-reloads new posts at `/posts/<slug>`.
