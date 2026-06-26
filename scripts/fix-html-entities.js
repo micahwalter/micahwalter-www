@@ -82,7 +82,7 @@ function main() {
   let fixedCount = 0;
 
   for (const postDir of postDirs) {
-    const mdxPath = path.join(postsDir, postDir, 'index.mdx');
+    const mdxPath = path.join(postsDir, postDir, 'index.md');
 
     if (!fs.existsSync(mdxPath)) {
       continue;

@@ -18,7 +18,7 @@ function getAllPosts() {
       return fs.statSync(fullPath).isDirectory();
     })
     .map((folder) => {
-      const fullPath = path.join(postsDirectory, folder, "index.mdx");
+      const fullPath = path.join(postsDirectory, folder, "index.md");
 
       if (!fs.existsSync(fullPath)) {
         return null;
