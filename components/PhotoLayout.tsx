@@ -83,12 +83,12 @@ export default function PhotoLayout({ post, children }: PhotoLayoutProps) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-reading mx-auto">
         {/* Description/Content (2/3 width on desktop) */}
         <div className="md:col-span-2">
-          <div className="prose prose-lg max-w-none">{children}</div>
+          <div>{children}</div>
 
           {/* Edit on GitHub */}
           <div className="mt-12 pt-6 border-t border-gray/20">
             <a
-              href={`https://github.com/micahwalter/micahwalter-www/blob/main/content/posts/${post.folderName}/index.mdx`}
+              href={`https://github.com/micahwalter/micahwalter-www/blob/main/content/posts/${post.folderName}/index.md`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-gray/60 hover:text-gray transition-colors no-underline"

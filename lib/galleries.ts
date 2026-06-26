@@ -29,7 +29,7 @@ export function getAllGalleries(): Gallery[] {
 
   const galleries = folders
     .map((folder) => {
-      const fullPath = path.join(galleriesDirectory, folder, "index.mdx");
+      const fullPath = path.join(galleriesDirectory, folder, "index.md");
       if (!fs.existsSync(fullPath)) return null;
 
       const fileContents = fs.readFileSync(fullPath, "utf8");

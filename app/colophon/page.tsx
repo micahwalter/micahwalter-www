@@ -84,8 +84,8 @@ export default function ColophonPage() {
               {" — "}utility-first styling with a custom design system
             </li>
             <li>
-              <a href="https://mdxjs.com" target="_blank" rel="noopener noreferrer" className="text-charcoal underline hover:text-gray transition-colors">MDX</a>
-              {" — "}markdown content with React components via next-mdx-remote
+              <a href="https://github.com/unifiedjs/unified" target="_blank" rel="noopener noreferrer" className="text-charcoal underline hover:text-gray transition-colors">unified / remark / rehype</a>
+              {" — "}markdown content rendered to HTML at request time
             </li>
             <li>
               <a href="https://fonts.google.com/specimen/EB+Garamond" target="_blank" rel="noopener noreferrer" className="text-charcoal underline hover:text-gray transition-colors">EB Garamond</a>

@@ -20,7 +20,7 @@ function getAllPosts() {
     })
     .map((folder) => {
       const slug = folder.replace(/^\d{4}-\d{2}-\d{2}-/, "");
-      const fullPath = path.join(postsDirectory, folder, "index.mdx");
+      const fullPath = path.join(postsDirectory, folder, "index.md");
 
       if (!fs.existsSync(fullPath)) {
         return null;

@@ -115,6 +115,37 @@ pre .hljs-deletion {
   }
 }
 
+/* Rendered markdown content (posts, emails, sketches) */
+.prose-content h1 { @apply text-4xl font-serif font-semibold mt-12 mb-6 text-charcoal; }
+.prose-content h2 { @apply text-3xl font-serif font-semibold mt-10 mb-5 text-charcoal; }
+.prose-content h3 { @apply text-2xl font-serif font-semibold mt-8 mb-4 text-charcoal; }
+.prose-content h4 { @apply text-xl font-serif font-semibold mt-6 mb-3 text-charcoal; }
+.prose-content p { @apply mb-6 leading-relaxed text-charcoal; }
+.prose-content ul { @apply mb-6 list-disc list-outside ml-6; }
+.prose-content ol { @apply mb-6 list-decimal list-outside ml-6; }
+.prose-content li { @apply leading-relaxed; }
+.prose-content li + li { @apply mt-2; }
+.prose-content blockquote { @apply border-l-4 border-accent pl-6 py-2 my-8 italic text-gray; }
+.prose-content :not(pre) > code { @apply bg-gray/10 text-charcoal px-1.5 py-0.5 rounded text-sm font-mono; }
+.prose-content pre { @apply bg-charcoal text-cream p-6 rounded-lg overflow-x-auto my-8 text-sm leading-relaxed; }
+.prose-content pre code { @apply text-sm; }
+.prose-content img { @apply rounded-lg my-8 w-full block; }
+.prose-content picture { @apply rounded-lg my-8 block; }
+.prose-content picture img { @apply w-full h-auto rounded-none my-0; }
+.prose-content hr { @apply my-12 border-gray/20; }
+.prose-content table {
+  @apply min-w-full my-8;
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-collapse: collapse;
+}
+.prose-content thead { @apply border-b border-gray/20; }
+.prose-content th { @apply px-4 py-3 text-left text-sm font-semibold text-charcoal bg-gray/5; }
+.prose-content td { @apply px-4 py-3 text-sm text-charcoal border-t border-gray/10; }
+.prose-content strong { @apply font-semibold text-charcoal; }
+.prose-content em { @apply italic; }
+
 /* Mastodon toot HTML content */
 .toot-content {
   overflow-wrap: break-word;

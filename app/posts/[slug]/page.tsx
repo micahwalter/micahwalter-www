@@ -1,11 +1,8 @@
 import { notFound } from "next/navigation";
-import { MDXRemote } from "next-mdx-remote/rsc";
 import { getAllPosts, getPostBySlug } from "@/lib/content";
+import { renderMarkdown } from "@/lib/markdown";
 import PostLayout from "@/components/PostLayout";
 import PhotoLayout from "@/components/PhotoLayout";
-import { getMDXComponents } from "@/components/MDXComponents";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
 import type { Metadata } from "next";
 
 interface PostPageProps {
@@ -37,7 +34,6 @@ export async function generateMetadata({
 
   const postUrl = `${SITE_URL}/posts/${slug}`;
 
-  // Build absolute OG image URL from cover image
   let ogImage: string | undefined;
   if (post.coverImage) {
     const coverFilename = post.coverImage
@@ -83,23 +79,17 @@ export default async function PostPage({ params }: PostPageProps) {
     notFound();
   }
 
-  const mdxContent = (
-    <MDXRemote
-      source={post.content}
-      components={getMDXComponents(post.folderName)}
-      options={{
-        mdxOptions: {
-          remarkPlugins: [remarkGfm],
-          rehypePlugins: [rehypeHighlight],
-        },
-      }}
+  const htmlContent = await renderMarkdown(post.content, post.folderName);
+  const content = (
+    <div
+      className="prose-content"
+      dangerouslySetInnerHTML={{ __html: htmlContent }}
     />
   );
 
-  // Use PhotoLayout for photo posts, PostLayout for blog posts
   if (post.type === 'photo') {
-    return <PhotoLayout post={post}>{mdxContent}</PhotoLayout>;
+    return <PhotoLayout post={post}>{content}</PhotoLayout>;
   }
 
-  return <PostLayout post={post}>{mdxContent}</PostLayout>;
+  return <PostLayout post={post}>{content}</PostLayout>;
 }

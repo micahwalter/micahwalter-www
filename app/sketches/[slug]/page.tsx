@@ -1,10 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { MDXRemote } from "next-mdx-remote/rsc";
 import { getSortedSketches, getSketchBySlug } from "@/lib/sketches";
-import { getMDXComponents } from "@/components/MDXComponents";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
+import { renderMarkdown } from "@/lib/markdown";
 import { format } from "date-fns";
 import type { Metadata } from "next";
 
@@ -46,6 +43,10 @@ export default async function SketchPage({ params }: SketchPageProps) {
   const sketch = getSketchBySlug(slug);
 
   if (!sketch || slug === "_placeholder") notFound();
+
+  const htmlContent = sketch.content.trim()
+    ? await renderMarkdown(sketch.content)
+    : '';
 
   return (
     <div className="min-h-screen">
@@ -89,20 +90,11 @@ export default async function SketchPage({ params }: SketchPageProps) {
           </div>
         )}
 
-        {/* Description / MDX body */}
-        {sketch.content.trim() && (
-          <div className="prose-styles max-w-reading mt-8">
-            <MDXRemote
-              source={sketch.content}
-              components={getMDXComponents("")}
-              options={{
-                mdxOptions: {
-                  remarkPlugins: [remarkGfm],
-                  rehypePlugins: [rehypeHighlight],
-                },
-              }}
-            />
-          </div>
+        {htmlContent && (
+          <div
+            className="prose-content max-w-reading mt-8"
+            dangerouslySetInnerHTML={{ __html: htmlContent }}
+          />
         )}
       </div>
     </div>

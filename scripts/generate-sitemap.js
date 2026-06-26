@@ -23,7 +23,7 @@ function getAllPosts() {
     })
     .map((folder) => {
       const slug = folder.replace(/^\d{4}-\d{2}-\d{2}-/, "");
-      const fullPath = path.join(postsDirectory, folder, "index.mdx");
+      const fullPath = path.join(postsDirectory, folder, "index.md");
 
       if (!fs.existsSync(fullPath)) {
         return null;
@@ -50,7 +50,7 @@ function getAllGalleries() {
   return fs.readdirSync(galleriesDirectory)
     .filter((folder) => fs.statSync(path.join(galleriesDirectory, folder)).isDirectory())
     .map((folder) => {
-      const fullPath = path.join(galleriesDirectory, folder, "index.mdx");
+      const fullPath = path.join(galleriesDirectory, folder, "index.md");
       if (!fs.existsSync(fullPath)) return null;
       const { data } = matter(fs.readFileSync(fullPath, "utf8"));
       return {
@@ -68,7 +68,7 @@ function getAllSketches() {
   return fs.readdirSync(sketchesDirectory)
     .filter((folder) => fs.statSync(path.join(sketchesDirectory, folder)).isDirectory())
     .map((folder) => {
-      const fullPath = path.join(sketchesDirectory, folder, "index.mdx");
+      const fullPath = path.join(sketchesDirectory, folder, "index.md");
       if (!fs.existsSync(fullPath)) return null;
       const { data } = matter(fs.readFileSync(fullPath, "utf8"));
       return {

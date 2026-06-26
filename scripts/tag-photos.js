@@ -114,7 +114,7 @@ function getPhotoPosts() {
     const fullPath = path.join(POSTS_DIR, folder);
     if (!fs.statSync(fullPath).isDirectory()) return false;
 
-    const mdxPath = path.join(fullPath, 'index.mdx');
+    const mdxPath = path.join(fullPath, 'index.md');
     if (!fs.existsSync(mdxPath)) return false;
 
     // Check if it's a photo post
@@ -226,7 +226,7 @@ Tags:`,
  * Update frontmatter with new tags
  */
 function updatePostTags(postDir, newTags) {
-  const mdxPath = path.join(postDir, 'index.mdx');
+  const mdxPath = path.join(postDir, 'index.md');
   const fileContents = fs.readFileSync(mdxPath, 'utf8');
   const { data, content } = matter(fileContents);
 
@@ -248,7 +248,7 @@ function updatePostTags(postDir, newTags) {
  */
 async function processPhotoPost(postFolder, options, profile) {
   const postDir = path.join(POSTS_DIR, postFolder);
-  const mdxPath = path.join(postDir, 'index.mdx');
+  const mdxPath = path.join(postDir, 'index.md');
 
   console.log(`\n📸 Processing: ${postFolder}`);
 
