@@ -27,7 +27,7 @@ export function getAllSketches(): Sketch[] {
       fs.statSync(path.join(sketchesDirectory, folder)).isDirectory()
     )
     .map((folder) => {
-      const fullPath = path.join(sketchesDirectory, folder, "index.mdx");
+      const fullPath = path.join(sketchesDirectory, folder, "index.md");
       if (!fs.existsSync(fullPath)) return null;
 
       const fileContents = fs.readFileSync(fullPath, "utf8");

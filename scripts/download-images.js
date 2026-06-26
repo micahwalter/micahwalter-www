@@ -93,8 +93,8 @@ function downloadOriginals() {
   try {
     const cmd = `aws s3 sync "${s3Path}" "${POSTS_DIR}" \
       --region ${AWS_REGION} \
-      --exclude "*.mdx" \
-      --exclude "index.mdx" \
+      --exclude "*.md" \
+      --exclude "index.md" \
       ${profileFlag} \
       ${dryRunFlag}`;
 

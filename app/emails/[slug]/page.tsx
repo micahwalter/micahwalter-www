@@ -1,9 +1,6 @@
 import { notFound } from "next/navigation";
-import { MDXRemote } from "next-mdx-remote/rsc";
 import { getEmailPosts } from "@/lib/content";
-import { getMDXComponents } from "@/components/MDXComponents";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
+import { renderMarkdown } from "@/lib/markdown";
 import type { Metadata } from "next";
 
 interface EmailPageProps {
@@ -53,24 +50,18 @@ export default async function EmailPage({ params }: EmailPageProps) {
     notFound();
   }
 
+  const htmlContent = await renderMarkdown(email.content, email.folderName);
+
   return (
     <div className="max-w-reading mx-auto px-6 py-12">
       <p className="text-sm text-gray mb-2">{email.publishedAt}</p>
       <h1 className="font-serif font-semibold text-4xl md:text-5xl text-charcoal mb-8">
         {email.title}
       </h1>
-      <div className="prose-styles">
-        <MDXRemote
-          source={email.content}
-          components={getMDXComponents(email.folderName)}
-          options={{
-            mdxOptions: {
-              remarkPlugins: [remarkGfm],
-              rehypePlugins: [rehypeHighlight],
-            },
-          }}
-        />
-      </div>
+      <div
+        className="prose-content"
+        dangerouslySetInnerHTML={{ __html: htmlContent }}
+      />
     </div>
   );
 }

@@ -69,7 +69,7 @@ const folders = fs
 const pending = [];
 
 for (const folder of folders) {
-  const mdxPath = path.join(POSTS_DIR, folder, 'index.mdx');
+  const mdxPath = path.join(POSTS_DIR, folder, 'index.md');
   if (!fs.existsSync(mdxPath)) continue;
 
   const source = fs.readFileSync(mdxPath, 'utf8');

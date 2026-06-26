@@ -161,7 +161,7 @@ async function main() {
     process.exit(1);
   }
 
-  const mdxPath = path.join(POSTS_DIR, folder, 'index.mdx');
+  const mdxPath = path.join(POSTS_DIR, folder, 'index.md');
   if (!fs.existsSync(mdxPath)) {
     console.error(`Error: ${mdxPath} does not exist`);
     process.exit(1);

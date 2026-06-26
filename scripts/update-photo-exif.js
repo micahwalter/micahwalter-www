@@ -156,9 +156,9 @@ async function main() {
     process.exit(1);
   }
 
-  const mdxPath = path.join(postDir, 'index.mdx');
+  const mdxPath = path.join(postDir, 'index.md');
   if (!fs.existsSync(mdxPath)) {
-    console.error(`Error: index.mdx not found in ${slug}`);
+    console.error(`Error: index.md not found in ${slug}`);
     process.exit(1);
   }
 

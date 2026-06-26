@@ -373,8 +373,8 @@ async function importPhoto(photoPath, options) {
   const photoDestPath = path.join(postDir, photoData.photoFilename);
   fs.copyFileSync(photoPath, photoDestPath);
 
-  // Create index.mdx
-  const indexPath = path.join(postDir, 'index.mdx');
+  // Create index.md
+  const indexPath = path.join(postDir, 'index.md');
   const content = generateFrontmatter(photoData);
   fs.writeFileSync(indexPath, content);
 
@@ -383,7 +383,7 @@ async function importPhoto(photoPath, options) {
   console.log(`   📅 Post date: ${date}`);
   if (exif.dateTaken) console.log(`   📸 Captured: ${exif.dateTaken}`);
   console.log(`   📷 Photo: ${photoData.photoFilename}`);
-  console.log(`   📝 Post: index.mdx`);
+  console.log(`   📝 Post: index.md`);
 
   return {
     created: true,
