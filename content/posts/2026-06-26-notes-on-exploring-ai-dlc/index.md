@@ -8,7 +8,7 @@ tags: ["ai", "aidlc", "spec-driven-development", "agentic-ai", "software-enginee
 draft: false
 ---
 
-For the past year and a half I have been delivering **AI-DLC** workshops for AWS customers, at least one a month and usually two or three full days each. The demand has been steady, and teams keep lining up.
+For the past nine months I have been delivering **AI-DLC** workshops for AWS customers, at least one a month and usually two or three full days each. The demand has been steady, and teams keep lining up.
 
 AI-DLC stands for the **AI-Driven Development Life Cycle**, a methodology for building software with AI as a central collaborator across the entire product and software development lifecycle. In these workshops we do not just talk about it. Teams bring real projects, greenfield and brownfield, and we work through requirements, architecture, code, and operations together with agentic AI tools. We have helped customers deliver hundreds of use cases in days instead of months.
 
@@ -38,7 +38,7 @@ OPERATIONS      →  Deploy and run (infrastructure, monitoring)
 
 Each phase feeds context into the next, and artifacts like requirements, design docs, and plans are stored in the project repository so work can continue across sessions. That persistence matters because agents forget and files do not.
 
-The open source rules for all of this live in the [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) repository, and you can drop them into tools like [Amazon Q Developer](https://aws.amazon.com/q/developer/), [Kiro](https://kiro.dev/), Cursor, or Claude Code so the agent follows the workflow.
+The open source rules for all of this live in the [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) repository, and you can drop them into tools like [Kiro](https://kiro.dev/), Cursor, or Claude Code so the agent follows the workflow.
 
 ## Inception: turning intent into something buildable
 
