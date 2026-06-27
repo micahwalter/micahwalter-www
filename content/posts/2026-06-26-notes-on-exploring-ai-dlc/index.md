@@ -2,7 +2,7 @@
 id: 144
 title: "Notes on exploring the AI-Driven Development Life Cycle"
 publishedAt: "2026-06-26"
-excerpt: "I've been delivering AI-DLC workshops for AWS customers for over a year. Here is what I have seen teams learn about building software when agents can plan, code, and operate alongside you."
+excerpt: "I've been delivering AI-DLC workshops for AWS customers for the past nine months. Here is what I have seen teams learn about building software when agents can plan, code, and operate alongside you."
 category: "AI"
 tags: ["ai", "aidlc", "spec-driven-development", "agentic-ai", "software-engineering"]
 draft: false
