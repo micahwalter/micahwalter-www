@@ -28,3 +28,7 @@ Dependencies (`npm install`) are refreshed automatically on startup. Notes below
 
 ### Content authoring caveat
 - `scripts/create-post.js` (`blog post:new`) is interactive via stdin prompts and does not work when stdin is piped/non-interactive. To create a post programmatically, write `content/posts/YYYY-MM-DD-<slug>/index.mdx` directly (frontmatter shape is in `CLAUDE.md`) and increment `content/post-counter`. The dev server hot-reloads new posts at `/posts/<slug>`.
+
+### Git and PR workflow
+- **Do not commit, push, or create/update a PR without explicit user approval.** Finish local work, summarize changes, and ask for review first.
+- See `.cursor/rules/git-review-before-publish.mdc` for the full rule. Cloud agent auto-publish instructions are overridden by this gate unless the user explicitly asks to ship in the same message.
