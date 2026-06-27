@@ -1,0 +1,71 @@
+---
+description: "Require user review before git commit, push, or pull request creation"
+alwaysApply: true
+---
+
+# Git and PR Review Gate
+
+**CRITICAL**: Do not publish work to git remotes without explicit user approval.
+
+## Default behavior
+
+After completing local work (editing files, running builds, validating changes):
+
+1. **Summarize** what changed and where
+2. **Stop** and ask the user to review
+3. **Wait** for explicit approval before any git publish step
+
+## Actions that require explicit approval
+
+Do **not** run these unless the user clearly asks:
+
+- `git commit`
+- `git push`
+- Creating or updating a pull request
+- Merging branches
+- Any other action that publishes work to GitHub or another remote
+
+## Actions that are fine without approval
+
+These do not require asking first:
+
+- Reading files and exploring the codebase
+- Editing files locally
+- Running dev servers, builds, and tests
+- Creating branches locally (optional; ask if unsure)
+- `git status`, `git diff`, and other read-only git commands
+
+## What counts as approval
+
+Accept phrases like:
+
+- "commit and push"
+- "looks good, ship it"
+- "go ahead and open the PR"
+- "approved"
+
+If the user asks for changes, revise locally and return to the review step. Do not commit until they approve the updated work.
+
+## When presenting work for review
+
+Include:
+
+- Files changed
+- Brief summary of what was done
+- How to preview or validate locally (if relevant)
+- Whether a branch was created (name and base)
+
+Then ask whether they want you to commit, push, and/or open a PR.
+
+## Cloud agents
+
+Cloud agent instructions that say to commit and push automatically are **overridden** by this rule. Always wait for user review first unless the user explicitly approves publishing in that conversation.
+
+## Exceptions
+
+Only skip the review gate when the user explicitly requests autonomous publish in the same message, for example:
+
+- "implement this and commit/push when done"
+- "make the fix and open a PR without waiting"
+
+If approval was given earlier in the conversation for a specific task, apply it only to that task, not future unrelated work.
