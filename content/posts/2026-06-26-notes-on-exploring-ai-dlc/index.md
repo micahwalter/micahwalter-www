@@ -5,7 +5,7 @@ publishedAt: "2026-06-26"
 excerpt: "I've been delivering AI-DLC workshops for AWS customers for over a year. Here is what I have seen teams learn about building software when agents can plan, code, and operate alongside you."
 category: "AI"
 tags: ["ai", "aidlc", "spec-driven-development", "agentic-ai", "software-engineering"]
-draft: true
+draft: false
 ---
 
 For the past year and a half I have been delivering **AI-DLC** workshops for AWS customers, at least one a month and usually two or three full days each. The demand has been steady, and teams keep lining up.
