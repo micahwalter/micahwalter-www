@@ -5,7 +5,6 @@ publishedAt: "2026-07-01"
 excerpt: "Somewhere out of view, something is doing work I used to do myself."
 category: "AI"
 tags: ["ai", "agents", "cursor", "vim", "orchestration"]
-coverImage: "./cover.jpg"
 draft: true
 ---
 
