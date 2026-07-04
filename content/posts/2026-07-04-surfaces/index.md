@@ -1,7 +1,7 @@
 ---
 id: 145
 title: "Surfaces"
-publishedAt: "2026-07-03"
+publishedAt: "2026-07-04"
 excerpt: "Somewhere out of view, something is doing work I used to do myself."
 category: "AI"
 tags: ["ai", "agents", "cursor", "vim", "orchestration"]
