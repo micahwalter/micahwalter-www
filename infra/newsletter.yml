@@ -25,6 +25,16 @@ Parameters:
     Default: ''
     Description: Route53 hosted zone ID for micahwalter.com
 
+  MailFromSubdomain:
+    Type: String
+    Default: bounce
+    Description: Subdomain for SES custom MAIL FROM (e.g. bounce -> bounce.micahwalter.com)
+
+  DmarcReportEmail:
+    Type: String
+    Default: micah@micahwalter.com
+    Description: Aggregate DMARC report destination (rua)
+
   DomainName:
     Type: String
     Default: micahwalter.com
@@ -273,6 +283,8 @@ Resources:
           - OPTIONS
         AllowHeaders:
           - Content-Type
+        ExposeHeaders:
+          - X-Newsletter-Queued
         MaxAge: 300
       Tags:
         Project: micahwalter-newsletter
@@ -339,6 +351,12 @@ Resources:
               - Effect: Allow
                 Action: secretsmanager:GetSecretValue
                 Resource: !Ref HMACSecret
+              - Effect: Allow
+                Action: cloudwatch:PutMetricData
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: Newsletter/Subscribe
       Tags:
         - Key: Project
           Value: micahwalter-newsletter
@@ -578,6 +596,7 @@ Resources:
           SENDER_EMAIL: !Ref SenderEmail
           SITE_URL: !Ref SiteUrl
           ADMIN_EMAIL: !Ref AdminEmail
+          CONFIGURATION_SET_NAME: !Ref NewsletterConfigurationSet
       Tags:
         - Key: Project
           Value: micahwalter-newsletter
@@ -834,8 +853,32 @@ Resources:
         - ReportBatchItemFailures
 
   # -------------------------------------------------------------------------
-  # SES — domain identity, DKIM DNS records, email templates
+  # SES — configuration set, domain identity, DNS records, email templates
   # -------------------------------------------------------------------------
+
+  NewsletterConfigurationSet:
+    Type: AWS::SES::ConfigurationSet
+    Properties:
+      Name: newsletter
+
+  NewsletterConfigurationSetEventDestination:
+    Type: AWS::SES::ConfigurationSetEventDestination
+    Properties:
+      ConfigurationSetName: !Ref NewsletterConfigurationSet
+      EventDestination:
+        Name: cloudwatch
+        Enabled: true
+        MatchingEventTypes:
+          - send
+          - reject
+          - bounce
+          - complaint
+          - delivery
+        CloudWatchDestination:
+          DimensionConfigurations:
+            - DimensionName: messageType
+              DimensionValueSource: messageTag
+              DefaultDimensionValue: newsletter
 
   SESEmailIdentity:
     Type: AWS::SES::EmailIdentity
@@ -848,6 +891,9 @@ Resources:
         NextSigningKeyLength: RSA_2048_BIT
       FeedbackAttributes:
         EmailForwardingEnabled: true
+      MailFromAttributes:
+        MailFromDomain: !Sub '${MailFromSubdomain}.${DomainName}'
+        BehaviorOnMxFailure: USE_DEFAULT_VALUE
       Tags:
         - Key: Project
           Value: micahwalter-newsletter
@@ -891,6 +937,39 @@ Resources:
       TTL: 1800
       ResourceRecords:
         - !GetAtt SESEmailIdentity.DkimDNSTokenValue3
+
+  MailFromMXRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: ShouldCreateSESIdentity
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub '${MailFromSubdomain}.${DomainName}'
+      Type: MX
+      TTL: 300
+      ResourceRecords:
+        - !Sub '10 feedback-smtp.${AWS::Region}.amazonses.com'
+
+  MailFromSpfRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: ShouldCreateSESIdentity
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub '${MailFromSubdomain}.${DomainName}'
+      Type: TXT
+      TTL: 300
+      ResourceRecords:
+        - '"v=spf1 include:amazonses.com ~all"'
+
+  DmarcRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: ShouldCreateSESIdentity
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub '_dmarc.${DomainName}'
+      Type: TXT
+      TTL: 300
+      ResourceRecords:
+        - !Sub '"v=DMARC1; p=none; rua=mailto:${DmarcReportEmail}; adkim=r; aspf=r"'
 
   ConfirmationEmailTemplate:
     Type: AWS::SES::Template
@@ -1385,6 +1464,7 @@ Resources:
           HMAC_SECRET_ARN: !Ref HMACSecret
           SES_FROM_ADDRESS: !Ref SenderEmail
           SITE_URL: !Ref SiteUrl
+          CONFIGURATION_SET_NAME: !Ref NewsletterConfigurationSet
       Tags:
         - Key: Project
           Value: micahwalter-newsletter

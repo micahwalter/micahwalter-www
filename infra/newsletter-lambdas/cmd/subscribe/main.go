@@ -17,9 +17,12 @@ import (
 	"github.com/micahwalter/newsletter-lambdas/internal/dynamo"
 	evts "github.com/micahwalter/newsletter-lambdas/internal/events"
 	"github.com/micahwalter/newsletter-lambdas/internal/formtoken"
+	"github.com/micahwalter/newsletter-lambdas/internal/metrics"
 	"github.com/micahwalter/newsletter-lambdas/internal/secrets"
 	"github.com/micahwalter/newsletter-lambdas/internal/token"
 )
+
+const queuedHeader = "X-Newsletter-Queued"
 
 var (
 	db         *dynamo.Client
@@ -37,6 +40,7 @@ func init() {
 	db = dynamo.NewClient(cfg, os.Getenv("DYNAMODB_TABLE_NAME"))
 	evtClient = evts.NewClient(cfg, os.Getenv("EVENT_BUS_NAME"))
 	secClient = secrets.NewClient(cfg, os.Getenv("HMAC_SECRET_ARN"))
+	metrics.Init(cfg)
 	siteURL = os.Getenv("SITE_URL")
 }
 
@@ -64,6 +68,7 @@ func handler(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.AP
 	// Return a fake 202 to avoid alerting bot operators.
 	if body.Website != "" {
 		slog.Info("subscribe: honeypot triggered", "ip", req.RequestContext.HTTP.SourceIP)
+		metrics.PublishCount(ctx, "BotDropped")
 		return response(202, "Check your inbox to confirm your subscription"), nil
 	}
 
@@ -71,10 +76,12 @@ func handler(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.AP
 	// be at least 3 seconds old. Bots that submit instantly are silently dropped.
 	if body.FormToken == "" {
 		slog.Info("subscribe: missing form token", "ip", req.RequestContext.HTTP.SourceIP)
+		metrics.PublishCount(ctx, "BotDropped")
 		return response(202, "Check your inbox to confirm your subscription"), nil
 	}
 	if err := formtoken.Verify(body.FormToken, keys.Current, keys.Previous); err != nil {
 		slog.Info("subscribe: form token rejected", "ip", req.RequestContext.HTTP.SourceIP, "reason", err)
+		metrics.PublishCount(ctx, "BotDropped")
 		return response(202, "Check your inbox to confirm your subscription"), nil
 	}
 
@@ -154,7 +161,8 @@ func handler(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.AP
 	}
 
 	slog.Info("subscribe: signup requested", "email", hashEmail(email))
-	return response(202, "Check your inbox to confirm your subscription"), nil
+	metrics.PublishCount(ctx, "SignupQueued")
+	return queuedResponse(202, "Check your inbox to confirm your subscription"), nil
 }
 
 func main() {
@@ -184,4 +192,16 @@ func response(statusCode int, message string) events.APIGatewayV2HTTPResponse {
 		Headers:    map[string]string{"Content-Type": "application/json"},
 		Body:       string(body),
 	}
+}
+
+// queuedResponse marks responses where a confirmation email was actually queued.
+// The header is read by the frontend for analytics; bots still receive 202 with
+// the same body but without this header.
+func queuedResponse(statusCode int, message string) events.APIGatewayV2HTTPResponse {
+	resp := response(statusCode, message)
+	if resp.Headers == nil {
+		resp.Headers = map[string]string{}
+	}
+	resp.Headers[queuedHeader] = "true"
+	return resp
 }
