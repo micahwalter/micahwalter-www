@@ -156,6 +156,8 @@ jobs:
           aws cloudformation deploy \
             --stack-name ${{ env.STACK_NAME }} \
             --template-file infra/newsletter.yml \
+            --s3-bucket ${{ env.ARTIFACTS_BUCKET }} \
+            --s3-prefix cloudformation \
             --region ${{ env.AWS_REGION }} \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
@@ -185,6 +187,8 @@ jobs:
           aws cloudformation deploy \
             --stack-name ${{ env.STACK_NAME_SECONDARY }} \
             --template-file infra/newsletter-secondary.yml \
+            --s3-bucket ${{ env.ARTIFACTS_BUCKET_SECONDARY }} \
+            --s3-prefix cloudformation \
             --region ${{ env.AWS_REGION_SECONDARY }} \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
