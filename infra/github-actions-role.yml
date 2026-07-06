@@ -265,6 +265,16 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:ses:us-east-1:${AWS::AccountId}:identity/*'
                   - !Sub 'arn:aws:ses:us-east-2:${AWS::AccountId}:identity/*'
+              - Effect: Allow
+                Action:
+                  - ses:CreateConfigurationSet
+                  - ses:DeleteConfigurationSet
+                  - ses:CreateConfigurationSetEventDestination
+                  - ses:DeleteConfigurationSetEventDestination
+                  - ses:UpdateConfigurationSetEventDestination
+                  - ses:GetConfigurationSet
+                  - ses:GetConfigurationSetEventDestinations
+                Resource: '*'
               # SES templates — manage email templates in both regions
               - Effect: Allow
                 Action:

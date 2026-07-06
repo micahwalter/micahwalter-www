@@ -24,10 +24,11 @@ const (
 )
 
 var (
-	sesClient   *ses.Client
-	senderEmail string
-	siteURL     string
-	adminEmail  string
+	sesClient              *ses.Client
+	senderEmail            string
+	siteURL                string
+	adminEmail             string
+	configurationSetName   string
 )
 
 func init() {
@@ -40,6 +41,7 @@ func init() {
 	senderEmail = os.Getenv("SENDER_EMAIL")
 	siteURL = os.Getenv("SITE_URL")
 	adminEmail = os.Getenv("ADMIN_EMAIL")
+	configurationSetName = os.Getenv("CONFIGURATION_SET_NAME")
 }
 
 // eventEnvelope is the EventBridge event structure as delivered via SQS.
@@ -146,6 +148,8 @@ func sendAdminNotification(ctx context.Context, detail evts.SubscriberConfirmedD
 				Text: &sestypes.Content{Data: aws.String(body)},
 			},
 		},
+		ConfigurationSetName: optionalConfigSet(),
+		Tags:                 messageTags(),
 	})
 	if err != nil {
 		return fmt.Errorf("SES SendEmail (admin notification): %w", err)
@@ -173,14 +177,32 @@ func sendTemplated(ctx context.Context, toEmail, templateName, templateData stri
 		Destination: &sestypes.Destination{
 			ToAddresses: []string{toEmail},
 		},
-		Template:     aws.String(templateName),
-		TemplateData: aws.String(templateData),
+		Template:               aws.String(templateName),
+		TemplateData:           aws.String(templateData),
+		ConfigurationSetName: optionalConfigSet(),
+		Tags:                   messageTags(),
 	})
 	if err != nil {
 		return fmt.Errorf("SES SendTemplatedEmail (%s): %w", templateName, err)
 	}
 	slog.Info("email: sent", "template", templateName)
 	return nil
+}
+
+func optionalConfigSet() *string {
+	if configurationSetName == "" {
+		return nil
+	}
+	return aws.String(configurationSetName)
+}
+
+func messageTags() []sestypes.MessageTag {
+	if configurationSetName == "" {
+		return nil
+	}
+	return []sestypes.MessageTag{
+		{Name: aws.String("messageType"), Value: aws.String("newsletter")},
+	}
 }
 
 func nameOrFallback(name string) string {
