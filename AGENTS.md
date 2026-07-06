@@ -27,7 +27,8 @@ Dependencies (`npm install`) are refreshed automatically on startup. Notes below
 - This account uses AWS Identity Center (SSO). Credentials are obtained interactively per session — there are no static keys. The repo convention is the `www` profile (region `us-east-1`). First-time config: `aws configure sso --profile www`; subsequent sessions: `aws sso login --profile www`. SSO tokens are short-lived and do not survive across VMs, so expect to re-authenticate each session. Verify with `aws sts get-caller-identity --profile www`.
 
 ### Content authoring caveat
-- `scripts/create-post.js` (`blog post:new`) is interactive via stdin prompts and does not work when stdin is piped/non-interactive. To create a post programmatically, write `content/posts/YYYY-MM-DD-<slug>/index.mdx` directly (frontmatter shape is in `CLAUDE.md`) and increment `content/post-counter`. The dev server hot-reloads new posts at `/posts/<slug>`.
+- `scripts/create-post.js` (`blog post:new`) is interactive via stdin prompts and does not work when stdin is piped/non-interactive. To create a post programmatically, write `content/posts/YYYY-MM-DD-<slug>/index.md` directly (frontmatter shape is in `CLAUDE.md`) and increment `content/post-counter`. The dev server hot-reloads new posts at `/posts/<slug>`.
+- NOTE: `lib/content.ts` only reads `index.md` (line ~48), so post files MUST be named `index.md`, not `index.mdx`. Docs (`CLAUDE.md`) mention `index.mdx`, but a file named `index.mdx` is silently ignored and yields a 404.
 
 ### Git and PR workflow
 - **Do not commit, push, or create/update a PR without explicit user approval.** Finish local work, summarize changes, and ask for review first.
