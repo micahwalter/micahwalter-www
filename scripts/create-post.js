@@ -112,8 +112,8 @@ function createPost(postData) {
   // Create directory
   fs.mkdirSync(postDir, { recursive: true });
 
-  // Create index.mdx with frontmatter
-  const indexPath = path.join(postDir, 'index.mdx');
+  // Create index.md with frontmatter
+  const indexPath = path.join(postDir, 'index.md');
   const content = generateFrontmatter(postData);
   fs.writeFileSync(indexPath, content);
 

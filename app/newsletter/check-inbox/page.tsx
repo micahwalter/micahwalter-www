@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import ResendConfirmation from "../ResendConfirmation";
 
 export const metadata: Metadata = {
   title: "Check your inbox",
@@ -15,14 +15,11 @@ export default function CheckInboxPage() {
         I&apos;ve sent you a confirmation email. Click the link inside to
         activate your subscription.
       </p>
-      <p className="text-gray leading-relaxed mb-10">
+      <p className="text-gray leading-relaxed">
         The link expires in 24 hours. If you don&apos;t see it, check your spam
-        folder. If it&apos;s not there either,{" "}
-        <Link href="/newsletter" className="text-charcoal underline underline-offset-2">
-          try subscribing again
-        </Link>
-        .
+        folder.
       </p>
+      <ResendConfirmation />
     </div>
   );
 }

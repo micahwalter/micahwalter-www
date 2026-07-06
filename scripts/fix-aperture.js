@@ -21,7 +21,7 @@ function getAllPhotoPosts() {
     const fullPath = path.join(POSTS_DIR, folder);
     if (!fs.statSync(fullPath).isDirectory()) return false;
 
-    const mdxPath = path.join(fullPath, 'index.mdx');
+    const mdxPath = path.join(fullPath, 'index.md');
     if (!fs.existsSync(mdxPath)) return false;
 
     // Check if it's a photo post
@@ -32,7 +32,7 @@ function getAllPhotoPosts() {
 }
 
 function fixAperture(postFolder) {
-  const mdxPath = path.join(POSTS_DIR, postFolder, 'index.mdx');
+  const mdxPath = path.join(POSTS_DIR, postFolder, 'index.md');
   const fileContents = fs.readFileSync(mdxPath, 'utf8');
   const { data, content } = matter(fileContents);
 

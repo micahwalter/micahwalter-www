@@ -28,8 +28,8 @@ class PostWriter {
         fs.mkdirSync(postDir, { recursive: true });
       }
 
-      // Write index.mdx
-      const mdxPath = path.join(postDir, 'index.mdx');
+      // Write index.md
+      const mdxPath = path.join(postDir, 'index.md');
       const fullContent = this.generateMDXContent(frontmatter, content);
 
       fs.writeFileSync(mdxPath, fullContent, 'utf-8');

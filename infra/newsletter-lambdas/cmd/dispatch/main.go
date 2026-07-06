@@ -41,12 +41,13 @@ const (
 )
 
 var (
-	subscribersDB *dynamo.Client
-	sendsDB       *dynamo.SendsClient
-	sesClient     *ses.Client
-	secClient     *secrets.Client
-	senderEmail   string
-	siteURL       string
+	subscribersDB          *dynamo.Client
+	sendsDB                *dynamo.SendsClient
+	sesClient              *ses.Client
+	secClient              *secrets.Client
+	senderEmail            string
+	siteURL                string
+	configurationSetName   string
 )
 
 func init() {
@@ -61,6 +62,7 @@ func init() {
 	secClient = secrets.NewClient(cfg, os.Getenv("HMAC_SECRET_ARN"))
 	senderEmail = os.Getenv("SES_FROM_ADDRESS")
 	siteURL = os.Getenv("SITE_URL")
+	configurationSetName = os.Getenv("CONFIGURATION_SET_NAME")
 }
 
 // eventEnvelope is the EventBridge event structure as delivered via SQS.
@@ -303,12 +305,20 @@ func upsertTemplate(ctx context.Context, name, subject, htmlBody, textBody strin
 
 // sendBatch sends a single batch of up to 50 destinations.
 func sendBatch(ctx context.Context, templateName string, batch []sestypes.BulkEmailDestination) ([]sestypes.BulkEmailDestinationStatus, error) {
-	out, err := sesClient.SendBulkTemplatedEmail(ctx, &ses.SendBulkTemplatedEmailInput{
-		Source:                   aws.String(senderEmail),
-		Template:                 aws.String(templateName),
-		DefaultTemplateData:      aws.String(`{"name":"there","unsubscribe_link":"","view_in_browser_url":""}`),
-		Destinations:             batch,
-	})
+	input := &ses.SendBulkTemplatedEmailInput{
+		Source:              aws.String(senderEmail),
+		Template:            aws.String(templateName),
+		DefaultTemplateData: aws.String(`{"name":"there","unsubscribe_link":"","view_in_browser_url":""}`),
+		Destinations:        batch,
+	}
+	if configurationSetName != "" {
+		input.ConfigurationSetName = aws.String(configurationSetName)
+		input.DefaultTags = []sestypes.MessageTag{
+			{Name: aws.String("messageType"), Value: aws.String("newsletter")},
+		}
+	}
+
+	out, err := sesClient.SendBulkTemplatedEmail(ctx, input)
 	if err != nil {
 		return nil, fmt.Errorf("sendBatch: %w", err)
 	}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { trackEvent } from "fathom-client";
+import { storePendingSubscription } from "./ResendConfirmation";
 
 const API_URL = process.env.NEXT_PUBLIC_NEWSLETTER_API_URL;
 
@@ -40,7 +41,10 @@ export default function SubscribeForm() {
       });
 
       if (res.status === 202) {
-        trackEvent("Newsletter Signup");
+        if (res.headers.get("X-Newsletter-Queued") === "true") {
+          trackEvent("Newsletter Signup");
+          storePendingSubscription(email, name);
+        }
         router.push("/newsletter/check-inbox");
         return;
       }

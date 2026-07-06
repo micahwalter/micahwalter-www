@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { trackEvent } from "fathom-client";
+import ResendConfirmation from "../ResendConfirmation";
 
 const API_URL = process.env.NEXT_PUBLIC_NEWSLETTER_API_URL;
 
@@ -80,13 +81,17 @@ export default function ConfirmHandler() {
       <h1 className="font-serif font-semibold text-4xl md:text-5xl text-charcoal mb-4">
         {status === "expired" ? "Link expired" : "Invalid link"}
       </h1>
-      <p className="text-gray text-lg leading-relaxed mb-8">{message}</p>
-      <Link
-        href="/newsletter"
-        className="text-charcoal underline underline-offset-2"
-      >
-        Subscribe again →
-      </Link>
+      <p className="text-gray text-lg leading-relaxed mb-4">{message}</p>
+      {status === "expired" ? (
+        <ResendConfirmation requireEmail />
+      ) : (
+        <Link
+          href="/newsletter"
+          className="text-charcoal underline underline-offset-2"
+        >
+          Subscribe again →
+        </Link>
+      )}
     </div>
   );
 }
