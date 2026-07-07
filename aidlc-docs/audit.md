@@ -135,3 +135,11 @@
 **Context**: INCEPTION — Workspace Detection complete; Requirements Analysis awaiting user answers in questions file.
 
 ---
+
+## Issue #85 — Requirements Answers Received
+**Timestamp**: 2026-07-07T03:18:00Z
+**User Input**: "answers are done.. please use the same ticket server for both posts and photos. Also be sure it works in our multi-region design.."
+**AI Response**: Parsed answers from issue-85-requirement-verification-questions.md. Generated issue-85-requirements.md incorporating: full end-to-end scope, Go, separate auth, CLI interactive credentials, photo-upload via HTTP, seed with manual review, single shared counter for all post types, multi-region API in both regions with primary-only DynamoDB counter table. Presenting requirements for approval.
+**Context**: INCEPTION — Requirements Analysis complete; approval gate.
+
+---
