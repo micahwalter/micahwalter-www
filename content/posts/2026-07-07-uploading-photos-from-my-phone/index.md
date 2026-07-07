@@ -5,7 +5,7 @@ publishedAt: "2026-07-07"
 excerpt: "I wanted to post a photo without opening my laptop. The fix was a passcode-gated form, three Lambdas, and a pipeline that commits to GitHub and triggers the normal deploy. Here is how issue #71 became /upload."
 category: "AWS"
 tags: ["photo-upload", "lambda", "s3", "aidlc", "cursor", "aws", "github-actions"]
-draft: false
+draft: true
 ---
 
 For years I have added photos to this site the same way: import them on my laptop with the `blog` CLI, optimize and sync to S3, commit the markdown, push to `main`, wait for the deploy. That works fine at a desk. It is less fine when I am out with a camera and the photo I want to share is already on my phone. I opened [GitHub issue #71](https://github.com/micahwalter/micahwalter-www/issues/71) to fix that. The goal was simple. A private form on the site where I enter a passcode, pick a photo, optionally flag it for the homepage, and let the existing static-export model handle the rest. No new runtime server on the blog. No breaking the CLI path. Just the same pipeline, reachable from a browser.
