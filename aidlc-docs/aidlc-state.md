@@ -3,27 +3,24 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-07-07T02:55:00Z
-- **Current Stage**: CONSTRUCTION COMPLETE — Build and Test (awaiting approval)
-- **Engagement Status**: Issue #85 — ready for AWS deploy
+- **Current Stage**: COMPLETE — Issue #85 (Operations handoff)
+- **Engagement Status:** Ready for merge + AWS deploy
 
 ## Active Engagement — Issue #85 (Ticket Server)
 
-- **GitHub Issue**: [#85](https://github.com/micahwalter/micahwalter-www/issues/85)
-- **Pull Request**: [#86](https://github.com/micahwalter/micahwalter-www/pull/86)
-- **Branch**: `cursor/ticket-server-go-065a`
+- **GitHub Issue:** [#85](https://github.com/micahwalter/micahwalter-www/issues/85)
+- **Pull Request:** [#86](https://github.com/micahwalter/micahwalter-www/pull/86)
+- **Branch:** `cursor/ticket-server-go-065a`
+- **Operations handoff:** `aidlc-docs/operations/issue-85-deploy-handoff.md`
 
 ## Stage Progress — Issue #85
 
-### INCEPTION PHASE
-- [x] All stages complete
-
-### CONSTRUCTION PHASE
-- [x] Code Generation — all 7 units
-- [x] Build and Test — local builds passed; integration tests pending deploy
-
-### OPERATIONS PHASE
-- [ ] AWS deploy + seed + smoke tests (manual)
+### INCEPTION — complete
+### CONSTRUCTION — complete (build + test verified post-merge)
+### OPERATIONS — handoff documented; AWS deploy requires profile `www`
 
 ## Current Status
-- **Lifecycle Phase**: REVIEW — Build and Test approval gate
-- **Next Action:** Merge PR #86, then follow deploy sequence in build-and-test-summary.md
+
+- Merge conflict with `content/post-counter` resolved (deleted; main was at 148)
+- PR #86 ready to merge after push
+- Deploy blocked in this environment: no AWS SSO profile configured
