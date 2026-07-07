@@ -175,3 +175,35 @@
 **Context**: OPERATIONS handoff; engagement complete pending user deploy.
 
 ---
+
+## Issue #90 — Initial Request
+**Timestamp**: 2026-07-07T19:00:00Z
+**User Input**: "Lets create a new branch and use AI-DLC to work on this issue"
+**AI Response**: Created branch `cursor/deploy-build-optimization-780e`. Reset aidlc-state.md for Issue #90 engagement. Reused brownfield reverse-engineering artifacts. Completed Workspace Detection. Created issue-90-requirement-verification-questions.md. Stopping at Requirements Analysis gate.
+**Context**: INCEPTION — Workspace Detection complete; Requirements Analysis awaiting user answers.
+
+---
+
+## Issue #90 — Requirements Answers Received
+**Timestamp**: 2026-07-07T19:04:00Z
+**User Input**: "ok done with review"
+**AI Response**: Read answers from issue-90-requirement-verification-questions.md. Detected contradiction between Q1 (scope B: include micro optimization) and Q4 (answer A: keep per-toot pages). Created issue-90-clarification-questions.md. Stopping at clarification gate.
+**Context**: INCEPTION — Requirements Analysis; awaiting clarification on micro page scope.
+
+---
+
+## Issue #90 — Clarification Received
+**Timestamp**: 2026-07-07T19:05:00Z
+**User Input**: "Lets go with ooption A"
+**AI Response**: User chose clarification A — defer micro optimization; Phase 1 only (redirects + CI cache + metrics). Generated issue-90-requirements.md. Extensions disabled. Presenting Requirements Analysis completion for approval.
+**Context**: INCEPTION — Requirements Analysis complete; approval gate.
+
+---
+
+## Issue #90 — Workflow Plan Approval
+**Timestamp**: 2026-07-07T19:07:00Z
+**User Input**: "approve and continue"
+**AI Response**: Workflow plan approved. Implemented Units 1–3: CF legacy redirects, Next.js route cleanup, CI cache/metrics. Local build: ~997 static pages (down from ~2,295), ~31s. Construction summary written. Presenting Build and Test completion for approval.
+**Context**: CONSTRUCTION — Build and Test complete; approval gate.
+
+---

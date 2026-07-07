@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getPostsByYear, getAllYears, getAllSlugs } from "@/lib/content";
+import { getPostsByYear, getAllYears } from "@/lib/content";
 import PostGrid from "@/components/PostGrid";
 import type { Metadata } from "next";
 
@@ -10,9 +10,7 @@ interface YearPageProps {
 }
 
 export async function generateStaticParams() {
-  const years = getAllYears().map((year) => ({ year }));
-  const slugs = getAllSlugs().map((slug) => ({ year: slug }));
-  return [...years, ...slugs];
+  return getAllYears().map((year) => ({ year }));
 }
 
 export async function generateMetadata({ params }: YearPageProps): Promise<Metadata> {
