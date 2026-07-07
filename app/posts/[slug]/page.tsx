@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getAllPosts, getPostBySlug } from "@/lib/content";
-import { renderMarkdown } from "@/lib/markdown";
+import PostContent from "@/components/PostContent";
 import PostLayout from "@/components/PostLayout";
 import PhotoLayout from "@/components/PhotoLayout";
 import type { Metadata } from "next";
@@ -79,13 +79,7 @@ export default async function PostPage({ params }: PostPageProps) {
     notFound();
   }
 
-  const htmlContent = await renderMarkdown(post.content, post.folderName);
-  const content = (
-    <div
-      className="prose-content"
-      dangerouslySetInnerHTML={{ __html: htmlContent }}
-    />
-  );
+  const content = <PostContent content={post.content} folderName={post.folderName} />;
 
   if (post.type === 'photo') {
     return <PhotoLayout post={post}>{content}</PhotoLayout>;
