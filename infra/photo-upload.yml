@@ -108,8 +108,8 @@ Resources:
       Name: photo-upload-secrets
       Description: >
         Photo upload secrets. Replace after first deploy:
-        {"passcode":"<upload passcode>","hmac":"<random signing key>","githubToken":"<fine-grained PAT, contents:write>"}
-      SecretString: '{"passcode":"REPLACE_ME","hmac":"REPLACE_WITH_RANDOM_KEY","githubToken":"REPLACE_WITH_GITHUB_TOKEN"}'
+        {"passcode":"<upload passcode>","hmac":"<random signing key>","githubToken":"<fine-grained PAT, contents:write>","ticketsPasscode":"<ticket server passcode>"}
+      SecretString: '{"passcode":"REPLACE_ME","hmac":"REPLACE_WITH_RANDOM_KEY","githubToken":"REPLACE_WITH_GITHUB_TOKEN","ticketsPasscode":"REPLACE_WITH_TICKET_PASSCODE"}'
       Tags:
         - { Key: Project, Value: micahwalter-photo-upload }
         - { Key: ManagedBy, Value: CloudFormation }
@@ -295,6 +295,7 @@ Resources:
           IMAGES_BUCKET: !Ref ImagesBucketName
           GITHUB_REPO: !Ref GitHubRepo
           GITHUB_BRANCH: !Ref GitHubBranch
+          TICKETS_API_URL: https://api.micahwalter.com/tickets
 
   # -------------------------------------------------------------------------
   # API integrations, routes, and invoke permissions

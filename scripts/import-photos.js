@@ -14,9 +14,9 @@ const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 const ExifReader = require('exifreader');
+const { allocatePostId } = require('./lib/allocate-post-id');
 
 const POSTS_DIR = path.join(process.cwd(), 'content/posts');
-const COUNTER_FILE = path.join(process.cwd(), 'content/post-counter');
 
 // Supported image formats
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.heic', '.heif'];
@@ -59,20 +59,22 @@ function getArgValue(args, flag) {
 }
 
 /**
- * Read the current value of the photo ID counter
+ * Highest numeric id found in post frontmatter (for dry-run previews).
  */
-function readCurrentId() {
-  if (!fs.existsSync(COUNTER_FILE)) return 0;
-  return parseInt(fs.readFileSync(COUNTER_FILE, 'utf8').trim(), 10) || 0;
-}
-
-/**
- * Increment the counter, persist it, and return the new ID
- */
-function nextPhotoId() {
-  const next = readCurrentId() + 1;
-  fs.writeFileSync(COUNTER_FILE, String(next));
-  return next;
+function maxPostIdFromFrontmatter() {
+  if (!fs.existsSync(POSTS_DIR)) return 0;
+  let max = 0;
+  for (const folder of fs.readdirSync(POSTS_DIR)) {
+    const indexPath = path.join(POSTS_DIR, folder, 'index.md');
+    if (!fs.existsSync(indexPath)) continue;
+    const source = fs.readFileSync(indexPath, 'utf8');
+    const match = source.match(/^id\s*:\s*(\d+)\s*$/m);
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (n > max) max = n;
+    }
+  }
+  return max;
 }
 
 /**
@@ -324,7 +326,7 @@ async function importPhoto(photoPath, options) {
   const exif = await extractExif(photoPath);
 
   // Assign a unique photo ID (or preview ID in dry-run mode)
-  const id = dryRun ? previewId : nextPhotoId();
+  const id = dryRun ? previewId : await allocatePostId();
 
   // Generate slug from filename and use today's date for post
   const slug = generateSlug(filename);
@@ -447,7 +449,7 @@ async function main() {
   };
 
   // For dry-run: pre-compute what IDs would be assigned without touching the counter
-  let dryRunNextId = readCurrentId();
+  let dryRunNextId = maxPostIdFromFrontmatter();
 
   for (const photoPath of imageFiles) {
     try {

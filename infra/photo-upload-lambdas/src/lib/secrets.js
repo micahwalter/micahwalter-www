@@ -4,7 +4,8 @@
  * Loads and caches the photo-upload secret, a JSON document of the form:
  *   { "passcode": "<the upload passcode>",
  *     "hmac":     "<random key used to sign session tokens>",
- *     "githubToken": "<fine-grained PAT with contents:write on the repo>" }
+ *     "githubToken": "<fine-grained PAT with contents:write on the repo>",
+ *     "ticketsPasscode": "<passcode for ticket server API>" }
  *
  * The value is cached in module scope for the lifetime of a warm Lambda
  * container so we only hit Secrets Manager on a cold start.

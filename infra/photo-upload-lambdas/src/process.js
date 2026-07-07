@@ -9,8 +9,8 @@
  *   2. extract EXIF + dimensions
  *   3. generate 400/800/1200 WebP+JPEG and upload to the images bucket
  *   4. upload the original to images/originals/...
- *   5. read + bump content/post-counter from the repo to assign the post id
- *   6. commit index.md + the bumped counter in one commit
+ *   5. allocate post id via ticket server API
+ *   6. commit index.md in one commit
  *   7. delete the incoming object
  */
 
@@ -26,7 +26,8 @@ const { getSecret } = require('./lib/secrets');
 const { extractExif } = require('./lib/exif');
 const { optimize } = require('./lib/optimize');
 const { generateSlug, titleFromFilename, todayDate, buildFrontmatter } = require('./lib/slug');
-const { getTextFile, commitFiles } = require('./lib/github');
+const { commitFiles } = require('./lib/github');
+const { allocatePostId } = require('./lib/tickets');
 
 const s3 = new S3Client({});
 
@@ -34,7 +35,6 @@ const IMAGES_BUCKET = process.env.IMAGES_BUCKET;
 const GITHUB_REPO = process.env.GITHUB_REPO;       // "owner/name"
 const GITHUB_BRANCH = process.env.GITHUB_BRANCH || 'main';
 const CACHE_CONTROL = 'public, max-age=31536000, immutable';
-const COUNTER_PATH = 'content/post-counter';
 
 async function streamToBuffer(stream) {
   const bytes = await stream.transformToByteArray();
@@ -87,21 +87,20 @@ async function processObject(bucket, key) {
     })),
   ]);
 
-  // 5 + 6. Assign the post id by reading + bumping the repo's counter, then
-  // commit the post in one commit. Two near-simultaneous uploads can read the
-  // same counter; the loser's non-fast-forward ref update fails, so retry the
-  // whole read→build→commit sequence (re-reading the counter each time) with
-  // backoff. Pushing to the branch triggers the existing deploy workflow.
+  // 5 + 6. Allocate post id from ticket server, then commit the post. Retry on
+  // GitHub ref conflicts (two near-simultaneous uploads).
   const secret = await getSecret();
   const token = secret.githubToken;
+  if (!secret.ticketsPasscode) {
+    throw new Error('photo-upload-secrets missing ticketsPasscode');
+  }
   const title = titleMeta || titleFromFilename(origFilename);
   const excerpt = exif.camera ? `Photo taken with ${exif.camera}` : 'A new photo';
 
   const MAX_ATTEMPTS = 4;
   let committed;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const counterRaw = await getTextFile(token, GITHUB_REPO, GITHUB_BRANCH, COUNTER_PATH);
-    const id = (parseInt((counterRaw || '0').trim(), 10) || 0) + 1;
+    const id = await allocatePostId(secret.ticketsPasscode);
 
     const indexMd = buildFrontmatter({
       id, title, date, excerpt,
@@ -118,14 +117,13 @@ async function processObject(bucket, key) {
         message: `Add photo post: ${title} (#${id})${featured ? ' [featured]' : ''}`,
         files: [
           { path: `content/posts/${folder}/index.md`, content: indexMd },
-          { path: COUNTER_PATH, content: String(id) },
         ],
       });
       committed = { commitSha, id };
       break;
     } catch (err) {
       if (attempt === MAX_ATTEMPTS) throw err;
-      const delay = 250 * 2 ** (attempt - 1); // 250ms, 500ms, 1s
+      const delay = 250 * 2 ** (attempt - 1);
       console.warn(`Commit attempt ${attempt} failed (${err.message}); retrying in ${delay}ms`);
       await new Promise((r) => setTimeout(r, delay));
     }
