@@ -55,16 +55,16 @@ flowchart TD
 
 | Step | Task | Files |
 |------|------|-------|
-| 1 | Add `toFathomPagePath()` mirroring CloudFront legacy redirect rules | `lib/fathom-url.ts` (new) |
-| 2 | Wire Fathom client to use canonical path in `trackPageview()` | `components/Fathom.tsx` |
-| 3 | Run production build | — |
-| 4 | Write construction summary with verification notes | `aidlc-docs/construction/issue-93-construction-summary.md` |
+| 1 | Add `toFathomPagePath()` mirroring CloudFront legacy redirect rules | `lib/fathom-url.ts` (new) | [x] |
+| 2 | Wire Fathom client to use canonical path in `trackPageview()` | `components/Fathom.tsx` | [x] |
+| 3 | Run production build | — | [x] |
+| 4 | Write construction summary with verification notes | `aidlc-docs/construction/issue-93-construction-summary.md` | [x] |
 
 ## Verification Checklist
 
-- [ ] Unit tests via manual spot-check of `toFathomPagePath()` cases (no test runner in repo)
-- [ ] `npm run build` succeeds
-- [ ] Production CloudFront 301 still verified separately (already confirmed pre-engagement)
+- [x] Unit tests via manual spot-check of `toFathomPagePath()` cases (no test runner in repo)
+- [x] `npm run build` succeeds
+- [x] Production CloudFront 301 still verified separately (already confirmed pre-engagement)
 
 ## Extension Compliance Summary
 
