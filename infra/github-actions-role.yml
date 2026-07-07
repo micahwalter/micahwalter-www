@@ -667,6 +667,97 @@ Resources:
               - 'arn:aws:apigateway:us-east-1::/*'
               - 'arn:aws:apigateway:us-east-2::/*'
 
+  # Website infra (infra.yml / infra-secondary.yml) — used by infra-deploy.yml
+  WebsiteInfraDeployPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: GitHubActionsDeployWebsiteInfra
+      Roles:
+        - !Ref GitHubActionsRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - cloudformation:DescribeStacks
+              - cloudformation:DescribeStackEvents
+              - cloudformation:DescribeStackResource
+              - cloudformation:DescribeStackResources
+              - cloudformation:CreateChangeSet
+              - cloudformation:ExecuteChangeSet
+              - cloudformation:DescribeChangeSet
+              - cloudformation:DeleteChangeSet
+              - cloudformation:GetTemplate
+              - cloudformation:GetTemplateSummary
+              - cloudformation:UpdateStack
+              - cloudformation:CreateStack
+            Resource:
+              - !Sub 'arn:aws:cloudformation:us-east-1:${AWS::AccountId}:stack/micahwalter-www/*'
+              - !Sub 'arn:aws:cloudformation:us-east-2:${AWS::AccountId}:stack/micahwalter-www-secondary/*'
+          - Effect: Allow
+            Action:
+              - cloudfront:DescribeFunction
+              - cloudfront:CreateFunction
+              - cloudfront:UpdateFunction
+              - cloudfront:PublishFunction
+              - cloudfront:DeleteFunction
+              - cloudfront:ListFunctions
+              - cloudfront:GetDistribution
+              - cloudfront:GetDistributionConfig
+              - cloudfront:UpdateDistribution
+              - cloudfront:CreateOriginAccessControl
+              - cloudfront:GetOriginAccessControl
+              - cloudfront:UpdateOriginAccessControl
+              - cloudfront:DeleteOriginAccessControl
+              - cloudfront:ListOriginAccessControls
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - s3:CreateBucket
+              - s3:DeleteBucket
+              - s3:ListBucket
+              - s3:GetBucketLocation
+              - s3:GetBucketPolicy
+              - s3:PutBucketPolicy
+              - s3:DeleteBucketPolicy
+              - s3:GetBucketAcl
+              - s3:PutBucketAcl
+              - s3:GetBucketCORS
+              - s3:PutBucketCORS
+              - s3:GetBucketLogging
+              - s3:PutBucketLogging
+              - s3:GetBucketVersioning
+              - s3:PutBucketVersioning
+              - s3:GetEncryptionConfiguration
+              - s3:PutEncryptionConfiguration
+              - s3:GetLifecycleConfiguration
+              - s3:PutLifecycleConfiguration
+              - s3:GetReplicationConfiguration
+              - s3:PutReplicationConfiguration
+              - s3:GetBucketPublicAccessBlock
+              - s3:PutBucketPublicAccessBlock
+              - s3:GetBucketOwnershipControls
+              - s3:PutBucketOwnershipControls
+              - s3:GetBucketTagging
+              - s3:PutBucketTagging
+            Resource:
+              - arn:aws:s3:::micahwalter-www-*
+              - arn:aws:s3:::micahwalter-www-*/*
+          - Effect: Allow
+            Action:
+              - iam:CreateRole
+              - iam:DeleteRole
+              - iam:GetRole
+              - iam:UpdateRole
+              - iam:PutRolePolicy
+              - iam:DeleteRolePolicy
+              - iam:GetRolePolicy
+              - iam:PassRole
+              - iam:TagRole
+              - iam:UntagRole
+            Resource:
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/micahwalter-www-replication-role'
+
 Outputs:
   RoleArn:
     Description: ARN of the IAM role for GitHub Actions
