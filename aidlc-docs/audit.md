@@ -111,3 +111,27 @@
 **Context**: Issue #71 E2E verified; documentation sync before merge.
 
 ---
+
+## Issue #85 — Ticket Server (New Engagement)
+**Timestamp**: 2026-07-07T02:39:00Z
+**User Input**: "I want to consider moving the post counter to a database like dynamo. Let's think this through and log an issue on GitHub to document the idea"
+**AI Response**: Analyzed current post-counter usage (4 writers, race conditions). Created GitHub issue #84 documenting DynamoDB migration options.
+**Context**: Planning only; no code changes.
+
+---
+
+## Issue #85 — Ticket Server Design Refinement
+**Timestamp**: 2026-07-07T02:47:00Z
+**User Input**: "I think we need a ticket server.. I made something like this a while back in Typscript.. https://github.com/micahwalter/tickets Maybe we can use this code or a similar version using Go or Python to build a serverless ticket server with an API.. add authentication like the other API on this same project"
+**AI Response**: Reviewed micahwalter/tickets repo (DynamoDB atomic increment, anonymous Function URL). Mapped photo-upload HMAC auth pattern. Created GitHub issue #85 with ticket server architecture (POST /tickets/auth, POST /tickets/next on api.micahwalter.com).
+**Context**: Planning only; supersedes #84 design direction.
+
+---
+
+## Issue #85 — Start Implementation (AIDLC)
+**Timestamp**: 2026-07-07T02:55:00Z
+**User Input**: "I'd like all infra lambdas to be written in Go. We can use separate auth to keep things separated.. Let's start working on this in a new branch using AIDLC going forward"
+**AI Response**: Created branch cursor/ticket-server-go-065a. Reset aidlc-state.md for Issue #85 engagement. Reused brownfield reverse-engineering artifacts. Created issue-85-requirement-verification-questions.md with confirmed decisions (Go, separate auth) and open questions (scope, CLI creds, extensions). Stopping at Requirements Analysis gate.
+**Context**: INCEPTION — Workspace Detection complete; Requirements Analysis awaiting user answers in questions file.
+
+---

@@ -2,25 +2,32 @@
 
 ## Project Information
 - **Project Type**: Brownfield
-- **Start Date**: 2026-06-24T00:00:00Z
-- **Current Stage**: CONSTRUCTION COMPLETE (Issue #71)
-- **Engagement Status**: Issue #71 photo upload merged — production deploy in progress (2026-07-07)
+- **Start Date**: 2026-07-07T02:55:00Z
+- **Current Stage**: INCEPTION — Requirements Analysis (Issue #85)
+- **Engagement Status**: Active — ticket server (Go)
 
-## Active Engagement — Issue #71 (Photo Upload)
+## Active Engagement — Issue #85 (Ticket Server)
 
-- **GitHub Issue**: [#71](https://github.com/micahwalter/micahwalter-www/issues/71)
-- **Pull Request**: [#73](https://github.com/micahwalter/micahwalter-www/pull/73)
-- **Branch**: `claude/photo-upload-feature-2iiJG`
-- **Construction Summary**: `aidlc-docs/construction/issue-71-photo-upload-summary.md`
+- **GitHub Issue**: [#85](https://github.com/micahwalter/micahwalter-www/issues/85)
+- **Related Issue**: [#84](https://github.com/micahwalter/micahwalter-www/issues/84) (superseded design direction)
+- **Branch**: `cursor/ticket-server-go-065a`
+- **Prior Art**: https://github.com/micahwalter/tickets
 
-## Prior Engagement — Issue #80
+### Confirmed decisions (from user)
+- All new infra Lambdas written in **Go** (newsletter-lambdas patterns)
+- **Separate auth** from photo-upload (`ticket-server-secrets`)
+- Serverless ticket server API on `api.micahwalter.com/tickets`
 
-- **Status**: Complete (newsletter confirm rate)
-- **Construction Summary**: `aidlc-docs/construction/issue-80-construction-summary.md`
+## Prior Engagements
+
+| Issue | Status | Summary |
+|-------|--------|---------|
+| #71 Photo Upload | Complete (merged) | `aidlc-docs/construction/issue-71-photo-upload-summary.md` |
+| #80 Newsletter confirm rate | Complete | `aidlc-docs/construction/issue-80-construction-summary.md` |
 
 ## Workspace State
 - **Existing Code**: Yes
-- **Reverse Engineering Needed**: No (artifacts current)
+- **Reverse Engineering Needed**: No (artifacts current in `aidlc-docs/inception/reverse-engineering/`)
 - **Workspace Root**: /workspace
 
 ## Code Location Rules
@@ -31,37 +38,35 @@
 
 ## Project Conventions
 - **Workflow integration**: See `aidlc-docs/workflow-conventions.md`
-- **Backlog**: GitHub Issues is the source of truth for improvements, bugs, and features
+- **Backlog**: GitHub Issues is the source of truth
 
-## Stage Progress — Issue #71
+## Stage Progress — Issue #85
 
 ### INCEPTION PHASE
-- [x] Workspace Detection — Brownfield (2026-07-06)
-- [x] Reverse Engineering — Reused prior artifacts
-- [x] Requirements Analysis — PR #73 description + issue #71
-- [x] User Stories — Skipped (feature defined in PR)
-- [x] Workflow Planning — Skipped (single-unit feature)
-- [x] Application Design — Skipped (PR included design)
-- [x] Units Generation — Skipped
+- [x] Workspace Detection — Brownfield (2026-07-07)
+- [x] Reverse Engineering — Reused prior artifacts (skipped rerun)
+- [ ] Requirements Analysis — Questions pending (`issue-85-requirement-verification-questions.md`)
+- [ ] User Stories — TBD (Question 11)
+- [ ] Workflow Planning
+- [ ] Application Design — TBD
+- [ ] Units Generation — TBD
 
 ### CONSTRUCTION PHASE
-- [x] Code Generation — PR #73 + review fixes (2026-07-07)
-- [x] Build and Test — `npm run build`, Lambda build, E2E upload verified
+- [ ] Per-unit design stages — TBD
+- [ ] Code Generation
+- [ ] Build and Test
 
 ### OPERATIONS PHASE
-- [x] Backend deployed (`micahwalter-photo-upload`)
-- [ ] GitHub Actions secret `NEXT_PUBLIC_PHOTO_API_URL` on repo
-- [ ] IAM managed policy deploy for CI photo-upload workflow
-- [ ] Post-merge site deploy with `/upload` baked in
+- [ ] Placeholder
 
 ## Extension Configuration
 
 | Extension | Enabled | Decided At |
 |-----------|---------|------------|
-| Security Baseline | No | Requirements Analysis (2026-06-24) |
-| Resiliency Baseline | No | Requirements Analysis (2026-06-24) |
-| Property-Based Testing | No | Requirements Analysis (2026-06-24) |
+| Security Baseline | Pending | Requirements Analysis (Issue #85) |
+| Resiliency Baseline | Pending | Requirements Analysis (Issue #85) |
+| Property-Based Testing | Pending | Requirements Analysis (Issue #85) |
 
 ## Current Status
-- **Lifecycle Phase**: MERGE — documentation updated, ready to push and merge PR #73
-- **Next Action**: Set `NEXT_PUBLIC_PHOTO_API_URL` secret; redeploy site after merge
+- **Lifecycle Phase**: INCEPTION — Requirements Analysis gate
+- **Next Action**: User answers in `aidlc-docs/inception/requirements/issue-85-requirement-verification-questions.md`
