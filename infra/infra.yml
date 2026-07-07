@@ -294,31 +294,120 @@ Resources:
           var request = event.request;
           var uri = request.uri;
 
-          // If URI doesn't have a file extension, resolve to an HTML file
-          if (!uri.includes('.')) {
-            if (uri === '/' || uri === '') {
-              // Root path serves index.html
-              request.uri = '/index.html';
-            } else if (uri.endsWith('/')) {
-              // Redirect trailing-slash URLs to their canonical non-slash version
-              return {
-                statusCode: 301,
-                statusDescription: 'Moved Permanently',
-                headers: {
-                  location: { value: uri.slice(0, -1) }
-                }
-              };
-            } else {
-              // All other clean URLs map to their .html equivalent.
-              // If the file doesn't exist in S3, CloudFront returns 404.html.
-              request.uri = uri + '.html';
-            }
+          // Skip paths that already include a file extension
+          if (uri.indexOf('.') !== -1) {
+            return request;
+          }
+
+          if (uri !== '/' && uri.endsWith('/')) {
+            return {
+              statusCode: 301,
+              statusDescription: 'Moved Permanently',
+              headers: {
+                location: { value: uri.slice(0, -1) }
+              }
+            };
+          }
+
+          // Legacy post URL patterns -> /posts/[slug] (replaces ~1,150 Next.js redirect pages)
+          var legacyRedirect = getLegacyPostRedirect(uri);
+          if (legacyRedirect) {
+            return legacyRedirect;
+          }
+
+          if (uri === '/' || uri === '') {
+            request.uri = '/index.html';
+          } else {
+            request.uri = uri + '.html';
           }
 
           return request;
         }
+
+        function isValidMonth(month) {
+          if (month.length !== 2) return false;
+          var n = parseInt(month, 10);
+          if (n < 1 || n > 12) return false;
+          for (var i = 0; i < month.length; i++) {
+            var c = month.charAt(i);
+            if (c < '0' || c > '9') return false;
+          }
+          return true;
+        }
+
+        function isFourDigitYear(s) {
+          if (s.length !== 4) return false;
+          for (var i = 0; i < 4; i++) {
+            var c = s.charAt(i);
+            if (c < '0' || c > '9') return false;
+          }
+          return true;
+        }
+
+        function isTwoDigit(s) {
+          if (s.length !== 2) return false;
+          for (var i = 0; i < 2; i++) {
+            var c = s.charAt(i);
+            if (c < '0' || c > '9') return false;
+          }
+          return true;
+        }
+
+        function isReservedSegment(seg) {
+          var reserved = {
+            'about': 1, 'colophon': 1, 'emails': 1, 'galleries': 1,
+            'micro': 1, 'newsletter': 1, 'photos': 1, 'posts': 1,
+            'sketches': 1, 'upload': 1, 'tags': 1, 'topics': 1, 'page': 1
+          };
+          return reserved[seg] === 1;
+        }
+
+        function redirect301(path) {
+          return {
+            statusCode: 301,
+            statusDescription: 'Moved Permanently',
+            headers: {
+              location: { value: path }
+            }
+          };
+        }
+
+        function getLegacyPostRedirect(uri) {
+          var path = uri;
+          if (path.charAt(0) === '/') {
+            path = path.slice(1);
+          }
+          if (path === '') {
+            return null;
+          }
+
+          var parts = path.split('/');
+          var n = parts.length;
+
+          // /YYYY/MM/DD/slug
+          if (n === 4 && isFourDigitYear(parts[0]) && isValidMonth(parts[1]) && isTwoDigit(parts[2])) {
+            return redirect301('/posts/' + parts[3]);
+          }
+
+          // /YYYY/MM/slug
+          if (n === 3 && isFourDigitYear(parts[0]) && isValidMonth(parts[1])) {
+            return redirect301('/posts/' + parts[2]);
+          }
+
+          // /YYYY/slug
+          if (n === 2 && isFourDigitYear(parts[0]) && !isValidMonth(parts[1])) {
+            return redirect301('/posts/' + parts[1]);
+          }
+
+          // /slug (legacy slug-as-year URLs; exclude static top-level routes)
+          if (n === 1 && !isFourDigitYear(parts[0]) && !isReservedSegment(parts[0])) {
+            return redirect301('/posts/' + parts[0]);
+          }
+
+          return null;
+        }
       FunctionConfig:
-        Comment: Routes clean URLs to static HTML files; redirects trailing slashes; missing files produce a 404
+        Comment: Legacy post redirects, clean URL HTML routing, trailing-slash redirects
         Runtime: cloudfront-js-1.0
 
   # CloudFront Function for apex domain redirect to www

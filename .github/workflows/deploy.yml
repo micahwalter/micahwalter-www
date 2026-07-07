@@ -44,11 +44,29 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Restore Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+
       - name: Install dependencies
         run: npm ci
 
       - name: Build Next.js app
-        run: npm run build
+        id: build
+        run: |
+          BUILD_START=$(date +%s)
+          npm run build 2>&1 | tee build.log
+          BUILD_END=$(date +%s)
+          echo "duration=$((BUILD_END - BUILD_START))" >> "$GITHUB_OUTPUT"
+          PAGES=$(grep -oE 'Generating static pages \([0-9]+/' build.log | tail -1 | grep -oE '[0-9]+' | head -1 || true)
+          if [ -z "$PAGES" ]; then
+            PAGES="unknown"
+          fi
+          echo "pages=$PAGES" >> "$GITHUB_OUTPUT"
         env:
           NEXT_PUBLIC_FATHOM_SITE_ID: ${{ secrets.NEXT_PUBLIC_FATHOM_SITE_ID }}
           NEXT_PUBLIC_NEWSLETTER_API_URL: ${{ secrets.NEXT_PUBLIC_NEWSLETTER_API_URL }}
@@ -61,7 +79,9 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Sync static files to S3
+        id: s3sync
         run: |
+          SYNC_START=$(date +%s)
           # Sync static assets with long cache (JS, CSS, images)
           aws s3 sync out/ s3://${{ env.S3_BUCKET }}/ \
             --delete \
@@ -79,6 +99,8 @@ jobs:
             --include "*.html" \
             --include "*.json" \
             --include "*.txt"
+          SYNC_END=$(date +%s)
+          echo "duration=$((SYNC_END - SYNC_START))" >> "$GITHUB_OUTPUT"
 
       - name: Invalidate CloudFront cache
         run: |
@@ -88,8 +110,18 @@ jobs:
 
       - name: Deployment summary
         run: |
+          echo "## Deploy metrics" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Static pages generated | ${{ steps.build.outputs.pages }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Build duration | ${{ steps.build.outputs.duration }}s |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| S3 sync duration | ${{ steps.s3sync.outputs.duration }}s |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "✅ Next.js app built successfully"
           echo "✅ Files synced to S3 bucket: ${{ env.S3_BUCKET }}"
           echo "✅ CloudFront cache invalidated"
           echo "🌐 CloudFront Distribution: ${{ env.CLOUDFRONT_DISTRIBUTION_ID }}"
+          echo "📊 Static pages: ${{ steps.build.outputs.pages }}"
+          echo "⏱️  Build: ${{ steps.build.outputs.duration }}s | S3 sync: ${{ steps.s3sync.outputs.duration }}s"
           echo "ℹ️  Images are managed locally and uploaded to S3 separately"

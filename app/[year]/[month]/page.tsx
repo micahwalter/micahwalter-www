@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getPostsByYearMonth, getAllYearMonths, getAllSlugs, getAllYears } from "@/lib/content";
+import { getPostsByYearMonth, getAllYearMonths } from "@/lib/content";
 import PostGrid from "@/components/PostGrid";
 import type { Metadata } from "next";
 
@@ -21,12 +21,7 @@ function isValidMonth(month: string): boolean {
 }
 
 export async function generateStaticParams() {
-  const yearMonths = getAllYearMonths().map(({ year, month }) => ({ year, month }));
-  // Also generate year+slug combos so /YYYY/slug redirects work in static export
-  const years = getAllYears();
-  const slugs = getAllSlugs();
-  const yearSlugs = years.flatMap((year) => slugs.map((slug) => ({ year, month: slug })));
-  return [...yearMonths, ...yearSlugs];
+  return getAllYearMonths().map(({ year, month }) => ({ year, month }));
 }
 
 export async function generateMetadata({ params }: MonthPageProps): Promise<Metadata> {

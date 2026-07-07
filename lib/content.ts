@@ -192,27 +192,6 @@ export function getAllYears(): string[] {
   return Array.from(years).sort((a, b) => b.localeCompare(a));
 }
 
-export function getAllSlugs(): string[] {
-  return getAllPosts().map(post => post.slug);
-}
-
-export function getAllPostDateSlugs(): { year: string; month: string; day: string; slug: string }[] {
-  return getAllPosts().map(post => ({
-    year: post.publishedAt.slice(0, 4),
-    month: post.publishedAt.slice(5, 7),
-    day: post.publishedAt.slice(8, 10),
-    slug: post.slug,
-  }));
-}
-
-export function getAllPostYearMonthSlugs(): { year: string; month: string; slug: string }[] {
-  return getAllPosts().map(post => ({
-    year: post.publishedAt.slice(0, 4),
-    month: post.publishedAt.slice(5, 7),
-    slug: post.slug,
-  }));
-}
-
 export function getAllYearMonths(): { year: string; month: string }[] {
   const posts = getAllPosts();
   const seen = new Set<string>();
