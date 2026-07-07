@@ -55,9 +55,9 @@ Resources:
         AllowHeaders: [Content-Type, Authorization]
         MaxAge: 300
       Tags:
-        - { Key: Project, Value: micahwalter-tickets }
-        - { Key: Region, Value: secondary }
-        - { Key: ManagedBy, Value: CloudFormation }
+        Project: micahwalter-tickets
+        Region: secondary
+        ManagedBy: CloudFormation
 
   TicketsApiStage:
     Type: AWS::ApiGatewayV2::Stage
