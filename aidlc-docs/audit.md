@@ -215,3 +215,19 @@
 **Context**: CONSTRUCTION complete; Issue #90 engagement COMPLETE.
 
 ---
+
+## Issue #93 — Initial Request
+**Timestamp**: 2026-07-07T15:32:00Z
+**User Input**: "I notice in my Fathom analytics that I see hits for both the permalink url and the date based urls. I think this is missleading as it should count as a redirect.. can we please log a github issue, and investigate why this may be happening?"
+**AI Response**: Investigated root cause (Next.js redirect pages loaded Fathom before client redirect; PR #91 CloudFront 301 partially fixes production). Created GitHub issue #93 with findings.
+**Context**: Pre-AI-DLC investigation.
+
+---
+
+## Issue #93 — AI-DLC Engagement Start
+**Timestamp**: 2026-07-07T15:45:00Z
+**User Input**: "lets use AI-DLC to document and fix this issue"
+**AI Response**: Started AI-DLC engagement on branch cursor/fathom-canonical-urls-000b. Completed Workspace Detection (brownfield, reused RE artifacts). Requirements Analysis minimal depth. Workflow Planning complete. Implemented lib/fathom-url.ts + Fathom.tsx canonical tracking. npm run build passed.
+**Context**: CONSTRUCTION complete; ready for PR.
+
+---

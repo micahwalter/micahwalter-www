@@ -3,6 +3,7 @@
 import { load, trackPageview } from 'fathom-client';
 import { useEffect, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { toFathomPagePath } from '@/lib/fathom-url';
 
 function TrackPageView() {
   const pathname = usePathname();
@@ -16,8 +17,10 @@ function TrackPageView() {
 
   useEffect(() => {
     if (!pathname) return;
+    const query = searchParams?.toString();
+    const canonicalPath = toFathomPagePath(pathname);
     trackPageview({
-      url: pathname + (searchParams?.toString() ?? ''),
+      url: canonicalPath + (query ? `?${query}` : ''),
       referrer: document.referrer,
     });
   }, [pathname, searchParams]);
