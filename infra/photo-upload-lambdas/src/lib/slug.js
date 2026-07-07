@@ -34,7 +34,7 @@ function todayDate() {
 }
 
 /**
- * Build the index.mdx contents for a photo post.
+ * Build the index.md contents for a photo post.
  *
  * @param {object} data
  * @param {number} data.id

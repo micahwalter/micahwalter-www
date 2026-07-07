@@ -70,7 +70,17 @@ exports.handler = async (event) => {
     Metadata: metadata,
   });
 
-  const url = await getSignedUrl(s3, command, { expiresIn: URL_TTL });
+  const url = await getSignedUrl(s3, command, {
+    expiresIn: URL_TTL,
+    // Metadata + Content-Type must be signed or S3 rejects the browser PUT
+    // with "headers present in the request which were not signed".
+    unhoistableHeaders: new Set([
+      'x-amz-meta-title',
+      'x-amz-meta-featured',
+      'x-amz-meta-orig-filename',
+    ]),
+    signableHeaders: new Set(['content-type']),
+  });
 
   // The client must send exactly these headers on the PUT — they are part of
   // the signature (SignedHeaders includes Content-Type and x-amz-meta-*).

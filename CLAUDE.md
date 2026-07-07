@@ -389,7 +389,7 @@ serverless flow and commits the post to the repo, triggering the normal deploy.
                                    ▼
                              photo-upload-process Lambda
                                EXIF → resize 400/800/1200 WebP+JPEG → images bucket
-                               → commit index.mdx + bumped post-counter via GitHub API
+                               → commit index.md + bumped post-counter via GitHub API
                                → site rebuilds (~3–4 min)
 ```
 
@@ -416,9 +416,10 @@ CLI supports `blog photos:import <dir> --featured` for parity.
 
 ### One-time setup
 
-1. **Extend the CI deploy role.** `infra/github-actions-role.yml` gained a
-   `DeployPhotoUpload` policy. Redeploy the IAM stack **before** the first
-   photo-upload deploy:
+1. **Extend the CI deploy role.** `infra/github-actions-role.yml` attaches photo-upload
+   permissions via the `GitHubActionsDeployPhotoUpload` **managed policy** (inline
+   policies on the role hit the 10 KB combined limit). Redeploy the IAM stack **before**
+   the first photo-upload deploy:
    ```bash
    AWS_PROFILE=www aws cloudformation deploy \
      --stack-name micahwalter-www-github-actions \
@@ -459,6 +460,11 @@ AWS_PROFILE=www aws cloudformation deploy \
 
 ### Gotchas
 
+- **Local dev:** add `NEXT_PUBLIC_PHOTO_API_URL=https://api.micahwalter.com/photos`
+  to `.env.local`. CORS allows `http://localhost:3000`.
+- **Presigned PUT:** metadata headers (`x-amz-meta-*`) and `Content-Type` must be
+  included in the presigned URL signature (`unhoistableHeaders` / `signableHeaders`
+  in `init.js`) or S3 returns 403.
 - JPEG/PNG only for now — the default prebuilt `sharp` binary has no libheif, so
   HEIC/HEIF is a follow-up. iOS Safari typically transcodes HEIC → JPEG on upload
   through a file input, so the phone case is covered in practice.

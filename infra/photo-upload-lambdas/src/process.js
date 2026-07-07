@@ -10,7 +10,7 @@
  *   3. generate 400/800/1200 WebP+JPEG and upload to the images bucket
  *   4. upload the original to images/originals/...
  *   5. read + bump content/post-counter from the repo to assign the post id
- *   6. commit index.mdx + the bumped counter in one commit
+ *   6. commit index.md + the bumped counter in one commit
  *   7. delete the incoming object
  */
 
@@ -103,7 +103,7 @@ async function processObject(bucket, key) {
     const counterRaw = await getTextFile(token, GITHUB_REPO, GITHUB_BRANCH, COUNTER_PATH);
     const id = (parseInt((counterRaw || '0').trim(), 10) || 0) + 1;
 
-    const indexMdx = buildFrontmatter({
+    const indexMd = buildFrontmatter({
       id, title, date, excerpt,
       category: 'Photography',
       tags: ['photography'],
@@ -117,7 +117,7 @@ async function processObject(bucket, key) {
         branch: GITHUB_BRANCH,
         message: `Add photo post: ${title} (#${id})${featured ? ' [featured]' : ''}`,
         files: [
-          { path: `content/posts/${folder}/index.mdx`, content: indexMdx },
+          { path: `content/posts/${folder}/index.md`, content: indexMd },
           { path: COUNTER_PATH, content: String(id) },
         ],
       });
