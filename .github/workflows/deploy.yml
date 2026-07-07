@@ -52,6 +52,7 @@ jobs:
         env:
           NEXT_PUBLIC_FATHOM_SITE_ID: ${{ secrets.NEXT_PUBLIC_FATHOM_SITE_ID }}
           NEXT_PUBLIC_NEWSLETTER_API_URL: ${{ secrets.NEXT_PUBLIC_NEWSLETTER_API_URL }}
+          NEXT_PUBLIC_PHOTO_API_URL: ${{ secrets.NEXT_PUBLIC_PHOTO_API_URL }}
 
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v4
