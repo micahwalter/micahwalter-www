@@ -1,0 +1,91 @@
+name: Deploy Photo Upload Lambda Stack
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/photo-upload-lambdas/**'
+      - 'infra/photo-upload.yml'
+      - '.github/workflows/photo-upload-deploy.yml'
+
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # OIDC
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  ARTIFACTS_BUCKET: micahwalter-newsletter-artifacts
+  ARTIFACTS_PREFIX: photo-upload/lambda
+  STACK_NAME: micahwalter-photo-upload
+
+jobs:
+  deploy:
+    name: Build and deploy photo-upload Lambda stack
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # need previous commit to detect template changes
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Detect what changed
+        id: changed
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          echo "Changed files:"; echo "$CHANGED"
+          if echo "$CHANGED" | grep -q '^infra/photo-upload\.yml$'; then
+            echo "template_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "template_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build Lambda zip
+        working-directory: infra/photo-upload-lambdas
+        run: make build
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload Lambda zip to S3
+        working-directory: infra/photo-upload-lambdas
+        run: |
+          aws s3 cp dist/photo-upload.zip \
+            s3://${{ env.ARTIFACTS_BUCKET }}/${{ env.ARTIFACTS_PREFIX }}/photo-upload.zip \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy stack via CloudFormation (template changed)
+        if: steps.changed.outputs.template_changed == 'true'
+        run: |
+          aws cloudformation deploy \
+            --stack-name ${{ env.STACK_NAME }} \
+            --template-file infra/photo-upload.yml \
+            --region ${{ env.AWS_REGION }} \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              LambdaArtifactsBucket=${{ env.ARTIFACTS_BUCKET }} \
+              LambdaArtifactsKeyPrefix=${{ env.ARTIFACTS_PREFIX }}
+
+      - name: Update function code only (no template change)
+        if: steps.changed.outputs.template_changed == 'false'
+        run: |
+          for fn in auth init process; do
+            echo "  updating photo-upload-${fn}..."
+            aws lambda update-function-code \
+              --function-name photo-upload-${fn} \
+              --s3-bucket ${{ env.ARTIFACTS_BUCKET }} \
+              --s3-key ${{ env.ARTIFACTS_PREFIX }}/photo-upload.zip \
+              --region ${{ env.AWS_REGION }} \
+              --no-cli-pager
+          done

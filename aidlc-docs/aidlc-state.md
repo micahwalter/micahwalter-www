@@ -3,27 +3,25 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-06-24T00:00:00Z
-- **Current Stage**: CONSTRUCTION COMPLETE (Issue #80)
-- **Engagement Status**: Issue #80 implementation complete — pending deploy (2026-07-06)
+- **Current Stage**: CONSTRUCTION COMPLETE (Issue #71)
+- **Engagement Status**: Issue #71 photo upload merged — production deploy in progress (2026-07-07)
 
-## Active Engagement — Issue #80
+## Active Engagement — Issue #71 (Photo Upload)
 
-- **GitHub Issue**: [#80](https://github.com/micahwalter/micahwalter-www/issues/80)
-- **Branch**: `feature/issue-80-newsletter-confirm-rate`
-- **Requirements**: `aidlc-docs/inception/requirements/issue-80-requirements.md`
-- **Execution Plan**: `aidlc-docs/inception/plans/issue-80-execution-plan.md`
+- **GitHub Issue**: [#71](https://github.com/micahwalter/micahwalter-www/issues/71)
+- **Pull Request**: [#73](https://github.com/micahwalter/micahwalter-www/pull/73)
+- **Branch**: `claude/photo-upload-feature-2iiJG`
+- **Construction Summary**: `aidlc-docs/construction/issue-71-photo-upload-summary.md`
+
+## Prior Engagement — Issue #80
+
+- **Status**: Complete (newsletter confirm rate)
 - **Construction Summary**: `aidlc-docs/construction/issue-80-construction-summary.md`
-
-## Execution Plan Summary (Issue #80)
-- **Units**: 4 (infra, subscribe Lambda, email/dispatch Lambda, frontend)
-- **INCEPTION Stages**: Requirements Analysis, Workflow Planning
-- **INCEPTION Skipped**: Reverse Engineering (current), User Stories, Application Design, Units Generation
-- **CONSTRUCTION Stages**: Infrastructure Design (inline), Code Generation, Build and Test
 
 ## Workspace State
 - **Existing Code**: Yes
 - **Reverse Engineering Needed**: No (artifacts current)
-- **Workspace Root**: /home/ubuntu/code/github.com/micahwalter/micahwalter-www
+- **Workspace Root**: /workspace
 
 ## Code Location Rules
 - **Application Code**: Workspace root (NEVER in aidlc-docs/)
@@ -35,29 +33,26 @@
 - **Workflow integration**: See `aidlc-docs/workflow-conventions.md`
 - **Backlog**: GitHub Issues is the source of truth for improvements, bugs, and features
 
-## Stage Progress — Issue #80
+## Stage Progress — Issue #71
 
 ### INCEPTION PHASE
-- [x] Workspace Detection — Reused prior brownfield state (2026-07-06)
-- [x] Reverse Engineering — Skipped (artifacts current)
-- [x] Requirements Analysis — Completed 2026-07-06
-- [x] User Stories — Skipped
-- [x] Workflow Planning — Completed 2026-07-06
-- [x] Application Design — Skipped
-- [x] Units Generation — Skipped (4 units defined in execution plan)
+- [x] Workspace Detection — Brownfield (2026-07-06)
+- [x] Reverse Engineering — Reused prior artifacts
+- [x] Requirements Analysis — PR #73 description + issue #71
+- [x] User Stories — Skipped (feature defined in PR)
+- [x] Workflow Planning — Skipped (single-unit feature)
+- [x] Application Design — Skipped (PR included design)
+- [x] Units Generation — Skipped
 
 ### CONSTRUCTION PHASE
-- [x] Infrastructure Design — Completed 2026-07-06 (documented in execution plan + construction summary)
-- [x] Code Generation — Completed 2026-07-06 (all 4 units)
-- [x] Build and Test — Go Lambda build passed 2026-07-06
+- [x] Code Generation — PR #73 + review fixes (2026-07-07)
+- [x] Build and Test — `npm run build`, Lambda build, E2E upload verified
 
 ### OPERATIONS PHASE
-- [ ] Deploy to production (manual — push/merge triggers CI)
-- [ ] Post-deploy verification (checklist in execution plan)
-
-## Prior Engagement (Documentation Foundation)
-
-Completed 2026-06-24 — living documentation in `aidlc-docs/inception/reverse-engineering/`
+- [x] Backend deployed (`micahwalter-photo-upload`)
+- [ ] GitHub Actions secret `NEXT_PUBLIC_PHOTO_API_URL` on repo
+- [ ] IAM managed policy deploy for CI photo-upload workflow
+- [ ] Post-merge site deploy with `/upload` baked in
 
 ## Extension Configuration
 
@@ -68,5 +63,5 @@ Completed 2026-06-24 — living documentation in `aidlc-docs/inception/reverse-e
 | Property-Based Testing | No | Requirements Analysis (2026-06-24) |
 
 ## Current Status
-- **Lifecycle Phase**: CONSTRUCTION COMPLETE — awaiting deploy
-- **Next Action**: Review changes, merge PR (Closes #80), run post-deploy verification
+- **Lifecycle Phase**: MERGE — documentation updated, ready to push and merge PR #73
+- **Next Action**: Set `NEXT_PUBLIC_PHOTO_API_URL` secret; redeploy site after merge

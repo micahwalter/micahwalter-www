@@ -120,6 +120,7 @@ The unified `blog` CLI manages all content and image operations. It must be link
 | `blog post:new` | Create new post with template |
 | `blog post:new "Title"` | Create post with title (skip prompt) |
 | `blog photos:import <dir>` | Import photos with EXIF extraction |
+| `blog photos:import <dir> --featured` | Import and flag photos for the homepage hero |
 | `blog photos:tag <folder>` | AI-powered photo tagging via Amazon Bedrock |
 | `blog photos:tag --all` | Tag all photos with AI suggestions |
 | `blog images:optimize` | Process images (400/800/1200px WebP+JPEG) |
@@ -437,6 +438,45 @@ To use AI photo tagging, you need:
 3. **IAM permissions**: The `www` IAM user/role needs `bedrock:InvokeModel` permission for the model ARN.
 4. **Cost**: ~$0.01-0.02 per photo analyzed (Bedrock on-demand pricing).
 
+## Web Photo Upload
+
+A private, `noindex` form at `/upload` lets you add a photo from a phone or browser. It reproduces the `blog photos:import` + `blog images:sync` CLI pipeline as a serverless flow and commits the post to the repo, triggering the normal deploy.
+
+```
+/upload form
+  → POST /photos/auth        passcode → short-lived signed token
+  → POST /photos/upload-url  token → presigned S3 PUT URL
+  → PUT (direct to S3)       original → micahwalter-photo-uploads/uploads/incoming/…
+                                   │ S3 ObjectCreated
+                                   ▼
+                             photo-upload-process Lambda
+                               EXIF → resize → images bucket
+                               → commit index.md + bumped post-counter via GitHub API
+                               → site rebuilds (~3–4 min)
+```
+
+### Featured homepage hero
+
+The homepage hero is the newest photo with `featured: true` in frontmatter (`getFeaturedPhoto()`), falling back to the newest photo. The CLI supports `blog photos:import <dir> --featured` for parity.
+
+### Local development
+
+Create `.env.local`:
+
+```bash
+NEXT_PUBLIC_PHOTO_API_URL=https://api.micahwalter.com/photos
+```
+
+The API and uploads bucket allow CORS from `http://localhost:3000` as well as production. Uploads commit to `main` and trigger a real deploy — use a test photo you are OK publishing.
+
+### One-time AWS setup
+
+1. Deploy `micahwalter-photo-upload` stack (`infra/photo-upload.yml`) — auto via `.github/workflows/photo-upload-deploy.yml` on push to `main`, or manually (see `CLAUDE.md`).
+2. Populate `photo-upload-secrets` in Secrets Manager: `passcode`, `hmac` (random 32+ chars), and a fine-grained GitHub PAT with **Contents: Read and write** on this repo.
+3. Set GitHub Actions secret `NEXT_PUBLIC_PHOTO_API_URL` → `https://api.micahwalter.com/photos` and redeploy the site.
+
+See `CLAUDE.md` → **Photo Upload (Web)** for the full runbook, manual deploy commands, and gotchas.
+
 ## Image Workflow
 
 This project uses a dual-storage system for images to support multi-machine workflows without bloating the Git repository.
@@ -583,6 +623,7 @@ npm run images:dev       # Optimize + copy to public/ for dev
 | `ROUTE53_HOSTED_ZONE_ID` | Route53 hosted zone ID for micahwalter.com |
 | `NEXT_PUBLIC_FATHOM_SITE_ID` | Fathom Analytics site ID (baked in at build time) |
 | `NEXT_PUBLIC_NEWSLETTER_API_URL` | Newsletter API Gateway base URL (baked in at build time) |
+| `NEXT_PUBLIC_PHOTO_API_URL` | Photo upload API base URL (baked in at build time; required for `/upload`) |
 
 **Local Development:**
 Create `.env.local`:
@@ -590,6 +631,7 @@ Create `.env.local`:
 ```bash
 NEXT_PUBLIC_FATHOM_SITE_ID=your-fathom-site-id
 NEXT_PUBLIC_NEWSLETTER_API_URL=https://api.micahwalter.com/newsletter
+NEXT_PUBLIC_PHOTO_API_URL=https://api.micahwalter.com/photos
 ```
 
 ## Build Process
@@ -1162,6 +1204,18 @@ Defined in `tailwind.config.ts`:
 - ✅ Tag merging (preserves existing tags)
 - ✅ Separation of post date vs capture date
 - ✅ Same image optimization as blog posts
+- ✅ Web upload form at `/upload` (passcode-gated, direct-to-S3, auto-commits post)
+- ✅ Featured homepage hero via `featured: true` frontmatter (`getFeaturedPhoto()`)
+- ✅ `blog photos:import --featured` CLI parity
+
+### Photo Upload Features
+- ✅ Passcode auth with HMAC-signed session tokens and API Gateway throttling
+- ✅ Presigned S3 PUT (avoids API Gateway size limits for phone photos)
+- ✅ Serverless processing: EXIF extraction, Sharp resize, images bucket upload
+- ✅ Auto-commit to `main` via GitHub API (triggers normal site deploy)
+- ✅ Idempotent counter bump with commit retry on concurrent uploads
+- ✅ JPEG/PNG support; lifecycle rule expires incoming uploads after 1 day
+- ✅ CloudFormation stack + GitHub Actions deploy workflow
 
 ### Newsletter Features
 - ✅ Double opt-in subscription (confirmation email required)

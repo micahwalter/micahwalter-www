@@ -20,7 +20,13 @@ Dependencies (`npm install`) are refreshed automatically on startup. Notes below
 - There are no automated tests (no test runner, no `test` script). Validate changes by running the dev server and checking pages, plus `npm run build`.
 
 ### Images / AWS features are optional for local dev
-- Post images are stored in S3/CDN and are NOT in the repo, so they render as broken image placeholders locally. This is expected. Pulling them requires AWS credentials (`blog images:download --profile www`). AWS-backed features (newsletter API, image upload, analytics, SES Lambdas under `infra/`) are not needed to run or develop the site UI locally.
+- Post images are stored in S3/CDN and are NOT in the repo, so they render as broken image placeholders locally. This is expected. Pulling them requires AWS credentials (`blog images:download --profile www`). AWS-backed features (newsletter API, photo upload API, analytics, SES Lambdas under `infra/`) are not needed to run or develop most of the site UI locally.
+
+### Photo upload (`/upload`)
+- Requires `NEXT_PUBLIC_PHOTO_API_URL=https://api.micahwalter.com/photos` in `.env.local` (see `README.md`). Without it the form shows "Could not reach the server."
+- The backend (`micahwalter-photo-upload` stack) must be deployed and `photo-upload-secrets` populated in AWS Secrets Manager before uploads work end-to-end.
+- Uploads commit to `main` and trigger production deploy — use a test photo you are OK publishing.
+- JPEG/PNG only. API CORS allows both `https://www.micahwalter.com` and `http://localhost:3000`.
 
 ### AWS CLI
 - AWS CLI v2 is installed at `/usr/local/bin/aws` (a system dependency captured by the VM snapshot, not by `npm install`). If a fresh VM is ever missing it, reinstall with: `curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/awscliv2.zip && cd /tmp && unzip -q awscliv2.zip && sudo ./aws/install --update`.

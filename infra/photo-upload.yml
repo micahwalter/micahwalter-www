@@ -1,0 +1,394 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Web-based photo upload — uploads S3 bucket, Secrets Manager secret, API
+  Gateway (HTTP) with auth + presign routes, and a processing Lambda that
+  resizes, extracts EXIF, and commits the post to the repo via the GitHub API.
+  Reuses the newsletter artifacts bucket for Lambda zips.
+
+# ---------------------------------------------------------------------------
+# Parameters
+# ---------------------------------------------------------------------------
+Parameters:
+
+  LambdaArtifactsBucket:
+    Type: String
+    Default: micahwalter-newsletter-artifacts
+    Description: S3 bucket holding the Lambda zip (reuses the newsletter artifacts bucket)
+
+  LambdaArtifactsKeyPrefix:
+    Type: String
+    Default: photo-upload/lambda
+    Description: S3 key prefix where the photo-upload zip is uploaded (no trailing slash)
+
+  SiteUrl:
+    Type: String
+    Default: https://www.micahwalter.com
+    Description: Allowed CORS origin for the API and the uploads bucket
+
+  ApiDomainName:
+    Type: String
+    Default: api.micahwalter.com
+    Description: Shared API Gateway custom domain (managed by infra/api-domain.yml)
+
+  UploadsBucketName:
+    Type: String
+    Default: micahwalter-photo-uploads
+    Description: Name for the (private) bucket that receives browser uploads
+
+  ImagesBucketName:
+    Type: String
+    Default: micahwalter-www-images
+    Description: Existing images bucket where processed images + originals are written
+
+  GitHubRepo:
+    Type: String
+    Default: micahwalter/micahwalter-www
+    Description: owner/name of the repo the processing Lambda commits to
+
+  GitHubBranch:
+    Type: String
+    Default: main
+    Description: Branch the processing Lambda commits to (push triggers deploy)
+
+# ---------------------------------------------------------------------------
+# Resources
+# ---------------------------------------------------------------------------
+Resources:
+
+  # -------------------------------------------------------------------------
+  # Uploads bucket — receives presigned PUTs, auto-expires incoming objects
+  # -------------------------------------------------------------------------
+  UploadsBucket:
+    Type: AWS::S3::Bucket
+    DependsOn: ProcessFnPermission
+    Properties:
+      BucketName: !Ref UploadsBucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - !Ref SiteUrl
+              - http://localhost:3000
+            AllowedMethods: [PUT]
+            AllowedHeaders: ['*']
+            MaxAge: 300
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-incoming
+            Status: Enabled
+            Prefix: uploads/
+            ExpirationInDays: 1
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: uploads/incoming/
+            Function: !GetAtt ProcessFn.Arn
+      Tags:
+        - { Key: Project, Value: micahwalter-photo-upload }
+        - { Key: ManagedBy, Value: CloudFormation }
+
+  # -------------------------------------------------------------------------
+  # Secret — passcode, token HMAC key, GitHub token
+  # -------------------------------------------------------------------------
+  PhotoUploadSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: photo-upload-secrets
+      Description: >
+        Photo upload secrets. Replace after first deploy:
+        {"passcode":"<upload passcode>","hmac":"<random signing key>","githubToken":"<fine-grained PAT, contents:write>"}
+      SecretString: '{"passcode":"REPLACE_ME","hmac":"REPLACE_WITH_RANDOM_KEY","githubToken":"REPLACE_WITH_GITHUB_TOKEN"}'
+      Tags:
+        - { Key: Project, Value: micahwalter-photo-upload }
+        - { Key: ManagedBy, Value: CloudFormation }
+
+  # -------------------------------------------------------------------------
+  # API Gateway — HTTP API with CORS
+  # -------------------------------------------------------------------------
+  PhotoApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: photo-upload-api
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref SiteUrl
+          - http://localhost:3000
+        AllowMethods: [POST, OPTIONS]
+        AllowHeaders: [Content-Type]
+        MaxAge: 300
+      Tags:
+        Project: micahwalter-photo-upload
+        ManagedBy: CloudFormation
+
+  PhotoApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    DependsOn:
+      - AuthRoute
+      - InitRoute
+    Properties:
+      ApiId: !Ref PhotoApi
+      StageName: $default
+      AutoDeploy: true
+      # Cap request rates to blunt passcode brute-forcing and abuse. /auth is
+      # throttled hardest since it is the only unauthenticated route.
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 10
+        ThrottlingRateLimit: 5
+      RouteSettings:
+        'POST /auth':
+          ThrottlingBurstLimit: 3
+          ThrottlingRateLimit: 1
+
+  PhotoApiMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Properties:
+      ApiId: !Ref PhotoApi
+      DomainName: !Ref ApiDomainName
+      Stage: !Ref PhotoApiStage
+      ApiMappingKey: photos
+
+  # -------------------------------------------------------------------------
+  # IAM roles
+  # -------------------------------------------------------------------------
+  AuthFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: photo-upload-auth-fn-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: AuthFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref PhotoUploadSecret
+
+  InitFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: photo-upload-init-fn-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: InitFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref PhotoUploadSecret
+              # Presigned PUT URLs are signed with this role's credentials, so
+              # the role must be allowed to PutObject into the uploads bucket.
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub arn:aws:s3:::${UploadsBucketName}/uploads/incoming/*
+
+  ProcessFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: photo-upload-process-fn-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ProcessFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [s3:GetObject, s3:DeleteObject]
+                Resource: !Sub arn:aws:s3:::${UploadsBucketName}/uploads/incoming/*
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub arn:aws:s3:::${ImagesBucketName}/images/*
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref PhotoUploadSecret
+
+  # -------------------------------------------------------------------------
+  # Lambda functions — one zip, three handlers
+  # -------------------------------------------------------------------------
+  AuthFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: photo-upload-auth
+      Runtime: nodejs20.x
+      Architectures: [arm64]
+      Handler: src/auth.handler
+      Role: !GetAtt AuthFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/photo-upload.zip
+      Timeout: 5
+      MemorySize: 128
+      Environment:
+        Variables:
+          SECRET_ARN: !Ref PhotoUploadSecret
+          TOKEN_TTL: '1800'
+
+  InitFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: photo-upload-init
+      Runtime: nodejs20.x
+      Architectures: [arm64]
+      Handler: src/init.handler
+      Role: !GetAtt InitFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/photo-upload.zip
+      Timeout: 5
+      MemorySize: 128
+      Environment:
+        Variables:
+          SECRET_ARN: !Ref PhotoUploadSecret
+          UPLOADS_BUCKET: !Ref UploadsBucketName
+
+  ProcessFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: photo-upload-process
+      Runtime: nodejs20.x
+      Architectures: [arm64]
+      Handler: src/process.handler
+      Role: !GetAtt ProcessFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/photo-upload.zip
+      Timeout: 120
+      MemorySize: 1536
+      Environment:
+        Variables:
+          SECRET_ARN: !Ref PhotoUploadSecret
+          IMAGES_BUCKET: !Ref ImagesBucketName
+          GITHUB_REPO: !Ref GitHubRepo
+          GITHUB_BRANCH: !Ref GitHubBranch
+
+  # -------------------------------------------------------------------------
+  # API integrations, routes, and invoke permissions
+  # -------------------------------------------------------------------------
+  AuthIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref PhotoApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthFn.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
+  InitIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref PhotoApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${InitFn.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
+  AuthRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PhotoApi
+      RouteKey: POST /auth
+      Target: !Sub integrations/${AuthIntegration}
+
+  InitRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PhotoApi
+      RouteKey: POST /upload-url
+      Target: !Sub integrations/${InitIntegration}
+
+  AuthFnPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AuthFn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${PhotoApi}/*/*/auth
+
+  InitFnPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref InitFn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${PhotoApi}/*/*/upload-url
+
+  # Allow S3 (the uploads bucket) to invoke the processing Lambda. Uses a
+  # literal SourceArn to break the circular dependency with the bucket.
+  ProcessFnPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ProcessFn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !Sub arn:aws:s3:::${UploadsBucketName}
+
+  # -------------------------------------------------------------------------
+  # Alarms
+  # -------------------------------------------------------------------------
+  ProcessFnErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: photo-upload-process-fn-errors
+      AlarmDescription: photo-upload-process Lambda errored — an upload may not have been published
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ProcessFn
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+# ---------------------------------------------------------------------------
+# Outputs
+# ---------------------------------------------------------------------------
+Outputs:
+
+  ApiEndpoint:
+    Description: Auto-generated API URL. Prefer https://api.micahwalter.com/photos.
+    Value: !Sub https://${PhotoApi}.execute-api.${AWS::Region}.amazonaws.com
+
+  UploadsBucket:
+    Description: Bucket that receives browser uploads
+    Value: !Ref UploadsBucket
+
+  SecretArn:
+    Description: Secrets Manager ARN — set passcode / hmac / githubToken after first deploy
+    Value: !Ref PhotoUploadSecret

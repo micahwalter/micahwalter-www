@@ -1,6 +1,7 @@
 ---
 id: 126
 type: photo
+featured: true
 title: DSCF0904
 publishedAt: '2026-02-16'
 excerpt: Photo taken with FUJIFILM X-Pro2

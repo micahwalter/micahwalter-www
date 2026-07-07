@@ -43,6 +43,7 @@ function parseArgs() {
     sourcePath: path.resolve(sourcePath),
     dryRun: args.includes('--dry-run'),
     category: getArgValue(args, '--category') || 'Photography',
+    featured: args.includes('--featured'),
   };
 }
 
@@ -90,6 +91,7 @@ Arguments:
 Options:
   --dry-run         Preview what would be imported without creating files
   --category NAME   Set category for imported photos (default: Photography)
+  --featured        Flag imported photo(s) as the homepage featured image
 
 Examples:
   blog photos:import ~/Desktop/photos
@@ -261,11 +263,15 @@ function getTodayDate() {
  * Generate frontmatter for photo post
  */
 function generateFrontmatter(photoData) {
-  const { title, date, excerpt, category, tags, photoFilename, exif, id } = photoData;
+  const { title, date, excerpt, category, tags, photoFilename, exif, id, featured } = photoData;
 
   let frontmatter = `---
 type: photo
-id: ${id}
+id: ${id}`;
+  if (featured) {
+    frontmatter += `\nfeatured: true`;
+  }
+  frontmatter += `
 title: "${title}"
 publishedAt: "${date}"
 excerpt: "${excerpt}"
@@ -308,7 +314,7 @@ draft: false
  * Import a single photo
  */
 async function importPhoto(photoPath, options) {
-  const { category, dryRun, previewId } = options;
+  const { category, dryRun, previewId, featured } = options;
   const filename = path.basename(photoPath);
   const ext = path.extname(photoPath).toLowerCase();
 
@@ -346,6 +352,7 @@ async function importPhoto(photoPath, options) {
     category,
     tags: [category.toLowerCase()],
     photoFilename: `photo${ext}`,
+    featured,
     exif,
   };
 
@@ -353,6 +360,7 @@ async function importPhoto(photoPath, options) {
     console.log(`   📁 Would create: ${dirName}`);
     console.log(`   🔢 Photo ID: ${id} → URL: /posts/${id}`);
     console.log(`   📝 Title: ${title}`);
+    if (featured) console.log(`   ⭐ Featured on homepage`);
     console.log(`   📅 Post date: ${date}`);
     if (exif.dateTaken) console.log(`   📸 Captured: ${exif.dateTaken}`);
     if (exif.camera) console.log(`   📷 Camera: ${exif.camera}`);

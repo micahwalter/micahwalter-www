@@ -372,6 +372,106 @@ AWS_PROFILE=www aws cloudformation deploy \
 - `scripts/email-send.js` requires `unified`, `remark-parse`, `remark-rehype`, `rehype-stringify` (installed in package.json)
 - SES `{{variable}}` substitution only works if the placeholder appears in the SES template HTML/text — the Lambda appends the footer, so authors never need to add placeholders manually
 
+## Photo Upload (Web)
+
+A secure web form at `/upload` lets you add a photo from a phone or browser. It
+reproduces the `blog photos:import` + `blog images:sync` CLI pipeline as a
+serverless flow and commits the post to the repo, triggering the normal deploy.
+
+### How it works
+
+```
+/upload form
+  → POST /photos/auth        passcode → short-lived signed token
+  → POST /photos/upload-url  token → presigned S3 PUT URL
+  → PUT (direct to S3)       original photo → micahwalter-photo-uploads/uploads/incoming/…
+                                   │ S3 ObjectCreated
+                                   ▼
+                             photo-upload-process Lambda
+                               EXIF → resize 400/800/1200 WebP+JPEG → images bucket
+                               → commit index.md + bumped post-counter via GitHub API
+                               → site rebuilds (~3–4 min)
+```
+
+Direct-to-S3 upload avoids API Gateway / Lambda request-size limits for large
+phone photos. The title and "Feature on homepage" toggle ride along as S3 object
+metadata, so the processing Lambda needs no separate datastore. The post `id` is
+assigned by reading + bumping `content/post-counter` in the repo, so the file
+stays authoritative and the CLI keeps working alongside the web uploader.
+
+### Featured image
+
+The homepage hero is the most recent photo with `featured: true` in frontmatter
+(`getFeaturedPhoto()` in `lib/content.ts`), falling back to the newest photo.
+Newest-wins — flagging a new photo does not clear older `featured` flags. The
+CLI supports `blog photos:import <dir> --featured` for parity.
+
+### Key files
+
+- `app/upload/page.tsx`, `app/upload/UploadForm.tsx` — the form (noindex)
+- `infra/photo-upload-lambdas/` — Lambda source (auth / init / process + shared lib)
+- `infra/photo-upload.yml` — CloudFormation stack
+- `.github/workflows/photo-upload-deploy.yml` — auto-deploy on push to `main`
+- `lib/content.ts` — `featured` field + `getFeaturedPhoto()`
+
+### One-time setup
+
+1. **Extend the CI deploy role.** `infra/github-actions-role.yml` attaches photo-upload
+   permissions via the `GitHubActionsDeployPhotoUpload` **managed policy** (inline
+   policies on the role hit the 10 KB combined limit). Redeploy the IAM stack **before**
+   the first photo-upload deploy:
+   ```bash
+   AWS_PROFILE=www aws cloudformation deploy \
+     --stack-name micahwalter-www-github-actions \
+     --template-file infra/github-actions-role.yml \
+     --region us-east-1 \
+     --capabilities CAPABILITY_NAMED_IAM \
+     --parameter-overrides \
+       HostedZoneId=<hosted-zone-id> \
+       WebsiteBucketName=<website-bucket> \
+       CloudFrontDistributionId=<distribution-id>
+   ```
+2. **Deploy the stack.** Push to `main` (or run the workflow manually). The
+   `micahwalter-api-domain` stack must already exist (the `ApiMapping` binds to
+   `api.micahwalter.com`).
+3. **Set the secret.** After first deploy, populate `photo-upload-secrets`:
+   ```bash
+   AWS_PROFILE=www aws secretsmanager put-secret-value \
+     --secret-id photo-upload-secrets \
+     --secret-string '{"passcode":"<choose one>","hmac":"<random 32+ chars>","githubToken":"<fine-grained PAT>"}'
+   ```
+   The `githubToken` is a fine-grained PAT scoped to `micahwalter/micahwalter-www`
+   with **Contents: Read and write**.
+4. **Wire the frontend URL.** Set the GitHub Actions secret
+   `NEXT_PUBLIC_PHOTO_API_URL` → `https://api.micahwalter.com/photos` and
+   redeploy the site so it's baked into the static build.
+
+### Manual deploy (if needed)
+
+```bash
+cd infra/photo-upload-lambdas && make build
+AWS_PROFILE=www aws s3 cp dist/photo-upload.zip \
+  s3://micahwalter-newsletter-artifacts/photo-upload/lambda/photo-upload.zip
+AWS_PROFILE=www aws cloudformation deploy \
+  --stack-name micahwalter-photo-upload \
+  --template-file infra/photo-upload.yml \
+  --region us-east-1 --capabilities CAPABILITY_NAMED_IAM
+```
+
+### Gotchas
+
+- **Local dev:** add `NEXT_PUBLIC_PHOTO_API_URL=https://api.micahwalter.com/photos`
+  to `.env.local`. CORS allows `http://localhost:3000`.
+- **Presigned PUT:** metadata headers (`x-amz-meta-*`) and `Content-Type` must be
+  included in the presigned URL signature (`unhoistableHeaders` / `signableHeaders`
+  in `init.js`) or S3 returns 403.
+- JPEG/PNG only for now — the default prebuilt `sharp` binary has no libheif, so
+  HEIC/HEIF is a follow-up. iOS Safari typically transcodes HEIC → JPEG on upload
+  through a file input, so the phone case is covered in practice.
+- `sharp` ships platform-specific binaries; the Makefile fetches the linux/arm64
+  build because the Lambdas run on arm64.
+- The uploads bucket auto-expires `uploads/` objects after 1 day (lifecycle rule).
+
 ## Deployment
 
 Push to `main` branch triggers automatic deployment via GitHub Actions. Monitor with:
