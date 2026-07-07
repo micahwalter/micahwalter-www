@@ -3,30 +3,27 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-07-07T02:55:00Z
-- **Current Stage**: CONSTRUCTION — Code Generation Complete (awaiting review)
-- **Engagement Status**: Active — ticket server (Go)
+- **Current Stage**: CONSTRUCTION COMPLETE — Build and Test (awaiting approval)
+- **Engagement Status**: Issue #85 — ready for AWS deploy
 
 ## Active Engagement — Issue #85 (Ticket Server)
 
 - **GitHub Issue**: [#85](https://github.com/micahwalter/micahwalter-www/issues/85)
+- **Pull Request**: [#86](https://github.com/micahwalter/micahwalter-www/pull/86)
 - **Branch**: `cursor/ticket-server-go-065a`
-- **Construction Summary**: `aidlc-docs/construction/issue-85-ticket-server-summary.md`
 
 ## Stage Progress — Issue #85
 
 ### INCEPTION PHASE
-- [x] Workspace Detection
-- [x] Reverse Engineering (reused)
-- [x] Requirements Analysis
-- [x] User Stories (skipped)
-- [x] Workflow Planning
-- [x] Application Design (skipped)
-- [x] Units Generation (skipped)
+- [x] All stages complete
 
 ### CONSTRUCTION PHASE
-- [x] Infrastructure Design (inline)
 - [x] Code Generation — all 7 units
-- [ ] Build and Test — local build passed; AWS deploy pending
+- [x] Build and Test — local builds passed; integration tests pending deploy
+
+### OPERATIONS PHASE
+- [ ] AWS deploy + seed + smoke tests (manual)
 
 ## Current Status
-- **Lifecycle Phase**: REVIEW — ready for PR; production deploy requires seed + secrets
+- **Lifecycle Phase**: REVIEW — Build and Test approval gate
+- **Next Action:** Merge PR #86, then follow deploy sequence in build-and-test-summary.md
