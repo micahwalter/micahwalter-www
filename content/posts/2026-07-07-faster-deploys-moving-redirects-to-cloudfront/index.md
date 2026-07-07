@@ -5,7 +5,7 @@ publishedAt: "2026-07-07"
 excerpt: "GitHub Actions deploys were taking three to five minutes. The site was pre-rendering more than two thousand static pages, and most of them existed only to redirect. Here is how issue #90 cut the page count in half and got deploys under two minutes."
 category: "AWS"
 tags: ["github-actions", "cloudfront", "nextjs", "static-site", "aidlc", "cursor", "aws"]
-draft: true
+draft: false
 ---
 
 Every push to `main` on this blog triggers a GitHub Actions workflow that builds the entire Next.js site as static HTML, syncs it to S3, and invalidates CloudFront. For a while that has been taking three to five minutes. Not catastrophic, but noticeable every time I publish a photo from my phone or merge a small fix. I opened [GitHub issue #90](https://github.com/micahwalter/micahwalter-www/issues/90) to find out why and whether I could make it better without abandoning static export.
