@@ -563,6 +563,110 @@ Resources:
             Resource:
               - !Sub 'arn:aws:cloudwatch:us-east-1:${AWS::AccountId}:alarm:photo-upload-*'
 
+  TicketsDeployPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: GitHubActionsDeployTickets
+      Roles:
+        - !Ref GitHubActionsRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - cloudformation:DescribeStacks
+              - cloudformation:DescribeStackEvents
+              - cloudformation:CreateChangeSet
+              - cloudformation:ExecuteChangeSet
+              - cloudformation:DescribeChangeSet
+              - cloudformation:DeleteChangeSet
+              - cloudformation:GetTemplate
+              - cloudformation:GetTemplateSummary
+            Resource:
+              - !Sub 'arn:aws:cloudformation:us-east-1:${AWS::AccountId}:stack/micahwalter-tickets/*'
+              - !Sub 'arn:aws:cloudformation:us-east-2:${AWS::AccountId}:stack/micahwalter-tickets-secondary/*'
+          - Effect: Allow
+            Action:
+              - dynamodb:CreateTable
+              - dynamodb:DeleteTable
+              - dynamodb:DescribeTable
+              - dynamodb:UpdateTable
+              - dynamodb:TagResource
+              - dynamodb:UntagResource
+              - dynamodb:ListTagsOfResource
+            Resource:
+              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/post_tickets'
+          - Effect: Allow
+            Action:
+              - lambda:CreateFunction
+              - lambda:DeleteFunction
+              - lambda:GetFunction
+              - lambda:GetFunctionConfiguration
+              - lambda:UpdateFunctionCode
+              - lambda:UpdateFunctionConfiguration
+              - lambda:AddPermission
+              - lambda:RemovePermission
+              - lambda:TagResource
+              - lambda:UntagResource
+              - lambda:ListTags
+            Resource:
+              - !Sub 'arn:aws:lambda:us-east-1:${AWS::AccountId}:function:tickets-*'
+              - !Sub 'arn:aws:lambda:us-east-2:${AWS::AccountId}:function:tickets-*'
+          - Effect: Allow
+            Action:
+              - iam:PassRole
+              - iam:CreateRole
+              - iam:DeleteRole
+              - iam:GetRole
+              - iam:UpdateRole
+              - iam:TagRole
+              - iam:UntagRole
+              - iam:PutRolePolicy
+              - iam:DeleteRolePolicy
+              - iam:GetRolePolicy
+              - iam:ListRolePolicies
+              - iam:AttachRolePolicy
+              - iam:DetachRolePolicy
+              - iam:ListAttachedRolePolicies
+            Resource:
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/tickets-*-fn-role'
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/tickets-*-fn-role-secondary'
+          - Effect: Allow
+            Action:
+              - secretsmanager:CreateSecret
+              - secretsmanager:DeleteSecret
+              - secretsmanager:DescribeSecret
+              - secretsmanager:GetSecretValue
+              - secretsmanager:PutSecretValue
+              - secretsmanager:RestoreSecret
+              - secretsmanager:TagResource
+              - secretsmanager:UntagResource
+              - secretsmanager:ReplicateSecretToRegions
+            Resource:
+              - !Sub 'arn:aws:secretsmanager:us-east-1:${AWS::AccountId}:secret:ticket-server-secrets*'
+              - !Sub 'arn:aws:secretsmanager:us-east-2:${AWS::AccountId}:secret:ticket-server-secrets*'
+          - Effect: Allow
+            Action:
+              - cloudwatch:PutMetricAlarm
+              - cloudwatch:DeleteAlarms
+              - cloudwatch:DescribeAlarms
+              - cloudwatch:TagResource
+              - cloudwatch:UntagResource
+              - cloudwatch:ListTagsForResource
+            Resource:
+              - !Sub 'arn:aws:cloudwatch:us-east-1:${AWS::AccountId}:alarm:tickets-*'
+              - !Sub 'arn:aws:cloudwatch:us-east-2:${AWS::AccountId}:alarm:tickets-*'
+          - Effect: Allow
+            Action:
+              - apigateway:GET
+              - apigateway:POST
+              - apigateway:PUT
+              - apigateway:PATCH
+              - apigateway:DELETE
+            Resource:
+              - 'arn:aws:apigateway:us-east-1::/*'
+              - 'arn:aws:apigateway:us-east-2::/*'
+
 Outputs:
   RoleArn:
     Description: ARN of the IAM role for GitHub Actions

@@ -1,6 +1,6 @@
 /**
  * Minimal GitHub Git Data API client used to commit the generated post in a
- * single commit (index.mdx + the bumped post-counter). Authenticates with a
+ * single commit (index.md). Authenticates with a
  * fine-grained token that has `contents: write` on the repo. Uses the global
  * fetch available in the Node 20 Lambda runtime — no extra dependencies.
  */

@@ -111,3 +111,67 @@
 **Context**: Issue #71 E2E verified; documentation sync before merge.
 
 ---
+
+## Issue #85 — Ticket Server (New Engagement)
+**Timestamp**: 2026-07-07T02:39:00Z
+**User Input**: "I want to consider moving the post counter to a database like dynamo. Let's think this through and log an issue on GitHub to document the idea"
+**AI Response**: Analyzed current post-counter usage (4 writers, race conditions). Created GitHub issue #84 documenting DynamoDB migration options.
+**Context**: Planning only; no code changes.
+
+---
+
+## Issue #85 — Ticket Server Design Refinement
+**Timestamp**: 2026-07-07T02:47:00Z
+**User Input**: "I think we need a ticket server.. I made something like this a while back in Typscript.. https://github.com/micahwalter/tickets Maybe we can use this code or a similar version using Go or Python to build a serverless ticket server with an API.. add authentication like the other API on this same project"
+**AI Response**: Reviewed micahwalter/tickets repo (DynamoDB atomic increment, anonymous Function URL). Mapped photo-upload HMAC auth pattern. Created GitHub issue #85 with ticket server architecture (POST /tickets/auth, POST /tickets/next on api.micahwalter.com).
+**Context**: Planning only; supersedes #84 design direction.
+
+---
+
+## Issue #85 — Start Implementation (AIDLC)
+**Timestamp**: 2026-07-07T02:55:00Z
+**User Input**: "I'd like all infra lambdas to be written in Go. We can use separate auth to keep things separated.. Let's start working on this in a new branch using AIDLC going forward"
+**AI Response**: Created branch cursor/ticket-server-go-065a. Reset aidlc-state.md for Issue #85 engagement. Reused brownfield reverse-engineering artifacts. Created issue-85-requirement-verification-questions.md with confirmed decisions (Go, separate auth) and open questions (scope, CLI creds, extensions). Stopping at Requirements Analysis gate.
+**Context**: INCEPTION — Workspace Detection complete; Requirements Analysis awaiting user answers in questions file.
+
+---
+
+## Issue #85 — Requirements Answers Received
+**Timestamp**: 2026-07-07T03:18:00Z
+**User Input**: "answers are done.. please use the same ticket server for both posts and photos. Also be sure it works in our multi-region design.."
+**AI Response**: Parsed answers from issue-85-requirement-verification-questions.md. Generated issue-85-requirements.md incorporating: full end-to-end scope, Go, separate auth, CLI interactive credentials, photo-upload via HTTP, seed with manual review, single shared counter for all post types, multi-region API in both regions with primary-only DynamoDB counter table. Presenting requirements for approval.
+**Context**: INCEPTION — Requirements Analysis complete; approval gate.
+
+---
+
+## Issue #85 — Requirements Approval
+**Timestamp**: 2026-07-07T03:30:00Z
+**User Input**: "approve and continue"
+**AI Response**: Requirements approved. Generated issue-85-execution-plan.md with 7 units, phase decisions, multi-region deploy sequence. Presenting Workflow Planning completion for approval.
+**Context**: INCEPTION — Workflow Planning complete; approval gate.
+
+---
+
+## Issue #85 — Workflow Plan Approval
+**Timestamp**: 2026-07-07T03:32:00Z
+**User Input**: "approve and continue"
+**AI Response**: Workflow plan approved. Implemented all 7 construction units: Go ticket lambdas, primary/secondary CF stacks, CI/IAM, CLI integration, photo-upload HTTP client, seed script, removed content/post-counter. Local Go build and npm run build passed.
+**Context**: CONSTRUCTION — Code Generation complete; review gate.
+
+---
+
+## Issue #85 — Code Generation Approval
+**Timestamp**: 2026-07-07T03:40:00Z
+**User Input**: "approve and continue"
+**AI Response**: Code approved. Re-ran Go and npm builds (success). Generated build-and-test instruction files. Integration/E2E tests documented as pending AWS deploy.
+**Context**: CONSTRUCTION — Build and Test complete; approval gate.
+
+---
+
+## Issue #85 — Build and Test Approval / Operations
+**Timestamp**: 2026-07-07T03:43:00Z
+**User Input**: "approve and continue"
+**AI Response**: Build and test approved. Merged main into branch (resolved post-counter delete/modify conflict; main counter was 148). Created operations deploy handoff. AWS deploy not run — profile www not configured in this environment. Pushed branch for PR merge.
+**Context**: OPERATIONS handoff; engagement complete pending user deploy.
+
+---

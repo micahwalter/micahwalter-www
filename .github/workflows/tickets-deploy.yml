@@ -1,0 +1,159 @@
+name: Deploy Ticket Server Lambda Stack
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/ticket-lambdas/**'
+      - 'infra/tickets.yml'
+      - 'infra/tickets-secondary.yml'
+      - '.github/workflows/tickets-deploy.yml'
+
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  AWS_REGION_SECONDARY: us-east-2
+  ARTIFACTS_BUCKET: micahwalter-newsletter-artifacts
+  ARTIFACTS_BUCKET_SECONDARY: micahwalter-newsletter-artifacts-secondary
+  ARTIFACTS_PREFIX: tickets/lambda
+  STACK_NAME: micahwalter-tickets
+  STACK_NAME_SECONDARY: micahwalter-tickets-secondary
+  FUNCTIONS: auth next
+
+jobs:
+  deploy:
+    name: Build and deploy ticket server Lambda stacks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: infra/ticket-lambdas/go.mod
+          cache-dependency-path: infra/ticket-lambdas/go.sum
+
+      - name: Detect what changed
+        id: changed
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          echo "Changed files:"
+          echo "$CHANGED"
+
+          if echo "$CHANGED" | grep -q '^infra/tickets\.yml$'; then
+            echo "primary_template_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "primary_template_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$CHANGED" | grep -q '^infra/tickets-secondary\.yml$'; then
+            echo "secondary_template_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "secondary_template_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build Lambda functions
+        working-directory: infra/ticket-lambdas
+        run: make build
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload Lambda zips to primary S3 bucket (us-east-1)
+        working-directory: infra/ticket-lambdas
+        run: |
+          for fn in ${{ env.FUNCTIONS }}; do
+            echo "  uploading ${fn}.zip to us-east-1..."
+            aws s3 cp dist/${fn}.zip \
+              s3://${{ env.ARTIFACTS_BUCKET }}/${{ env.ARTIFACTS_PREFIX }}/${fn}.zip \
+              --region ${{ env.AWS_REGION }}
+          done
+
+      - name: Upload Lambda zips to secondary S3 bucket (us-east-2)
+        working-directory: infra/ticket-lambdas
+        run: |
+          for fn in ${{ env.FUNCTIONS }}; do
+            echo "  uploading ${fn}.zip to us-east-2..."
+            aws s3 cp dist/${fn}.zip \
+              s3://${{ env.ARTIFACTS_BUCKET_SECONDARY }}/${{ env.ARTIFACTS_PREFIX }}/${fn}.zip \
+              --region ${{ env.AWS_REGION_SECONDARY }}
+          done
+
+      - name: Deploy primary tickets stack via CloudFormation (tickets.yml changed)
+        if: steps.changed.outputs.primary_template_changed == 'true'
+        run: |
+          aws cloudformation deploy \
+            --stack-name ${{ env.STACK_NAME }} \
+            --template-file infra/tickets.yml \
+            --s3-bucket ${{ env.ARTIFACTS_BUCKET }} \
+            --s3-prefix cloudformation \
+            --region ${{ env.AWS_REGION }} \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              LambdaArtifactsBucket=${{ env.ARTIFACTS_BUCKET }} \
+              LambdaArtifactsKeyPrefix=${{ env.ARTIFACTS_PREFIX }}
+
+      - name: Deploy secondary tickets stack via CloudFormation (tickets-secondary.yml changed)
+        if: steps.changed.outputs.secondary_template_changed == 'true'
+        run: |
+          aws cloudformation deploy \
+            --stack-name ${{ env.STACK_NAME_SECONDARY }} \
+            --template-file infra/tickets-secondary.yml \
+            --s3-bucket ${{ env.ARTIFACTS_BUCKET_SECONDARY }} \
+            --s3-prefix cloudformation \
+            --region ${{ env.AWS_REGION_SECONDARY }} \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              LambdaArtifactsBucket=${{ env.ARTIFACTS_BUCKET_SECONDARY }} \
+              LambdaArtifactsKeyPrefix=${{ env.ARTIFACTS_PREFIX }}
+
+      - name: Update primary function code only (Go source changed, no template change)
+        if: >
+          steps.changed.outputs.primary_template_changed == 'false' &&
+          steps.changed.outputs.secondary_template_changed == 'false'
+        run: |
+          for fn in ${{ env.FUNCTIONS }}; do
+            echo "  updating tickets-${fn} (us-east-1)..."
+            aws lambda update-function-code \
+              --function-name tickets-${fn} \
+              --s3-bucket ${{ env.ARTIFACTS_BUCKET }} \
+              --s3-key ${{ env.ARTIFACTS_PREFIX }}/${fn}.zip \
+              --region ${{ env.AWS_REGION }} \
+              --no-cli-pager
+          done
+
+      - name: Update secondary function code only (Go source changed, no template change)
+        if: >
+          steps.changed.outputs.primary_template_changed == 'false' &&
+          steps.changed.outputs.secondary_template_changed == 'false'
+        run: |
+          for fn in ${{ env.FUNCTIONS }}; do
+            echo "  updating tickets-${fn} (us-east-2)..."
+            aws lambda update-function-code \
+              --function-name tickets-${fn} \
+              --s3-bucket ${{ env.ARTIFACTS_BUCKET_SECONDARY }} \
+              --s3-key ${{ env.ARTIFACTS_PREFIX }}/${fn}.zip \
+              --region ${{ env.AWS_REGION_SECONDARY }} \
+              --no-cli-pager
+          done
+
+      - name: Deployment summary
+        run: |
+          echo "Ticket server deploy complete."
+          for fn in ${{ env.FUNCTIONS }}; do
+            size=$(stat -c%s infra/ticket-lambdas/dist/${fn}.zip 2>/dev/null || echo "?")
+            echo "  tickets-${fn}.zip (${size} bytes)"
+          done

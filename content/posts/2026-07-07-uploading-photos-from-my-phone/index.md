@@ -1,5 +1,5 @@
 ---
-id: 148
+id: 153
 title: "Uploading photos to my blog from my phone"
 publishedAt: "2026-07-07"
 excerpt: "I wanted to post a photo without opening my laptop. The fix was a passcode-gated form, three Lambdas, and a pipeline that commits to GitHub and triggers the normal deploy. Here is how issue #71 became /upload."
@@ -14,7 +14,7 @@ For years I have added photos to this site the same way: import them on my lapto
 
 This site is a static export. There are no API routes in the Next.js app at build time. Images live in S3, not in git. Posts are markdown files under `content/posts/`. The `blog photos:import` and `blog images:sync` commands already know how to extract EXIF, resize with Sharp into 400/800/1200 WebP and JPEG variants, upload originals and processed files to the right buckets, and write frontmatter that matches the rest of the archive.
 
-Whatever I built for the phone had to reproduce that pipeline and land in the same places. It also had to trigger a normal deploy. The only durable store for post IDs is `content/post-counter` in the repo, so the web uploader needed to read and bump that counter and commit `index.md` through the GitHub API, same as if I had run the CLI locally.
+Whatever I built for the phone had to reproduce that pipeline and land in the same places. It also had to trigger a normal deploy. Post IDs are allocated through a small ticket server API ([issue #85](https://github.com/micahwalter/micahwalter-www/issues/85)), so the web uploader calls that service for the next id and commits only `index.md` through the GitHub API, same as the CLI.
 
 ## The shape of the solution
 
@@ -37,7 +37,8 @@ flowchart TD
 
     S3In -->|"S3 ObjectCreated"| ProcessFn["photo-upload-process"]
     ProcessFn -->|"EXIF + resize 400/800/1200"| S3Img[("micahwalter-www-images")]
-    ProcessFn -->|"commit index.md + post-counter"| GitHub["GitHub API"]
+    ProcessFn -->|"POST /tickets/next"| Tickets["ticket server"]
+    ProcessFn -->|"commit index.md"| GitHub["GitHub API"]
 
     GitHub -->|"push to main"| GHA["GitHub Actions deploy"]
     GHA --> Site["Site live ~3–4 min"]
@@ -52,7 +53,7 @@ flowchart TD
     class UploadPage page
     class AuthFn,InitFn,ProcessFn lambda
     class S3In,S3Img storage
-    class GitHub,GHA,Site cicd
+    class Tickets,GitHub,GHA,Site cicd
 ```
 
 Direct-to-S3 upload matters. Phone photos are multi-megabyte. API Gateway and Lambda are the wrong place to receive the bytes. The init Lambda only mints a presigned PUT URL. Title and "feature on homepage" ride along as S3 object metadata so the processing Lambda does not need a separate datastore.
@@ -93,4 +94,4 @@ JPEG and PNG only for now. The Lambda's Sharp build has no libheif, so HEIC is a
 
 This was the second issue in a row where the interesting work was not inventing a new architecture but closing the loop between issue, implementation, AWS reality, and documentation. GitHub Issues holds the intent. The PR holds the code. AI-DLC artifacts in `aidlc-docs/` hold the decisions so the next session does not start cold. Cursor on a Cloud Agent VM handled merge conflicts, deploys, log spelunking, and the small fixes that only show up when you actually click upload with a real file.
 
-Issue #71 is closed. The CLI path still works. The phone path now does the same job, and now I can upload photos from my phone whenevr and wherever I am!
+Issue #71 is closed. The CLI path still works. The phone path now does the same job, and now I can upload photos from my phone whenever and wherever I am.
