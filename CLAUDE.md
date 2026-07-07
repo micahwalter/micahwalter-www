@@ -109,14 +109,24 @@ draft: false                 # Optional: true hides in production
 ---
 ```
 
-### Post Counter
+### Post IDs (Ticket Server)
 
-All posts (blog and photo) share a single global counter stored in `content/post-counter`. Each new post is assigned the next integer `id` regardless of type:
+All posts (blog, photo, email) share a single sequential integer `id` allocated by the **ticket server** at `https://api.micahwalter.com/tickets`:
 
-- **Blog posts** (`blog post:new`): `id` is written to frontmatter for reference but the URL slug remains title-based.
-- **Photo posts** (`blog photos:import`): `id` is written to frontmatter and also used as the URL slug (e.g. `/posts/42`).
+- `POST /tickets/auth` — passcode → HMAC session token
+- `POST /tickets/next` — Bearer token → `{ "id": N }`
 
-This ensures every post has a stable, unique numeric ID across the entire site.
+Counter state lives in DynamoDB (`post_tickets`, us-east-1 only). Blog CLI commands call the API; photo-upload Lambda calls the same API over HTTPS.
+
+- **Blog posts** (`blog post:new`): `id` in frontmatter; URL slug remains title-based
+- **Photo posts** (`blog photos:import`, web upload): `id` is the URL slug (e.g. `/posts/42`)
+- **Email posts**: `id` is the newsletter `emailId`
+
+**CLI auth:** first use prompts for passcode → saved in `~/.config/blog/credentials.json`. Override with `TICKETS_PASSCODE`. API URL override: `TICKETS_API_URL`.
+
+**Seed after migration:** `node scripts/seed-post-counter.js --apply` (dry-run by default; requires manual `YES` confirmation).
+
+Infrastructure: `infra/ticket-lambdas/` (Go), `infra/tickets.yml`, `infra/tickets-secondary.yml`.
 
 ### Content Filtering
 
@@ -144,7 +154,7 @@ draft: false                   # Must be false to send
 ```
 
 - Do **not** include an unsubscribe footer in the MDX body — the dispatch Lambda appends it automatically with the correct per-subscriber token
-- The `id` must be unique across all posts; increment `content/post-counter`
+- The `id` must be unique across all posts; allocate via ticket server (`blog post:new` or API)
 - Email posts are served at `/emails/<slug>` and listed at `/emails`
 
 ## Build Process
@@ -389,15 +399,15 @@ serverless flow and commits the post to the repo, triggering the normal deploy.
                                    ▼
                              photo-upload-process Lambda
                                EXIF → resize 400/800/1200 WebP+JPEG → images bucket
-                               → commit index.md + bumped post-counter via GitHub API
+                               → POST /tickets/next for post id
+                               → commit index.md via GitHub API
                                → site rebuilds (~3–4 min)
 ```
 
 Direct-to-S3 upload avoids API Gateway / Lambda request-size limits for large
 phone photos. The title and "Feature on homepage" toggle ride along as S3 object
 metadata, so the processing Lambda needs no separate datastore. The post `id` is
-assigned by reading + bumping `content/post-counter` in the repo, so the file
-stays authoritative and the CLI keeps working alongside the web uploader.
+allocated from the ticket server API (same counter as the CLI).
 
 ### Featured image
 

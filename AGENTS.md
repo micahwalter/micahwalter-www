@@ -40,7 +40,7 @@ Dependencies (`npm install`) are refreshed automatically on startup. Notes below
 - Image sync commands shell out to the `aws` CLI (`aws s3 sync`), so they need both AWS SSO auth (`aws sso login --profile www`) and the target bucket via the `IMAGES_BUCKET` (or `IMAGES_BUCKET_NAME`) env var — without it the S3 path resolves to `s3://undefined/...`. `blog build:static` and `blog images:optimize` run fully offline (no AWS).
 
 ### Content authoring caveat
-- `scripts/create-post.js` (`blog post:new`) is interactive via stdin prompts and does not work when stdin is piped/non-interactive. To create a post programmatically, write `content/posts/YYYY-MM-DD-<slug>/index.md` directly (frontmatter shape is in `CLAUDE.md`) and increment `content/post-counter`. The dev server hot-reloads new posts at `/posts/<slug>`.
+- `scripts/create-post.js` (`blog post:new`) is interactive via stdin prompts and does not work when stdin is piped/non-interactive. To create a post programmatically, write `content/posts/YYYY-MM-DD-<slug>/index.md` directly (frontmatter shape is in `CLAUDE.md`) and allocate an `id` via the ticket server API. The dev server hot-reloads new posts at `/posts/<slug>`.
 - NOTE: `lib/content.ts` only reads `index.md` (line ~48), so post files MUST be named `index.md`, not `index.mdx`. Docs (`CLAUDE.md`) mention `index.mdx`, but a file named `index.mdx` is silently ignored and yields a 404.
 
 ### Git and PR workflow

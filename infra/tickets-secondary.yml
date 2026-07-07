@@ -1,0 +1,265 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Ticket server — secondary region (us-east-2).
+  Active-passive failover target for api.micahwalter.com/tickets.
+  DynamoDB writes go to the primary post_tickets table in us-east-1.
+
+Parameters:
+
+  LambdaArtifactsBucket:
+    Type: String
+    Default: micahwalter-newsletter-artifacts-secondary
+    Description: S3 bucket for secondary Lambda artifacts
+
+  LambdaArtifactsKeyPrefix:
+    Type: String
+    Default: tickets/lambda
+    Description: S3 key prefix for ticket Lambda zips (no trailing slash)
+
+  SiteUrl:
+    Type: String
+    Default: https://www.micahwalter.com
+
+  ApiDomainName:
+    Type: String
+    Default: api.micahwalter.com
+    Description: Custom domain managed by infra/api-domain-secondary.yml
+
+  PrimaryRegion:
+    Type: String
+    Default: us-east-1
+    Description: Region where the post_tickets DynamoDB table lives
+
+  PostTicketsTableName:
+    Type: String
+    Default: post_tickets
+    Description: Name of the primary-region DynamoDB counter table
+
+  TicketServerSecretName:
+    Type: String
+    Default: ticket-server-secrets
+    Description: Secrets Manager secret name (resolves to local replica in us-east-2)
+
+Resources:
+
+  TicketsApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: tickets-api
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref SiteUrl
+          - http://localhost:3000
+        AllowMethods: [POST, OPTIONS]
+        AllowHeaders: [Content-Type, Authorization]
+        MaxAge: 300
+      Tags:
+        - { Key: Project, Value: micahwalter-tickets }
+        - { Key: Region, Value: secondary }
+        - { Key: ManagedBy, Value: CloudFormation }
+
+  TicketsApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    DependsOn:
+      - AuthRoute
+      - NextRoute
+    Properties:
+      ApiId: !Ref TicketsApi
+      StageName: $default
+      AutoDeploy: true
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 10
+        ThrottlingRateLimit: 5
+      RouteSettings:
+        'POST /auth':
+          ThrottlingBurstLimit: 3
+          ThrottlingRateLimit: 1
+
+  TicketsApiMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Properties:
+      ApiId: !Ref TicketsApi
+      DomainName: !Ref ApiDomainName
+      Stage: !Ref TicketsApiStage
+      ApiMappingKey: tickets
+
+  AuthFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: tickets-auth-fn-role-secondary
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: AuthFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${TicketServerSecretName}*
+
+  NextFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: tickets-next-fn-role-secondary
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: NextFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${TicketServerSecretName}*
+              - Effect: Allow
+                Action: dynamodb:UpdateItem
+                Resource: !Sub arn:aws:dynamodb:${PrimaryRegion}:${AWS::AccountId}:table/${PostTicketsTableName}
+
+  AuthFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: tickets-auth
+      Runtime: provided.al2023
+      Architectures: [arm64]
+      Handler: bootstrap
+      Role: !GetAtt AuthFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/auth.zip
+      Timeout: 5
+      MemorySize: 128
+      Environment:
+        Variables:
+          SECRET_ARN: !Ref TicketServerSecretName
+          TOKEN_TTL: '1800'
+      Tags:
+        - { Key: Project, Value: micahwalter-tickets }
+        - { Key: Region, Value: secondary }
+        - { Key: ManagedBy, Value: CloudFormation }
+
+  NextFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: tickets-next
+      Runtime: provided.al2023
+      Architectures: [arm64]
+      Handler: bootstrap
+      Role: !GetAtt NextFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/next.zip
+      Timeout: 5
+      MemorySize: 128
+      Environment:
+        Variables:
+          SECRET_ARN: !Ref TicketServerSecretName
+          DYNAMODB_TABLE_NAME: !Ref PostTicketsTableName
+          DYNAMODB_REGION: !Ref PrimaryRegion
+      Tags:
+        - { Key: Project, Value: micahwalter-tickets }
+        - { Key: Region, Value: secondary }
+        - { Key: ManagedBy, Value: CloudFormation }
+
+  AuthIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref TicketsApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthFn.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
+  NextIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref TicketsApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${NextFn.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
+  AuthRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref TicketsApi
+      RouteKey: POST /auth
+      Target: !Sub integrations/${AuthIntegration}
+
+  NextRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref TicketsApi
+      RouteKey: POST /next
+      Target: !Sub integrations/${NextIntegration}
+
+  AuthFnPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AuthFn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TicketsApi}/*/*/auth
+
+  NextFnPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref NextFn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TicketsApi}/*/*/next
+
+  AuthFnErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: tickets-auth-fn-errors-secondary
+      AlarmDescription: tickets-auth Lambda error rate is elevated (secondary region)
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref AuthFn
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  NextFnErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: tickets-next-fn-errors-secondary
+      AlarmDescription: tickets-next Lambda error rate is elevated (secondary region)
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref NextFn
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+Outputs:
+
+  ApiEndpoint:
+    Description: Auto-generated API URL (secondary region)
+    Value: !Sub https://${TicketsApi}.execute-api.${AWS::Region}.amazonaws.com
+
+  ApiRegionalDomainName:
+    Description: Regional domain for Route 53 health checks
+    Value: !Sub ${TicketsApi}.execute-api.${AWS::Region}.amazonaws.com

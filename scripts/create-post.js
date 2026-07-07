@@ -12,18 +12,9 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
+const { allocatePostId } = require('./lib/allocate-post-id');
 
 const POSTS_DIR = path.join(process.cwd(), 'content/posts');
-const COUNTER_FILE = path.join(process.cwd(), 'content/post-counter');
-
-function nextPostId() {
-  const current = fs.existsSync(COUNTER_FILE)
-    ? parseInt(fs.readFileSync(COUNTER_FILE, 'utf8').trim(), 10) || 0
-    : 0;
-  const next = current + 1;
-  fs.writeFileSync(COUNTER_FILE, String(next));
-  return next;
-}
 
 /**
  * Create readline interface for user input
@@ -163,8 +154,16 @@ async function main() {
 
   rl.close();
 
-  // Create post
-  const id = nextPostId();
+  console.log('\n📦 Creating post...');
+
+  let id;
+  try {
+    id = await allocatePostId();
+  } catch (err) {
+    console.error(`\n❌ Failed to allocate post ID: ${err.message}`);
+    process.exit(1);
+  }
+
   const postData = {
     id,
     title,
@@ -176,8 +175,6 @@ async function main() {
     coverImage,
     draft
   };
-
-  console.log('\n📦 Creating post...');
 
   const result = createPost(postData);
 
