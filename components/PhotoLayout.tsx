@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import type { Post } from "@/lib/content";
 import { CoverImage } from "./ResponsiveImage";
 import ExifDisplay from "./ExifDisplay";
+import Comments from "./Comments";
 
 interface PhotoLayoutProps {
   post: Post;
@@ -96,6 +97,9 @@ export default function PhotoLayout({ post, children }: PhotoLayoutProps) {
               Edit on GitHub →
             </a>
           </div>
+
+          {/* Comments */}
+          <Comments />
         </div>
 
         {/* EXIF Sidebar (1/3 width on desktop) */}

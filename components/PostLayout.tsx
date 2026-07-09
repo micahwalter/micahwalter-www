@@ -2,6 +2,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import type { Post } from "@/lib/content";
 import { CoverImage } from "./ResponsiveImage";
+import Comments from "./Comments";
 
 interface PostLayoutProps {
   post: Post;
@@ -91,6 +92,9 @@ export default function PostLayout({ post, children }: PostLayoutProps) {
           Edit on GitHub →
         </a>
       </div>
+
+      {/* Comments */}
+      <Comments />
     </article>
   );
 }

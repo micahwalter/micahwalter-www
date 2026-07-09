@@ -267,6 +267,23 @@ Fathom Analytics is added via `components/Fathom.tsx`, included in `app/layout.t
 - **Local dev**: add `NEXT_PUBLIC_FATHOM_SITE_ID=<id>` to `.env.local`
 - **Production**: set `NEXT_PUBLIC_FATHOM_SITE_ID` as a GitHub Actions secret (it is baked into the static build at CI time)
 
+## Comments (giscus)
+
+Git-based commenting via [giscus](https://giscus.app), which maps each post to a GitHub Discussion on this repo. Client-side only (`components/Comments.tsx` injects the `giscus.app/client.js` script), so it works with `output: "export"`. Wired into both `PostLayout.tsx` and `PhotoLayout.tsx`, below the "Edit on GitHub" link.
+
+**One-time setup:**
+1. Enable Discussions on the repo (Settings → General → Features)
+2. Create a locked "Announcement"-format category (e.g. `Comments`) so only giscus opens threads
+3. Install the giscus GitHub App: https://github.com/apps/giscus
+4. Run the configurator at https://giscus.app with mapping = `pathname` to get the repo ID and category ID
+
+**Env vars** (baked into the static build, same pattern as Fathom):
+- `NEXT_PUBLIC_GISCUS_CATEGORY` — category name (e.g. `Comments`)
+- `NEXT_PUBLIC_GISCUS_CATEGORY_ID` — from the giscus configurator
+- `NEXT_PUBLIC_GISCUS_REPO_ID` — from the giscus configurator
+
+Set locally in `.env.local` and in production as GitHub Actions secrets (see `.github/workflows/deploy.yml`). If unset, `Comments` renders an empty container and no script loads.
+
 ## Custom Domain
 
 The site is live at `https://www.micahwalter.com`. Infra managed in `infra/infra.yml`:
