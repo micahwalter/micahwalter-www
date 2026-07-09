@@ -477,6 +477,32 @@ The API and uploads bucket allow CORS from `http://localhost:3000` as well as pr
 
 See `CLAUDE.md` → **Photo Upload (Web)** for the full runbook, manual deploy commands, and gotchas.
 
+## Comments
+
+Blog posts and photos get a comment thread powered by [giscus](https://giscus.app), which stores comments as GitHub Discussions on this repo — no database, no server. The widget loads client-side via a `<script>` tag (`components/Comments.tsx`), so it works fine from a static export.
+
+### One-time setup
+
+1. Enable **Discussions** on this repo: Settings → General → Features → check "Discussions".
+2. Create a discussion category dedicated to comments (Discussions tab → Edit categories → New category), e.g. named `Comments`, format "Announcement" (locked so only giscus can start threads).
+3. Install the [giscus app](https://github.com/apps/giscus) on this repo.
+4. Run the [giscus configurator](https://giscus.app), enter this repo, and choose:
+   - **Page ↔ Discussions Mapping**: `pathname`
+   - **Discussion Category**: the category created in step 2
+5. Copy the `data-repo-id` and `data-category-id` values it generates and set them as GitHub Actions secrets `NEXT_PUBLIC_GISCUS_REPO_ID` and `NEXT_PUBLIC_GISCUS_CATEGORY_ID` (plus `NEXT_PUBLIC_GISCUS_CATEGORY` for the category name), then redeploy the site so they're baked into the static build.
+
+### Local development
+
+Add to `.env.local`:
+
+```bash
+NEXT_PUBLIC_GISCUS_CATEGORY=Comments
+NEXT_PUBLIC_GISCUS_CATEGORY_ID=your-giscus-category-id
+NEXT_PUBLIC_GISCUS_REPO_ID=your-github-repo-id
+```
+
+Until these are set, `Comments` renders an empty container (no script is injected).
+
 ## Image Workflow
 
 This project uses a dual-storage system for images to support multi-machine workflows without bloating the Git repository.
@@ -624,6 +650,9 @@ npm run images:dev       # Optimize + copy to public/ for dev
 | `NEXT_PUBLIC_FATHOM_SITE_ID` | Fathom Analytics site ID (baked in at build time) |
 | `NEXT_PUBLIC_NEWSLETTER_API_URL` | Newsletter API Gateway base URL (baked in at build time) |
 | `NEXT_PUBLIC_PHOTO_API_URL` | Photo upload API base URL (baked in at build time; required for `/upload`) |
+| `NEXT_PUBLIC_GISCUS_CATEGORY` | giscus Discussions category name, e.g. `Comments` (baked in at build time) |
+| `NEXT_PUBLIC_GISCUS_CATEGORY_ID` | giscus Discussions category ID from the [giscus configurator](https://giscus.app) (baked in at build time) |
+| `NEXT_PUBLIC_GISCUS_REPO_ID` | GitHub repo ID from the [giscus configurator](https://giscus.app) (baked in at build time) |
 
 **Local Development:**
 Create `.env.local`:
@@ -632,6 +661,9 @@ Create `.env.local`:
 NEXT_PUBLIC_FATHOM_SITE_ID=your-fathom-site-id
 NEXT_PUBLIC_NEWSLETTER_API_URL=https://api.micahwalter.com/newsletter
 NEXT_PUBLIC_PHOTO_API_URL=https://api.micahwalter.com/photos
+NEXT_PUBLIC_GISCUS_CATEGORY=Comments
+NEXT_PUBLIC_GISCUS_CATEGORY_ID=your-giscus-category-id
+NEXT_PUBLIC_GISCUS_REPO_ID=your-github-repo-id
 ```
 
 ## Build Process
@@ -1192,6 +1224,7 @@ Defined in `tailwind.config.ts`:
 - ✅ Draft post support (dev vs production)
 - ✅ Themed 404 page (`app/not-found.tsx`)
 - ✅ Fathom Analytics (privacy-first, page-view tracking)
+- ✅ Git-based commenting via [giscus](https://giscus.app) (GitHub Discussions)
 
 ### Photo Archive Features
 - ✅ Unified content system (photos as posts with `type: photo`)
