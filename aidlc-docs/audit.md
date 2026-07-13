@@ -231,3 +231,19 @@
 **Context**: CONSTRUCTION complete; ready for PR.
 
 ---
+
+## Issue #100 — AI-DLC Engagement Start
+**Timestamp**: 2026-07-13T00:00:00Z
+**User Input**: "Using AI-DLC, create a plan to implement this issue. Document the plan in the issue itself, and then implement the issue when we get to the construction page. Be sure to stop and ask me to approve the design before committing it. https://github.com/micahwalter/micahwalter-www/issues/100"
+**AI Response**: Read issue #100 ("Add a recent photos section to the homepage. Below the recent posts / grid style."). Completed Workspace Detection (brownfield, reused artifacts), Requirements Analysis (standard depth — homepage currently has a hero photo + Recent Posts list; flagged one open design decision: full PhotoCard grid vs. compact thumbnail grid, and photo count), and Workflow Planning (single unit, Code Generation gated on approval). Wrote issue-100-requirements.md and issue-100-execution-plan.md. Posting plan as a comment on GitHub issue #100 per explicit user instruction, then requesting design approval before Construction begins.
+**Context**: INCEPTION complete; approval gate before CONSTRUCTION.
+
+---
+
+## Issue #100 — Design Approval Received
+**Timestamp**: 2026-07-13T00:10:00Z
+**User Input**: AskUserQuestion responses — "Card density" = "Compact thumbnails (Recommended)"; "Photo count" = "6 (Recommended)"
+**AI Response**: Locked approved decisions into issue-100-requirements.md and issue-100-execution-plan.md. Proceeded to Construction: added Recent Photos section to app/page.tsx (getPhotos(), exclude hero photo + photos without coverImage, cap 6, grid grid-cols-2 md:grid-cols-3, View all photos -> /photos link). Discovered aspect-square cropping in the original plan conflicted with the site's established "natural aspect ratio, no cropping" pattern (ResponsiveImage hardcodes height:auto; PhotoCard explicitly avoids cropping) — removed the crop to stay consistent. npm run build passed (590 static pages). Verified visually via dev server + Playwright screenshots at desktop and mobile widths (grid renders 3-col desktop / 2-col mobile, hero not duplicated); image content itself is broken in this sandbox due to no network access to the production CDN, confirmed as a pre-existing environment limitation affecting the hero/Recent Posts images identically. Wrote issue-100-construction-summary.md.
+**Context**: CONSTRUCTION complete; Issue #100 engagement COMPLETE.
+
+---

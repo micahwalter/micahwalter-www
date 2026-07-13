@@ -1,11 +1,16 @@
 import Link from "next/link";
-import { getBlogPosts, getFeaturedPhoto } from "@/lib/content";
+import { getBlogPosts, getFeaturedPhoto, getPhotos } from "@/lib/content";
+import PhotoMosaic from "@/components/PhotoMosaic";
 import { CoverImage } from "@/components/ResponsiveImage";
 
 export default function Home() {
   const post = getFeaturedPhoto();
 
   const recentPosts = getBlogPosts().slice(0, 5);
+
+  const recentPhotos = getPhotos()
+    .filter((p) => p.slug !== post?.slug && p.coverImage)
+    .slice(0, 6);
 
   if (!post || !post.coverImage) return null;
 
@@ -59,6 +64,22 @@ export default function Home() {
               className="font-serif text-charcoal hover:text-accent transition-colors no-underline"
             >
               View all posts →
+            </Link>
+          </div>
+        </section>
+      )}
+      {recentPhotos.length > 0 && (
+        <section className="mt-16 max-w-wide mx-auto">
+          <h2 className="font-serif font-semibold text-2xl text-charcoal mb-6">
+            Recent Photos
+          </h2>
+          <PhotoMosaic photos={recentPhotos} />
+          <div className="mt-8">
+            <Link
+              href="/photos"
+              className="font-serif text-charcoal hover:text-accent transition-colors no-underline"
+            >
+              View all photos →
             </Link>
           </div>
         </section>
