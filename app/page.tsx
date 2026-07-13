@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getBlogPosts, getFeaturedPhoto, getPhotos } from "@/lib/content";
+import PhotoMosaic from "@/components/PhotoMosaic";
 import { CoverImage } from "@/components/ResponsiveImage";
 
 export default function Home() {
@@ -72,28 +73,7 @@ export default function Home() {
           <h2 className="font-serif font-semibold text-2xl text-charcoal mb-6">
             Recent Photos
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {recentPhotos.map((p) => {
-              const filename = p.coverImage!
-                .replace(/^\.\//, "")
-                .replace(/\.(jpg|jpeg|png)$/i, "");
-              return (
-                <Link
-                  key={p.slug}
-                  href={`/posts/${p.slug}`}
-                  className="group block no-underline"
-                >
-                  <CoverImage
-                    folderName={p.folderName}
-                    filename={filename}
-                    alt={p.title}
-                    className="rounded-lg transition-transform duration-300 group-hover:scale-[1.02]"
-                    sizes="(max-width: 768px) 50vw, 400px"
-                  />
-                </Link>
-              );
-            })}
-          </div>
+          <PhotoMosaic photos={recentPhotos} />
           <div className="mt-8">
             <Link
               href="/photos"
