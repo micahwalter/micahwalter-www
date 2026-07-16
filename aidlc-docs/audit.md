@@ -612,3 +612,11 @@
 **Context**: U1 data plane live in AWS; code/route fixes pending PR.
 
 ---
+
+## Issues #103 / #104 — Continue to U2 Functional Design
+**Timestamp**: 2026-07-16T19:57:30Z
+**User Input**: "lets continue to u2"
+**AI Response**: Approved U1 CG Continue. Started U2 Enrichment Functional Design. Created u2-enrichment-functional-design-plan.md with 12 clarification questions. Awaiting answers before generating FD artifacts.
+**Context**: CONSTRUCTION — U2 Functional Design Step 2–4 (plan + questions gate). Extensions remain disabled.
+
+---
