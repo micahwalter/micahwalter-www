@@ -21,8 +21,24 @@
 
 ## Deploy
 
+**Prerequisite:** redeploy the CI IAM stack so `GitHubActionsDeployPhotoUpload` can manage DynamoDB / EventBridge / SQS / EventInvokeConfig (these were added in U1 and are not auto-deployed):
+
+```bash
+AWS_PROFILE=www aws cloudformation deploy \
+  --stack-name micahwalter-www-github-actions \
+  --template-file infra/github-actions-role.yml \
+  --region us-east-1 \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides \
+    HostedZoneId=<hosted-zone-id> \
+    WebsiteBucketName=<website-bucket> \
+    CloudFrontDistributionId=<distribution-id>
+```
+
+Then:
+
 1. `cd infra/photo-upload-lambdas && make build`
-2. Upload zip + `aws cloudformation deploy` stack `micahwalter-photo-upload` (or merge to `main` for `photo-upload-deploy.yml`)
+2. Upload zip + `aws cloudformation deploy` stack `micahwalter-photo-upload` (or re-run `photo-upload-deploy.yml`)
 3. Confirm secret has `passcode`, `hmac`, `ticketsPasscode`
 
 ## Smoke checklist (after deploy)
