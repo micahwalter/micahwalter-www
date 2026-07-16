@@ -446,3 +446,119 @@
 **Context**: CONSTRUCTION — U1 Functional Design starting.
 
 ---
+
+## Issues #103 / #104 — U1 Functional Design Answers Received
+**Timestamp**: 2026-07-16T18:04:00Z
+**User Input**: "done"
+**AI Response**: Reading u1-photo-data-plane-functional-design-plan.md answers; validating before generating functional design artifacts.
+**Context**: CONSTRUCTION — U1 Functional Design; validating answers.
+
+---
+
+## Issues #103 / #104 — U1 FD Clarification (Q8 Auth)
+**Timestamp**: 2026-07-16T18:04:30Z
+**User Input**: "(answers Q1=A Q2=A Q3=B Q4=A Q5=A Q6=A Q7=A Q8=A — Q8 ambiguous)"
+**AI Response**: Clarification needed on process IAM vs HMAC. Created u1-photo-data-plane-functional-design-clarification.md.
+**Context**: CONSTRUCTION — U1 Functional Design; awaiting Q8 clarification.
+
+---
+
+## Issues #103 / #104 — U1 FD Clarification Locked / Generating
+**Timestamp**: 2026-07-16T18:05:30Z
+**User Input**: "lets do the recomended approach here"
+**AI Response**: Locked Q8=A (process IAM; browser HMAC). Generating U1 functional design artifacts.
+**Context**: CONSTRUCTION — U1 Functional Design generation.
+
+---
+
+## Issues #103 / #104 — U1 Functional Design Complete / Approval Prompt
+**Timestamp**: 2026-07-16T18:06:00Z
+**User Input**: "(pending)"
+**AI Response**: Generated U1 business-logic-model, business-rules, domain-entities. Auth: process IAM + browser HMAC. Presenting standardized 2-option completion for Functional Design.
+**Approval Prompt**: "Functional Design Complete - U1. Review aidlc-docs/construction/u1-photo-data-plane/functional-design/. Request Changes or Continue to Next Stage (NFR Requirements)."
+**Context**: CONSTRUCTION — U1 Functional Design approval gate.
+
+---
+
+## Issues #103 / #104 — U1 Functional Design Approved
+**Timestamp**: 2026-07-16T18:07:00Z
+**User Input**: "approved"
+**AI Response**: U1 Functional Design approved. Proceeding to U1 NFR Requirements.
+**Context**: CONSTRUCTION — U1 NFR Requirements.
+
+---
+
+## Issues #103 / #104 — U1 NFR Requirements Answers Received
+**Timestamp**: 2026-07-16T18:10:00Z
+**User Input**: "done"
+**AI Response**: Reading U1 NFR requirements plan answers; validating then generating nfr-requirements.md and tech-stack-decisions.md if clear.
+**Context**: CONSTRUCTION — U1 NFR Requirements; validating answers.
+
+---
+
+## Issues #103 / #104 — U1 NFR Requirements Complete / Approval Prompt
+**Timestamp**: 2026-07-16T18:11:00Z
+**User Input**: "(pending)"
+**AI Response**: All NFR answers A. Generated nfr-requirements.md and tech-stack-decisions.md. Presenting for approval before NFR Design.
+**Approval Prompt**: "NFR Requirements Complete - U1. Review aidlc-docs/construction/u1-photo-data-plane/nfr-requirements/. Request Changes or Continue to Next Stage (NFR Design)."
+**Context**: CONSTRUCTION — U1 NFR Requirements approval gate.
+
+---
+
+## Issues #103 / #104 — U1 NFR Requirements Approved
+**Timestamp**: 2026-07-16T18:11:30Z
+**User Input**: "approved"
+**AI Response**: U1 NFR Requirements approved. Proceeding to U1 NFR Design.
+**Context**: CONSTRUCTION — U1 NFR Design.
+
+---
+
+## Issues #103 / #104 — U1 NFR Design Answers Received
+**Timestamp**: 2026-07-16T18:55:00Z
+**User Input**: "done"
+**AI Response**: Reading U1 NFR design plan answers; validating then generating nfr-design artifacts if clear.
+**Context**: CONSTRUCTION — U1 NFR Design; validating answers.
+
+---
+
+## Issues #103 / #104 — U1 NFR Design Complete / Approval Prompt
+**Timestamp**: 2026-07-16T18:58:30Z
+**User Input**: "(pending)"
+**AI Response**: Generated nfr-design-patterns.md and logical-components.md (DLQ, best-effort enqueue, on-demand, GSI, minimal components). Presenting for approval before Infrastructure Design.
+**Approval Prompt**: "NFR Design Complete - U1. Review aidlc-docs/construction/u1-photo-data-plane/nfr-design/. Request Changes or Continue to Next Stage (Infrastructure Design)."
+**Context**: CONSTRUCTION — U1 NFR Design approval gate.
+
+---
+
+## Issues #103 / #104 — U1 NFR Design Approved
+**Timestamp**: 2026-07-16T19:02:00Z
+**User Input**: "approved"
+**AI Response**: U1 NFR Design approved. Proceeding to U1 Infrastructure Design.
+**Context**: CONSTRUCTION — U1 Infrastructure Design.
+
+---
+
+## Issues #103 / #104 — U1 Infrastructure Design Answers Received
+**Timestamp**: 2026-07-16T19:05:30Z
+**User Input**: "done"
+**AI Response**: Answers locked (table micahwalter-photos, GSI PHOTO/publishedAt#id, EventBridge enrichment stub, process SQS DLQ, same zip, PITR on, strip GitHub commit, no shared doc). Generating infrastructure design artifacts.
+**Context**: CONSTRUCTION — U1 Infrastructure Design generation.
+
+---
+
+## Issues #103 / #104 — U1 Infrastructure Design Complete / Approval Prompt
+**Timestamp**: 2026-07-16T19:06:00Z
+**User Input**: "(pending)"
+**AI Response**: Generated infrastructure-design.md and deployment-architecture.md. Presenting for approval before Code Generation.
+**Approval Prompt**: "Infrastructure Design Complete - U1. Review aidlc-docs/construction/u1-photo-data-plane/infrastructure-design/. Request Changes or Continue to Next Stage (Code Generation)."
+**Context**: CONSTRUCTION — U1 Infrastructure Design approval gate.
+
+---
+
+## Issues #103 / #104 — U1 Infrastructure Design Approved + Commit
+**Timestamp**: 2026-07-16T19:07:00Z
+**User Input**: "approved, but lets commit changes here"
+**AI Response**: U1 Infrastructure Design approved. Committing construction artifacts. Starting Code Generation Part 1 (plan) for U1.
+**Context**: CONSTRUCTION — U1 Code Generation planning.
+
+---
