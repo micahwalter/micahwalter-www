@@ -85,6 +85,49 @@ async function updatePhoto(id, patch) {
 }
 
 /**
+ * Enrichment worker update — geo, place, tags, status.
+ */
+async function updatePhotoEnrichment(id, fields) {
+  const allowed = [
+    'latitude',
+    'longitude',
+    'publicLatitude',
+    'publicLongitude',
+    'city',
+    'country',
+    'tags',
+    'enrichmentStatus',
+  ];
+  const names = {};
+  const values = { ':u': nowIso() };
+  const parts = ['updatedAt = :u'];
+
+  for (const key of allowed) {
+    if (fields[key] === undefined) continue;
+    const nk = `#${key}`;
+    const vk = `:${key}`;
+    names[nk] = key;
+    values[vk] = fields[key];
+    parts.push(`${nk} = ${vk}`);
+  }
+
+  if (parts.length === 1) {
+    throw Object.assign(new Error('No enrichment fields'), { statusCode: 400 });
+  }
+
+  const res = await ddb.send(new UpdateCommand({
+    TableName: TABLE,
+    Key: { id: String(id) },
+    UpdateExpression: `SET ${parts.join(', ')}`,
+    ExpressionAttributeNames: names,
+    ExpressionAttributeValues: values,
+    ConditionExpression: 'attribute_exists(id)',
+    ReturnValues: 'ALL_NEW',
+  }));
+  return res.Attributes;
+}
+
+/**
  * Newest-first public list (drafts excluded via FilterExpression).
  */
 async function listPhotos({ limit = 12, cursor } = {}) {
@@ -135,6 +178,7 @@ module.exports = {
   putPhoto,
   getPhoto,
   updatePhoto,
+  updatePhotoEnrichment,
   listPhotos,
   getFeaturedPhoto,
   encodeCursor,

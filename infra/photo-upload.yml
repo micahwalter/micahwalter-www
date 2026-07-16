@@ -382,6 +382,109 @@ Resources:
           SECRET_ARN: !Ref PhotoUploadSecret
           PHOTOS_TABLE: !Ref PhotosTable
 
+  PhotosPlaceIndex:
+    Type: AWS::Location::PlaceIndex
+    Properties:
+      IndexName: micahwalter-photos-place-index
+      DataSource: Esri
+      DataSourceConfiguration:
+        IntendedUse: SingleUse
+      Tags:
+        - { Key: Project, Value: micahwalter-photo-upload }
+        - { Key: ManagedBy, Value: CloudFormation }
+
+  PhotoEventBusArchive:
+    Type: AWS::Events::Archive
+    Properties:
+      ArchiveName: photo-bus-archive
+      Description: Replay window for PhotoPendingEnrichment (U2 recovery)
+      SourceArn: !GetAtt PhotoEventBus.Arn
+      RetentionDays: 14
+
+  EnrichFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: photo-upload-enrich-fn-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: EnrichFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                Resource:
+                  - !GetAtt PhotosTable.Arn
+                  - !Sub ${PhotosTable.Arn}/index/*
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub arn:aws:s3:::${ImagesBucketName}/images/*
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource:
+                  - !Sub arn:aws:bedrock:${AWS::Region}::foundation-model/*
+                  - !Sub arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/*
+              - Effect: Allow
+                Action:
+                  - geo:SearchPlaceIndexForPosition
+                  - geo:DescribePlaceIndex
+                Resource: !GetAtt PhotosPlaceIndex.Arn
+
+  EnrichFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: photo-upload-enrich
+      Runtime: nodejs20.x
+      Architectures: [arm64]
+      Handler: src/enrich.handler
+      Role: !GetAtt EnrichFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/photo-upload.zip
+      Timeout: 60
+      MemorySize: 1024
+      Environment:
+        Variables:
+          PHOTOS_TABLE: !Ref PhotosTable
+          IMAGES_BUCKET: !Ref ImagesBucketName
+          PLACE_INDEX_NAME: !Ref PhotosPlaceIndex
+          BEDROCK_MODEL_ID: us.anthropic.claude-sonnet-4-6
+
+  PhotoPendingEnrichmentRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: photo-pending-enrichment
+      Description: Route PhotoPendingEnrichment events to enricher
+      EventBusName: !Ref PhotoEventBus
+      EventPattern:
+        source:
+          - micahwalter.photos
+        detail-type:
+          - PhotoPendingEnrichment
+      State: ENABLED
+      Targets:
+        - Id: EnrichFnTarget
+          Arn: !GetAtt EnrichFn.Arn
+
+  EnrichFnPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref EnrichFn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt PhotoPendingEnrichmentRule.Arn
+
   AuthIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
@@ -528,6 +631,14 @@ Outputs:
   ProcessDlqUrl:
     Description: DLQ for process Lambda async failures
     Value: !Ref ProcessDlq
+
+  PlaceIndexName:
+    Description: AWS Location Place Index for reverse geocode
+    Value: !Ref PhotosPlaceIndex
+
+  EnrichFnName:
+    Description: Enrichment Lambda function name
+    Value: !Ref EnrichFn
 
   SecretArn:
     Description: Secrets Manager ARN — set passcode / hmac / ticketsPasscode after first deploy

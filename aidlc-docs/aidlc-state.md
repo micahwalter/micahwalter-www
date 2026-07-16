@@ -3,12 +3,12 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-07-16T15:24:00Z
-- **Current Stage**: CONSTRUCTION — U2 Code Generation (implementing)
+- **Current Stage**: CONSTRUCTION — U2 Code Generation (approval gate after implementation)
 - **Engagement Status**: In progress
 - **Branch:** `cursor/u2-enrichment-functional-design-be02`
 
 ## Active Engagement — Issues #103 / #104
-- **Current unit:** U2 Enrichment — Code Generation Part 2 in progress
+- **Current unit:** U2 Enrichment — implementation complete; awaiting Continue
 - **Artifacts:** `aidlc-docs/construction/u2-enrichment/functional-design/`
 - **Plan:** `aidlc-docs/construction/plans/u2-enrichment-functional-design-plan.md`
 - **Stories:** US-003, US-004
@@ -16,7 +16,8 @@
 - **NFR design:** `aidlc-docs/construction/u2-enrichment/nfr-design/` (approved)
 - **Infra design:** `aidlc-docs/construction/u2-enrichment/infrastructure-design/` (approved)
 - **CG plan:** `aidlc-docs/construction/plans/u2-enrichment-code-generation-plan.md`
-- **Next:** Approve plan → implement Part 2
+- **Code summary:** `aidlc-docs/construction/u2-enrichment/code/code-summary.md`
+- **Next:** Continue to U3 or Request Changes
 
 ## Extension Configuration
 | Extension | Enabled | Notes |
@@ -42,7 +43,7 @@
 - [x] NFR Requirements (approved)
 - [x] NFR Design (approved)
 - [x] Infrastructure Design (approved)
-- [ ] Code Generation (implementing)
+- [x] Code Generation (implemented; awaiting Continue)
 
 ### CONSTRUCTION — U3–U7 + Build and Test
 - [ ] Pending (Build and Test after all units)

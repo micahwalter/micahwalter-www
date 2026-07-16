@@ -566,8 +566,35 @@ Resources:
               - events:TagResource
               - events:UntagResource
               - events:ListTagsForResource
+              - events:PutRule
+              - events:DeleteRule
+              - events:DescribeRule
+              - events:EnableRule
+              - events:DisableRule
+              - events:PutTargets
+              - events:RemoveTargets
+              - events:ListTargetsByRule
+              - events:CreateArchive
+              - events:DeleteArchive
+              - events:DescribeArchive
+              - events:UpdateArchive
+              - events:ListArchives
             Resource:
               - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:event-bus/photo-bus'
+              - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:rule/photo-bus/*'
+              - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:archive/photo-bus-archive'
+          - Effect: Allow
+            Action:
+              - geo:CreatePlaceIndex
+              - geo:DeletePlaceIndex
+              - geo:DescribePlaceIndex
+              - geo:UpdatePlaceIndex
+              - geo:TagResource
+              - geo:UntagResource
+              - geo:ListTagsForResource
+            Resource:
+              - !Sub 'arn:aws:geo:us-east-1:${AWS::AccountId}:place-index/micahwalter-photos-place-index'
+              - !Sub 'arn:aws:geo:us-east-1:${AWS::AccountId}:place-index/*'
           - Effect: Allow
             Action:
               - sqs:CreateQueue
