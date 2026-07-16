@@ -2,48 +2,48 @@
 
 ## Project Information
 - **Project Type**: Brownfield
-- **Start Date**: 2026-07-07T15:45:00Z
-- **Current Stage**: COMPLETE — Issue #100
-- **Engagement Status**: Complete — ready for PR
+- **Start Date**: 2026-07-16T15:24:00Z
+- **Current Stage**: INCEPTION — Units Generation (approval gate)
+- **Engagement Status**: In progress
 
-## Active Engagement — Issue #100 (Recent Photos Section on Homepage)
+## Active Engagement — Issues #103 / #104 (Photo Metadata → DynamoDB + Dynamic Serving)
 
-- **GitHub Issue:** [#100](https://github.com/micahwalter/micahwalter-www/issues/100)
-- **Branch:** `claude/ai-dlc-implementation-plan-2ltytn`
-- **Requirements:** `aidlc-docs/inception/requirements/issue-100-requirements.md`
-- **Execution Plan:** `aidlc-docs/inception/plans/issue-100-execution-plan.md`
-- **Construction Summary:** `aidlc-docs/construction/issue-100-construction-summary.md`
+- **GitHub Issues:** [#103](https://github.com/micahwalter/micahwalter-www/issues/103), [#104](https://github.com/micahwalter/micahwalter-www/issues/104)
+- **Branch:** `cursor/photo-metadata-dynamodb-be02`
+- **Requirements / Stories / App Design / Execution Plan:** approved
+- **Units Plan:** `aidlc-docs/inception/plans/issue-103-unit-of-work-plan.md` (approved)
+- **Units:** `unit-of-work.md`, `unit-of-work-dependency.md`, `unit-of-work-story-map.md` (awaiting approval)
+- **Next after Units approval:** CONSTRUCTION — Unit U1 (Functional Design → … → Code Generation), sequential through U7, then Build and Test
 
 ## Extension Configuration
 
 | Extension | Enabled | Decided At |
 |---|---|---|
-| Security Baseline | No | Requirements Analysis — presentational homepage change, no new attack surface |
-| Resiliency Baseline | No | Requirements Analysis — out of scope |
-| Property-Based Testing | No | Requirements Analysis — no test runner in repo |
+| Security Baseline | No | Requirements Analysis |
+| Resiliency Baseline | No | Requirements Analysis — multi-region via NFR-3 / U7 |
+| Property-Based Testing | No | Requirements Analysis |
 
-## Stage Progress — Issue #100
+## Stage Progress — Issues #103 / #104
 
 ### INCEPTION
 - [x] Workspace Detection
-- [x] Reverse Engineering (reused brownfield artifacts)
-- [x] Requirements Analysis (standard depth — design decision flagged)
-- [x] User Stories (skipped — simple homepage teaser addition)
+- [x] Reverse Engineering
+- [x] Requirements Analysis
+- [x] User Stories
 - [x] Workflow Planning
-- [ ] Application Design (skipped — single-component change)
-- [ ] Units Generation (skipped — single unit)
+- [x] Application Design
+- [x] Units Generation (artifacts written; awaiting approval)
 
-### CONSTRUCTION
-- [ ] Functional Design (skipped — no business logic)
-- [ ] NFR Requirements (skipped — covered in requirements)
-- [ ] NFR Design (skipped)
-- [ ] Infrastructure Design (skipped)
-- [x] Code Generation
-- [x] Build and Test
+### CONSTRUCTION (per unit U1→U7, then once)
+- [ ] Functional Design — EXECUTE as needed per unit
+- [ ] NFR Requirements — EXECUTE as needed per unit
+- [ ] NFR Design — EXECUTE as needed per unit
+- [ ] Infrastructure Design — EXECUTE as needed per unit
+- [ ] Code Generation — EXECUTE
+- [ ] Build and Test — EXECUTE
+
+### OPERATIONS
+- [ ] Operations — PLACEHOLDER
 
 ## Prior Engagements (complete)
-- Issue #93 — Fathom canonical URL tracking
-- Issue #90 — Deploy build optimization
-- Issue #85 — Ticket Server
-- Issue #80 — Newsletter confirmation rate
-- Issue #71 — Photo upload
+- Issue #100, #93, #90, #85, #80, #71
