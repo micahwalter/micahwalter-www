@@ -11,17 +11,38 @@ Please answer every `[Answer]:` below. After validation and plan approval, artif
 
 ## Plan checklist
 
-- [ ] Collect answers to clarification questions
-- [ ] Resolve any ambiguities / follow-ups
-- [ ] Approve plan
-- [ ] Generate `domain-entities.md`
-- [ ] Generate `business-rules.md`
-- [ ] Generate `business-logic-model.md`
-- [ ] Present Functional Design completion (Continue → NFR Requirements)
+- [x] Collect answers to clarification questions
+- [x] Resolve any ambiguities / follow-ups
+- [x] Approve plan (answers unambiguous; user signaled done)
+- [x] Generate `domain-entities.md`
+- [x] Generate `business-rules.md`
+- [x] Generate `business-logic-model.md`
+- [x] Present Functional Design completion (Continue → NFR Requirements)
+
+## Locked answers summary
+
+| Q | Answer | Decision |
+|---|--------|----------|
+| 1 | A | Enricher owns GPS from S3 original |
+| 2 | A | Round public coords to 3 decimal places |
+| 3 | C | `city`/`country` fields + mirrored tags |
+| 4 | A | Union merge tags; never wipe; no title/caption touch |
+| 5 | A | Same Bedrock prompt/model family as CLI |
+| 6 | A | Optimized cover for Bedrock |
+| 7 | A | `complete` on finished attempt; `failed` on hard update failure |
+| 8 | A | Best-effort independent geo/Bedrock steps |
+| 9 | A | No-op when already `complete` |
+| 10 | A | EventBridge → Enrichment Lambda direct |
+| 11 | A | No GPS ⇒ skip geo; still Bedrock |
+| 12 | A | Prefer city+country; region substitutes for city |
 
 ---
 
+
+
 ## Questions
+
+
 
 ### Question 1 — Where precise GPS is first extracted
 
@@ -35,7 +56,7 @@ C) **Both** — process writes GPS when present; enricher can re-extract from S3
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -51,7 +72,7 @@ C) **Quantize to a fixed grid** (e.g. 0.01° cells) and publish cell center
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -67,7 +88,7 @@ C) **Structured fields** `city` / `country` on the photo **and** mirrored into `
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: C
 
 ---
 
@@ -85,7 +106,7 @@ C) **Full replace of content tags** each enrichment run — keep only `photograp
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -101,7 +122,7 @@ C) **Defer model choice to NFR** — functional design only requires “3–8 co
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -117,7 +138,7 @@ C) **Prefer optimized; fall back to original** if optimized missing
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -125,15 +146,15 @@ X) Other (please describe after [Answer]: tag below)
 
 ### Question 7 — Enrichment status semantics
 
-A) **`complete`** only when the enrichment attempt finished (geo skipped OK if no GPS; Bedrock tags applied or empty after soft-fail); **`failed`** only when the worker crashed / could not update the record after retries; photo stays public either way
+A) `complete` only when the enrichment attempt finished (geo skipped OK if no GPS; Bedrock tags applied or empty after soft-fail); `failed` only when the worker crashed / could not update the record after retries; photo stays public either way
 
-B) **`complete`** requires Bedrock success; geo optional; Bedrock failure → `failed` but photo remains public
+B) `complete` requires Bedrock success; geo optional; Bedrock failure → `failed` but photo remains public
 
-C) **`partial`** status when geo OK but Bedrock failed (or vice versa); else `complete` / `failed`
+C) `partial` status when geo OK but Bedrock failed (or vice versa); else `complete` / `failed`
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -147,7 +168,7 @@ B) **All-or-nothing enrichment write** — only update DynamoDB when both applic
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -165,7 +186,7 @@ C) **Conditional** — no-op when `complete` unless event detail includes `force
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -183,7 +204,7 @@ C) **Decide in Infrastructure Design** — functional design only assumes “asy
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -191,13 +212,13 @@ X) Other (please describe after [Answer]: tag below)
 
 ### Question 11 — Photos without GPS
 
-A) **Skip geo steps entirely**; still run Bedrock tags; leave `latitude`/`longitude`/`public*` null
+A) **Skip geo steps entirely**; still run Bedrock tags; leave `latitude`/`longitude`/`public`* null
 
 B) **Skip geo + still Bedrock**; also set an explicit `geoStatus: none` field (in addition to enrichmentStatus)
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -213,6 +234,7 @@ C) **Decide concrete Place Index / API in Infrastructure Design**; functional de
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
+

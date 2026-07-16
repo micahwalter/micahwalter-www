@@ -620,3 +620,12 @@
 **Context**: CONSTRUCTION — U2 Functional Design Step 2–4 (plan + questions gate). Extensions remain disabled.
 
 ---
+
+## Issues #103 / #104 — U2 Functional Design Answers + Artifacts
+**Timestamp**: 2026-07-16T20:03:00Z
+**User Input**: "done"
+**AI Response**: Validated Q1–Q12 answers (all clear, no follow-ups). Generated u2-enrichment/functional-design/{domain-entities,business-rules,business-logic-model}.md. Presenting Functional Design completion for Continue to NFR Requirements or Request Changes.
+**Approval Prompt**: "Functional Design Complete - U2. Request Changes or Continue to Next Stage (NFR Requirements)."
+**Context**: CONSTRUCTION — U2 Functional Design approval gate.
+
+---
