@@ -646,3 +646,11 @@
 **Context**: CONSTRUCTION — U2 NFR Requirements approval gate.
 
 ---
+
+## Issues #103 / #104 — U2 NFR Requirements Approved → NFR Design
+**Timestamp**: 2026-07-16T20:33:00Z
+**User Input**: "Approved"
+**AI Response**: Recorded U2 NFR Requirements approval. Started U2 NFR Design; created u2-enrichment-nfr-design-plan.md with 7 clarification questions. Awaiting answers.
+**Context**: CONSTRUCTION — U2 NFR Design Step 2–4 (plan + questions gate).
+
+---
