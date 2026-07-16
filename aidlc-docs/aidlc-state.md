@@ -3,12 +3,12 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-07-16T15:24:00Z
-- **Current Stage**: CONSTRUCTION — U2 Code Generation (plan approval)
+- **Current Stage**: CONSTRUCTION — U2 Code Generation (implementing)
 - **Engagement Status**: In progress
 - **Branch:** `cursor/u2-enrichment-functional-design-be02`
 
 ## Active Engagement — Issues #103 / #104
-- **Current unit:** U2 Enrichment — Code Generation plan awaiting approval
+- **Current unit:** U2 Enrichment — Code Generation Part 2 in progress
 - **Artifacts:** `aidlc-docs/construction/u2-enrichment/functional-design/`
 - **Plan:** `aidlc-docs/construction/plans/u2-enrichment-functional-design-plan.md`
 - **Stories:** US-003, US-004
@@ -42,7 +42,7 @@
 - [x] NFR Requirements (approved)
 - [x] NFR Design (approved)
 - [x] Infrastructure Design (approved)
-- [ ] Code Generation (plan awaiting approval)
+- [ ] Code Generation (implementing)
 
 ### CONSTRUCTION — U3–U7 + Build and Test
 - [ ] Pending (Build and Test after all units)
