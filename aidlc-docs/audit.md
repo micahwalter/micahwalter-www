@@ -654,3 +654,12 @@
 **Context**: CONSTRUCTION — U2 NFR Design Step 2–4 (plan + questions gate).
 
 ---
+
+## Issues #103 / #104 — U2 NFR Design Answers + Artifacts
+**Timestamp**: 2026-07-16T20:37:00Z
+**User Input**: "1.A\n2.A\n3.A\n4. A\n5.A\n6.A\n7.A"
+**AI Response**: Recorded all-A answers into plan. Generated nfr-design-patterns.md and logical-components.md. Presenting NFR Design completion for Continue to Infrastructure Design or Request Changes.
+**Approval Prompt**: "NFR Design Complete - U2. Request Changes or Continue to Next Stage (Infrastructure Design)."
+**Context**: CONSTRUCTION — U2 NFR Design approval gate. Answers collected via chat (user could not open plan file).
+
+---

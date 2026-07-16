@@ -9,11 +9,23 @@ Please answer every `[Answer]:` below.
 
 ## Plan checklist
 
-- [ ] Collect answers
-- [ ] Resolve ambiguities
-- [ ] Generate `nfr-design-patterns.md`
-- [ ] Generate `logical-components.md`
-- [ ] Present NFR Design completion (Continue → Infrastructure Design)
+- [x] Collect answers
+- [x] Resolve ambiguities
+- [x] Generate `nfr-design-patterns.md`
+- [x] Generate `logical-components.md`
+- [x] Present NFR Design completion (Continue → Infrastructure Design)
+
+## Locked answers summary
+
+| Q | Answer | Decision |
+|---|--------|----------|
+| 1 | A | Platform retries + EventBridge archive; no enricher DLQ |
+| 2 | A | Sequential try/catch; single DynamoDB update |
+| 3 | A | On-demand concurrency; one photo per invoke |
+| 4 | A | Optimized cover only for Bedrock |
+| 5 | A | Least-privilege enricher + DTO omits precise GPS |
+| 6 | A | Minimal logical component set |
+| 7 | A | Extend PublicDtoProjector / photo-dto in place |
 
 ---
 
@@ -29,7 +41,7 @@ C) **Override NFR** — add enricher DLQ anyway for inspectability
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -43,7 +55,7 @@ B) **Two-phase persist** — write geo fields immediately, then Bedrock tags in 
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -57,7 +69,7 @@ B) **Soft concurrency hint** — document operator can set reserved concurrency=
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -71,7 +83,7 @@ B) **A + early exit** — if cover missing, skip Bedrock (soft-fail) rather than
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -87,7 +99,7 @@ C) **A + B**
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -103,7 +115,7 @@ C) **Minimal + EnrichmentStatusGate + FuzzCoordinator** — named component for 
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -117,6 +129,6 @@ B) **Keep projector unchanged until fields exist** — enricher writes fields; D
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
