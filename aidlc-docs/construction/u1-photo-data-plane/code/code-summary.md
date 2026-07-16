@@ -7,7 +7,7 @@
 
 ### Lambda package (`infra/photo-upload-lambdas/`)
 - Added `lib/photo-defaults.js`, `lib/photos-db.js`, `lib/photo-dto.js`
-- Added `photos-api.js` — GET list/featured/{id}, PATCH {id}
+- Added `photos-api.js` — GET `/` `/featured` `/{id}`, PATCH `/{id}` (relative to domain mapping `photos`)
 - Rewrote `process.js` — DynamoDB put + EventBridge enrich event; **removed GitHub commit**
 - Extended `init.js` — `caption` S3 metadata
 - Dependencies: DynamoDB Document client, EventBridge client
@@ -43,7 +43,7 @@ Then:
 
 ## Smoke checklist (after deploy)
 
-- [ ] `GET https://api.micahwalter.com/photos` → `{ items, cursor }`
+- [ ] `GET https://api.micahwalter.com/photos/` → `{ items, cursor }` (trailing slash required — API GW base-path quirk; bare `/photos` returns 500)
 - [ ] `GET .../photos/featured` → 404 until first photo or 200
 - [ ] Upload via `/upload` (title only still OK) → row in DynamoDB, images on CDN, **no** new `content/posts` commit
 - [ ] `GET .../photos/{id}` returns caption/title
