@@ -671,3 +671,12 @@
 **Context**: CONSTRUCTION — U2 Infrastructure Design Step 2–4 (plan + questions gate).
 
 ---
+
+## Issues #103 / #104 — U2 Infrastructure Design Answers + Artifacts
+**Timestamp**: 2026-07-16T20:42:00Z
+**User Input**: "All A for all questions"
+**AI Response**: Locked Q1–Q8=A. Generated infrastructure-design.md and deployment-architecture.md. Presenting Infrastructure Design completion for Continue to Code Generation or Request Changes.
+**Approval Prompt**: "Infrastructure Design Complete - U2. Request Changes or Continue to Next Stage (Code Generation)."
+**Context**: CONSTRUCTION — U2 Infrastructure Design approval gate.
+
+---

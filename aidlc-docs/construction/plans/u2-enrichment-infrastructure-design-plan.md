@@ -10,11 +10,24 @@ Please answer every `[Answer]:` below (or reply in chat with `1A 2A …`).
 
 ## Plan checklist
 
-- [ ] Collect answers
-- [ ] Resolve ambiguities
-- [ ] Generate `infrastructure-design.md`
-- [ ] Generate `deployment-architecture.md`
-- [ ] Present Infrastructure Design completion (Continue → Code Generation)
+- [x] Collect answers
+- [x] Resolve ambiguities
+- [x] Generate `infrastructure-design.md`
+- [x] Generate `deployment-architecture.md`
+- [x] Present Infrastructure Design completion (Continue → Code Generation)
+
+## Locked answers summary
+
+| Q | Answer | Decision |
+|---|--------|----------|
+| 1 | A | Rule: source + detail-type → Enrich Lambda |
+| 2 | A | Archive 14 days on photo-bus |
+| 3 | A | Create Esri Place Index in stack |
+| 4 | A | Document Bedrock model access prerequisite |
+| 5 | A | Prefer photo-1200.jpg then .webp |
+| 6 | A | Extend GitHubActionsDeployPhotoUpload |
+| 7 | A | Same zip; src/enrich.handler; 60s/1024MB |
+| 8 | A | No shared-infrastructure.md |
 
 ---
 
@@ -28,7 +41,7 @@ B) **Same as A** but also match any source and filter only on detail-type (loose
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -44,7 +57,7 @@ C) **Archive with 7-day** retention
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -60,7 +73,7 @@ C) **Create Place Index with HERE** data source instead of Esri
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -74,7 +87,7 @@ B) **Fail enricher clearly** if model not enabled (logged soft-fail / status sti
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -90,7 +103,7 @@ B) **Always use `coverImageKey` as stored on the Photo record** (whatever proces
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -104,7 +117,7 @@ B) **A + allow `events:PutRule` / `PutTargets` / archive APIs** scoped to `photo
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -118,7 +131,7 @@ B) **Same zip but separate entrypoint name** `src/enrichment.handler` (naming on
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -132,6 +145,6 @@ B) **Create/update shared-infrastructure.md** for photo-bus archive + Place Inde
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
