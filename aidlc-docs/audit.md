@@ -714,3 +714,12 @@
 **Context**: CONSTRUCTION — U3 Functional Design Step 2–4. NFR/Infra skipped per unit plan unless answers require otherwise.
 
 ---
+
+## Issues #103 / #104 — U3 Functional Design Answers + Artifacts
+**Timestamp**: 2026-07-16T21:26:00Z
+**User Input**: "All A"
+**AI Response**: Locked Q1–Q8=A. Generated u3-upload-ui/functional-design artifacts. Presenting FD completion for Continue to Code Generation or Request Changes.
+**Approval Prompt**: "Functional Design Complete - U3. Request Changes or Continue to Next Stage (Code Generation)."
+**Context**: CONSTRUCTION — U3 Functional Design approval gate. NFR/Infra skipped.
+
+---

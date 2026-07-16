@@ -9,12 +9,27 @@ Please answer every `[Answer]:` below (or reply in chat `1A 2A …`).
 
 ---
 
+
+## Locked answers summary
+
+| Q | Answer | Decision |
+|---|--------|----------|
+| 1 | A | Parallel uploads, concurrency 3 |
+| 2 | A | Soft cap 20 files |
+| 3 | A | Add lib/photos-api.ts now |
+| 4 | A | Full per-file row UI |
+| 5 | A | Stay on form after success |
+| 6 | A | JPEG/PNG only in picker |
+| 7 | A | Pre-fill title from filename |
+| 8 | A | Upload-only page scope |
+
+
 ## Plan checklist
 
-- [ ] Collect answers
-- [ ] Resolve ambiguities
-- [ ] Generate FD artifacts (domain/business light + frontend-components)
-- [ ] Present Functional Design completion (Continue → Code Generation plan)
+- [x] Collect answers
+- [x] Resolve ambiguities
+- [x] Generate FD artifacts (domain/business light + frontend-components)
+- [x] Present Functional Design completion (Continue → Code Generation plan)
 
 ---
 
@@ -28,8 +43,7 @@ B) **Sequential** — upload one file at a time in selection order (simpler; slo
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
-
+[Answer]: A
 ---
 
 
@@ -44,8 +58,7 @@ C) **No hard cap** — browser/memory practical limits only
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
-
+[Answer]: A
 ---
 
 
@@ -58,8 +71,7 @@ B) **Keep fetch inline in UploadForm** for U3; introduce `lib/photos-api.ts` in 
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
-
+[Answer]: A
 ---
 
 
@@ -72,8 +84,7 @@ B) **Compact list** — title + featured required; caption in expandable row
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
-
+[Answer]: A
 ---
 
 
@@ -88,8 +99,7 @@ C) **A + optional** “View when ready” note only (no redirect)
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
-
+[Answer]: A
 ---
 
 
@@ -102,8 +112,7 @@ B) **Accept image/* in picker** but still reject non JPEG/PNG before upload-url 
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
-
+[Answer]: A
 ---
 
 
@@ -116,8 +125,7 @@ B) **Leave title blank** — server/process applies filename default if empty
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
-
+[Answer]: A
 ---
 
 
@@ -130,6 +138,5 @@ B) **Stub hub chrome** — tabs/sections for Upload | Edit | Galleries with Edit
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
-
+[Answer]: A
 ---
