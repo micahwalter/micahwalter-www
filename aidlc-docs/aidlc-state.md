@@ -3,14 +3,15 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-07-16T15:24:00Z
-- **Current Stage**: CONSTRUCTION — U1 Code Generation (approval gate after implementation)
+- **Current Stage**: CONSTRUCTION — U1 Code Generation (approval gate; deployed to AWS)
 - **Engagement Status**: In progress
-- **Branch:** `cursor/photo-metadata-dynamodb-be02`
+- **Branch:** `main` (U1 + deploy fixes merged via #106 / #107 / #108)
 
 ## Active Engagement — Issues #103 / #104
-- **Current unit:** U1 Photo data plane — **implementation complete, awaiting Continue**
+- **Current unit:** U1 Photo data plane — **implemented + deployed**; awaiting Continue to U2
 - **Code summary:** `aidlc-docs/construction/u1-photo-data-plane/code/code-summary.md`
-- **Next after U1 CG approve:** U2 Enrichment (Functional Design…) or user may request deploy smoke first
+- **Live:** `GET https://api.micahwalter.com/photos/` → 200; table `micahwalter-photos`; bus `photo-bus`
+- **Next after U1 CG approve:** U2 Enrichment (Functional Design…)
 
 ## Stage Progress
 
@@ -22,7 +23,7 @@
 - [x] NFR Requirements (approved)
 - [x] NFR Design (approved)
 - [x] Infrastructure Design (approved)
-- [x] Code Generation (implemented; awaiting Continue)
+- [x] Code Generation (implemented + deployed; awaiting Continue)
 
 ### CONSTRUCTION — U2–U7 + Build and Test
 - [ ] Pending (Build and Test after all units)
