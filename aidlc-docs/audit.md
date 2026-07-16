@@ -588,3 +588,11 @@
 **Context**: CONSTRUCTION — U1 Code Generation approval gate.
 
 ---
+
+## Issues #103 / #104 — PR Opened
+**Timestamp**: 2026-07-16T19:16:00Z
+**User Input**: "ok lets open a PR"
+**AI Response**: Created draft PR for branch cursor/photo-metadata-dynamodb-be02 against main covering U1 photo DynamoDB data plane + AI-DLC docs for #103/#104.
+**Context**: PR created; U1 CG still awaiting Continue to U2 if user wants to proceed in-branch.
+
+---
