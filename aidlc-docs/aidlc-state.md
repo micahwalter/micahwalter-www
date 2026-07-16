@@ -3,16 +3,17 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-07-16T15:24:00Z
-- **Current Stage**: CONSTRUCTION — U2 Functional Design (approval gate)
+- **Current Stage**: CONSTRUCTION — U2 NFR Requirements (clarification questions)
 - **Engagement Status**: In progress
 - **Branch:** `cursor/u2-enrichment-functional-design-be02`
 
 ## Active Engagement — Issues #103 / #104
-- **Current unit:** U2 Enrichment — Functional Design artifacts generated
+- **Current unit:** U2 Enrichment — NFR Requirements plan + questions
 - **Artifacts:** `aidlc-docs/construction/u2-enrichment/functional-design/`
 - **Plan:** `aidlc-docs/construction/plans/u2-enrichment-functional-design-plan.md`
 - **Stories:** US-003, US-004
-- **Next if approved:** U2 NFR Requirements
+- **NFR plan:** `aidlc-docs/construction/plans/u2-enrichment-nfr-requirements-plan.md`
+- **Next after NFR answers:** generate NFR artifacts → NFR Design
 
 ## Extension Configuration
 | Extension | Enabled | Notes |
@@ -34,8 +35,8 @@
 - [x] Code Generation (implemented + deployed)
 
 ### CONSTRUCTION — U2 Enrichment
-- [x] Functional Design (artifacts ready; awaiting Continue)
-- [ ] NFR Requirements
+- [x] Functional Design (approved)
+- [ ] NFR Requirements (plan/questions awaiting answers)
 - [ ] NFR Design
 - [ ] Infrastructure Design
 - [ ] Code Generation

@@ -629,3 +629,11 @@
 **Context**: CONSTRUCTION — U2 Functional Design approval gate.
 
 ---
+
+## Issues #103 / #104 — U2 Functional Design Approved → NFR Requirements
+**Timestamp**: 2026-07-16T20:05:00Z
+**User Input**: "approved"
+**AI Response**: Recorded U2 Functional Design approval. Started U2 NFR Requirements; created u2-enrichment-nfr-requirements-plan.md with 10 clarification questions. Awaiting answers.
+**Context**: CONSTRUCTION — U2 NFR Requirements Step 2–4 (plan + questions gate).
+
+---
