@@ -3,12 +3,12 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-07-16T15:24:00Z
-- **Current Stage**: CONSTRUCTION — U3 Code Generation (plan approval)
+- **Current Stage**: CONSTRUCTION — U3 Code Generation (approval gate after implementation)
 - **Engagement Status**: In progress
 - **Branch:** `cursor/u2-enrichment-functional-design-be02`
 
 ## Active Engagement — Issues #103 / #104
-- **Current unit:** U3 Upload UI — Code Generation plan awaiting approval
+- **Current unit:** U3 Upload UI — implementation complete; awaiting Continue
 - **Artifacts:** `aidlc-docs/construction/u2-enrichment/functional-design/`
 - **Plan:** `aidlc-docs/construction/plans/u2-enrichment-functional-design-plan.md`
 - **Stories:** US-003, US-004
