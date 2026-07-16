@@ -637,3 +637,12 @@
 **Context**: CONSTRUCTION — U2 NFR Requirements Step 2–4 (plan + questions gate).
 
 ---
+
+## Issues #103 / #104 — U2 NFR Requirements Artifacts
+**Timestamp**: 2026-07-16T20:10:00Z
+**User Input**: "done"
+**AI Response**: Validated NFR Q1–Q10 (clear). Generated u2-enrichment/nfr-requirements/{nfr-requirements,tech-stack-decisions}.md. Notable: no enricher DLQ (EventBridge archive/replay); 60s/1024MB; soft-fail providers; logs-only observability. Presenting NFR Requirements completion for Continue to NFR Design or Request Changes.
+**Approval Prompt**: "NFR Requirements Complete - U2. Request Changes or Continue to Next Stage (NFR Design)."
+**Context**: CONSTRUCTION — U2 NFR Requirements approval gate.
+
+---

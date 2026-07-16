@@ -10,11 +10,26 @@ Please answer every `[Answer]:` below.
 
 ## Plan checklist
 
-- [ ] Collect answers
-- [ ] Resolve ambiguities
-- [ ] Generate `nfr-requirements.md`
-- [ ] Generate `tech-stack-decisions.md`
-- [ ] Present NFR Requirements completion (Continue → NFR Design)
+- [x] Collect answers
+- [x] Resolve ambiguities
+- [x] Generate `nfr-requirements.md`
+- [x] Generate `tech-stack-decisions.md`
+- [x] Present NFR Requirements completion (Continue → NFR Design)
+
+## Locked answers summary
+
+| Q | Answer | Decision |
+|---|--------|----------|
+| 1 | A | Best-effort freshness (minutes) |
+| 2 | A | Personal volume; no reserved concurrency |
+| 3 | A | 60s / 1024 MB |
+| 4 | B | EventBridge archive/replay; no enricher DLQ |
+| 5 | A | Soft-fail providers; complete on finished update |
+| 6 | A | Least-privilege IAM; no precise GPS in public DTO |
+| 7 | A | CloudWatch logs only |
+| 8 | A | us-east-1 only in U2 |
+| 9 | A | Enricher in existing photo-upload zip/stack |
+| 10 | A | Additive DTO fields; no new endpoints |
 
 ---
 
@@ -30,7 +45,7 @@ C) **Near-interactive** — aim under ~15s p95 (may need higher Lambda memory / 
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -46,7 +61,7 @@ C) **A + daily soft budget alarm** — CloudWatch/billing alarm if Bedrock cost 
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -62,7 +77,7 @@ C) **Decide concrete numbers in NFR Design / Infra** — functional NFR only: �
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -78,7 +93,7 @@ C) **SQS buffer between EventBridge and Lambda** despite FD choosing direct invo
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: B
 
 ---
 
@@ -94,7 +109,7 @@ C) **Circuit-break** — after N consecutive Bedrock failures, skip AI tags for 
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -110,7 +125,7 @@ C) **A + B + explicit deny** of Bedrock/Location outside enricher role (document
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -126,7 +141,7 @@ C) **A + B + metrics** — custom metrics for bedrock_fail / geo_skip / enrich_c
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -140,7 +155,7 @@ B) **Require Bedrock model access documented for us-east-1**; still no secondary
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -154,7 +169,7 @@ B) **Same as A but separate Lambda zip/package** for enricher (heavier deps isol
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
 
@@ -168,6 +183,7 @@ B) **A + optional** `GET` field filtering later — not in U2
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ---
+
