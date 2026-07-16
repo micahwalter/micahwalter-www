@@ -247,3 +247,352 @@
 **Context**: CONSTRUCTION complete; Issue #100 engagement COMPLETE.
 
 ---
+
+## Issues #103 / #104 — AI-DLC Engagement Start
+**Timestamp**: 2026-07-16T15:24:00Z
+**User Input**: "ok lets use AI-DLC to capture this idea and turn it into reality.."
+**AI Response**: Started new AI-DLC engagement for photo metadata DynamoDB migration (#103) + additional requirements (#104). Displayed welcome message. Created branch `cursor/photo-metadata-dynamodb-be02`. Workspace Detection: brownfield; site-wide RE (2026-06-24) stale for photo-upload/tickets — produced focused supplement `photo-subsystem.md`. Presenting Reverse Engineering for approval before Requirements Analysis.
+**Context**: INCEPTION — Workspace Detection complete; Reverse Engineering approval gate.
+
+---
+
+## Issues #103 / #104 — Reverse Engineering Approved
+**Timestamp**: 2026-07-16T15:29:00Z
+**User Input**: "approve and continue"
+**AI Response**: Reverse Engineering approved. Proceeding to Requirements Analysis (comprehensive depth). Creating requirement-verification-questions.md with functional decisions from #103/#104 plus extension opt-ins. Stopping at Requirements Analysis answer gate.
+**Context**: INCEPTION — Requirements Analysis; awaiting user answers.
+
+---
+
+## Issues #103 / #104 — Requirements Answers Received
+**Timestamp**: 2026-07-16T15:53:00Z
+**User Input**: "ok done with Q/A feedback"
+**AI Response**: Reading issue-103-requirement-verification-questions.md answers; validating completeness and contradictions before generating requirements.md.
+**Context**: INCEPTION — Requirements Analysis; processing answers.
+
+---
+
+## Issues #103 / #104 — Requirements Clarification Needed
+**Timestamp**: 2026-07-16T15:54:00Z
+**User Input**: "(answers in issue-103-requirement-verification-questions.md — Q1=A, Q2=A, Q3=B, Q4=A, Q5=B, Q6=B, Q7=A, Q8=B+city/country tags, Q9=B, Q10=B, Q11=B+how manage, Q12=A, Q13=B, Q14=B+multi-region, Q15=C)"
+**AI Response**: Detected ambiguities on gallery management (Q11) and country/city tagging (Q8). Created issue-103-clarification-questions.md. Stopping at clarification gate.
+**Context**: INCEPTION — Requirements Analysis; awaiting clarification answers.
+
+---
+
+## Issues #103 / #104 — Clarifications Received / Requirements Drafted
+**Timestamp**: 2026-07-16T15:59:00Z
+**User Input**: "done with clarifications"
+**AI Response**: Clarifications: gallery admin UI (A); reverse-geocode city/country into tags (A). Generated issue-103-requirements.md (full cutover, hybrid client/API, /photos/<id>, multi-upload, single caption field, AI tags+edit UI, static fuzzed map, galleries in DynamoDB with admin UI, live search + scheduled feeds, multi-region NFR). Extensions all disabled per answers. Presenting Requirements Analysis completion for approval. Next stage if approved: User Stories.
+**Context**: INCEPTION — Requirements Analysis approval gate.
+
+---
+
+## Issues #103 / #104 — Requirements Approved
+**Timestamp**: 2026-07-16T16:02:00Z
+**User Input**: "approve and continue"
+**AI Response**: Requirements approved. Proceeding to User Stories. Performing intelligent assessment (execute — new user-facing upload/edit/gallery/browse flows). Starting Part 1 story planning with questions.
+**Context**: INCEPTION — User Stories Part 1 Planning.
+
+---
+
+## Issues #103 / #104 — Story Plan Answers Received
+**Timestamp**: 2026-07-16T17:21:00Z
+**User Input**: "ok I tried to answer the questions as best I could"
+**AI Response**: Reading issue-103-story-generation-plan.md answers; validating for ambiguities before plan approval / generation.
+**Context**: INCEPTION — User Stories Part 1; validating answers.
+
+---
+
+## Issues #103 / #104 — Story Plan Approval Prompt
+**Timestamp**: 2026-07-16T17:22:00Z
+**User Input**: "(pending)"
+**AI Response**: Story plan answers validated (Q1=A, Q2=B, Q3=A, Q4=A, Q5=A, Q6=A). No ambiguities. Presenting story generation plan for explicit approval before Part 2 generation.
+**Approval Prompt**: "Please approve the story generation plan at aidlc-docs/inception/plans/issue-103-story-generation-plan.md (journey-based, small/vertical, checklist AC, Owner+Visitor personas, explicit cutover stories, US-### with FR mapping) — Approve & Continue to generate stories, or Request Changes."
+**Context**: INCEPTION — User Stories Part 1 plan approval gate.
+
+---
+
+## Issues #103 / #104 — Story Plan Approved / Generation Started
+**Timestamp**: 2026-07-16T17:22:30Z
+**User Input**: "approve and continue"
+**AI Response**: Story generation plan approved. Executing Part 2: generating issue-103-personas.md and issue-103-stories.md (journey-based, small/vertical, checklist AC, FR mapping).
+**Context**: INCEPTION — User Stories Part 2 Generation.
+
+---
+
+## Issues #103 / #104 — User Stories Generated / Approval Prompt
+**Timestamp**: 2026-07-16T17:24:00Z
+**User Input**: "(pending)"
+**AI Response**: Generated 2 personas (Site Owner, Visitor) and 16 journey-based stories (US-001–US-016) covering publish, edit, browse, galleries, and cutover. FR/NFR coverage matrix included. Presenting User Stories for approval before Workflow Planning.
+**Approval Prompt**: "User Stories Complete. Review aidlc-docs/inception/user-stories/issue-103-stories.md and issue-103-personas.md. Request Changes or Approve & Continue to Workflow Planning."
+**Context**: INCEPTION — User Stories approval gate.
+
+---
+
+## Issues #103 / #104 — User Stories Approved
+**Timestamp**: 2026-07-16T17:41:00Z
+**User Input**: "approve and continue"
+**AI Response**: User Stories approved. Proceeding to Workflow Planning — determining stage inclusion/depth, units sequence, and execution plan visualization.
+**Context**: INCEPTION — Workflow Planning.
+
+---
+
+## Issues #103 / #104 — Workflow Planning Approval Prompt
+**Timestamp**: 2026-07-16T17:42:00Z
+**User Input**: "(pending)"
+**AI Response**: Created issue-103-execution-plan.md. Risk High. Execute Application Design + Units Generation; full per-unit construction design path; ~7 tentative units. Extensions N/A. Presenting plan for approval.
+**Approval Prompt**: "Workflow Planning Complete. Review aidlc-docs/inception/plans/issue-103-execution-plan.md. Request Changes, Add Skipped Stages, or Approve & Continue to Application Design."
+**Context**: INCEPTION — Workflow Planning approval gate.
+
+---
+
+## Issues #103 / #104 — Workflow Plan Approved
+**Timestamp**: 2026-07-16T17:42:30Z
+**User Input**: "approve and proceed"
+**AI Response**: Workflow plan approved. Proceeding to Application Design (comprehensive) — components, services, methods, dependencies for photo DB migration.
+**Context**: INCEPTION — Application Design.
+
+---
+
+## Issues #103 / #104 — Application Design Plan Answers Received
+**Timestamp**: 2026-07-16T17:48:00Z
+**User Input**: "ok please see my answers and questions"
+**AI Response**: Reading issue-103-application-design-plan.md answers; validating ambiguities and responding to any user questions before plan approval / generation.
+**Context**: INCEPTION — Application Design; validating answers.
+
+---
+
+## Issues #103 / #104 — Application Design Clarifications Needed
+**Timestamp**: 2026-07-16T17:49:00Z
+**User Input**: "(answers: Q1=A, Q2=A, Q3=B, Q4=need more info, Q5=A+C, Q6=B with cost ask, Q7=C, Q8=A)"
+**AI Response**: Clarifications required for Q4 (frontend pattern explanation), Q5 (A+C decision rules), Q6 (AWS Location cost context + confirm). Created issue-103-application-design-clarifications.md. Stopping at clarification gate.
+**Context**: INCEPTION — Application Design; awaiting clarifications.
+
+---
+
+## Issues #103 / #104 — Application Design Clarifications Locked / Plan Approval Prompt
+**Timestamp**: 2026-07-16T17:50:30Z
+**User Input**: "Q4 - B sounds like the way to go\nQ5 - hub primary with detail shortcut\nQ6 - confirm stay with location"
+**AI Response**: Locked Q4=B (photos-api helpers), Q5=hub primary + detail Edit shortcut, Q6=AWS Location. Presenting Application Design plan for explicit approval before generating design artifacts.
+**Approval Prompt**: "Approve Application Design plan at issue-103-application-design-plan.md (with clarifications) to generate components/services/dependency docs, or Request Changes."
+**Context**: INCEPTION — Application Design plan approval gate.
+
+---
+
+## Issues #103 / #104 — Application Design Plan Approved / Generation Started
+**Timestamp**: 2026-07-16T17:52:00Z
+**User Input**: "approve and continue"
+**AI Response**: Application Design plan approved. Generating components, methods, services, dependency, and consolidated application-design docs.
+**Context**: INCEPTION — Application Design generation.
+
+---
+
+## Issues #103 / #104 — Application Design Generated / Approval Prompt
+**Timestamp**: 2026-07-16T17:54:00Z
+**User Input**: "(pending)"
+**AI Response**: Generated application-design artifacts (components, methods, services, dependencies, consolidated). Presenting for approval before Units Generation.
+**Approval Prompt**: "Application Design Complete. Review aidlc-docs/inception/application-design/. Request Changes or Approve & Continue to Units Generation."
+**Context**: INCEPTION — Application Design approval gate.
+
+---
+
+## Issues #103 / #104 — Application Design Approved
+**Timestamp**: 2026-07-16T17:54:30Z
+**User Input**: "approve and continue"
+**AI Response**: Application Design approved. Proceeding to Units Generation — planning unit decomposition along critical path from execution plan + application design.
+**Context**: INCEPTION — Units Generation.
+
+---
+
+## Issues #103 / #104 — Units Plan Answers Received
+**Timestamp**: 2026-07-16T17:56:00Z
+**User Input**: "done"
+**AI Response**: Reading issue-103-unit-of-work-plan.md answers; validating before plan approval / generation.
+**Context**: INCEPTION — Units Generation; validating answers.
+
+---
+
+## Issues #103 / #104 — Units Plan Approval Prompt
+**Timestamp**: 2026-07-16T17:56:30Z
+**User Input**: "(pending)"
+**AI Response**: Units plan answers validated (all A): 7 units, strict sequential, no dual-write, single owner, per-unit demoable, journey-aligned. Presenting plan for approval before generating unit artifacts.
+**Approval Prompt**: "Unit of work plan complete. Review aidlc-docs/inception/plans/issue-103-unit-of-work-plan.md. Ready to proceed to generation? Approve & Continue or Request Changes."
+**Context**: INCEPTION — Units Generation plan approval gate.
+
+---
+
+## Issues #103 / #104 — Units Plan Approved / Generation Started
+**Timestamp**: 2026-07-16T17:59:00Z
+**User Input**: "approved"
+**AI Response**: Unit of work plan approved. Generating unit-of-work.md, unit-of-work-dependency.md, unit-of-work-story-map.md.
+**Context**: INCEPTION — Units Generation Part 2.
+
+---
+
+## Issues #103 / #104 — Units Generated / Approval Prompt
+**Timestamp**: 2026-07-16T18:00:00Z
+**User Input**: "(pending)"
+**AI Response**: Generated 7 units (U1–U7), dependency matrix (strict sequential), story map (US-001–016 all assigned). Presenting Units Generation for approval before CONSTRUCTION (start U1).
+**Approval Prompt**: "Units Generation Complete. Review aidlc-docs/inception/application-design/unit-of-work*.md. Request Changes or Approve & Continue to CONSTRUCTION PHASE (U1 Functional Design)."
+**Context**: INCEPTION — Units Generation approval gate.
+
+---
+
+## Issues #103 / #104 — Units Approved + Commit Requested
+**Timestamp**: 2026-07-16T18:00:30Z
+**User Input**: "lets do a commit and then approved to move to construction"
+**AI Response**: Units Generation approved. Committing AI-DLC inception artifacts on branch cursor/photo-metadata-dynamodb-be02. Proceeding to CONSTRUCTION — Unit U1 Functional Design.
+**Context**: CONSTRUCTION — U1 Functional Design starting.
+
+---
+
+## Issues #103 / #104 — U1 Functional Design Answers Received
+**Timestamp**: 2026-07-16T18:04:00Z
+**User Input**: "done"
+**AI Response**: Reading u1-photo-data-plane-functional-design-plan.md answers; validating before generating functional design artifacts.
+**Context**: CONSTRUCTION — U1 Functional Design; validating answers.
+
+---
+
+## Issues #103 / #104 — U1 FD Clarification (Q8 Auth)
+**Timestamp**: 2026-07-16T18:04:30Z
+**User Input**: "(answers Q1=A Q2=A Q3=B Q4=A Q5=A Q6=A Q7=A Q8=A — Q8 ambiguous)"
+**AI Response**: Clarification needed on process IAM vs HMAC. Created u1-photo-data-plane-functional-design-clarification.md.
+**Context**: CONSTRUCTION — U1 Functional Design; awaiting Q8 clarification.
+
+---
+
+## Issues #103 / #104 — U1 FD Clarification Locked / Generating
+**Timestamp**: 2026-07-16T18:05:30Z
+**User Input**: "lets do the recomended approach here"
+**AI Response**: Locked Q8=A (process IAM; browser HMAC). Generating U1 functional design artifacts.
+**Context**: CONSTRUCTION — U1 Functional Design generation.
+
+---
+
+## Issues #103 / #104 — U1 Functional Design Complete / Approval Prompt
+**Timestamp**: 2026-07-16T18:06:00Z
+**User Input**: "(pending)"
+**AI Response**: Generated U1 business-logic-model, business-rules, domain-entities. Auth: process IAM + browser HMAC. Presenting standardized 2-option completion for Functional Design.
+**Approval Prompt**: "Functional Design Complete - U1. Review aidlc-docs/construction/u1-photo-data-plane/functional-design/. Request Changes or Continue to Next Stage (NFR Requirements)."
+**Context**: CONSTRUCTION — U1 Functional Design approval gate.
+
+---
+
+## Issues #103 / #104 — U1 Functional Design Approved
+**Timestamp**: 2026-07-16T18:07:00Z
+**User Input**: "approved"
+**AI Response**: U1 Functional Design approved. Proceeding to U1 NFR Requirements.
+**Context**: CONSTRUCTION — U1 NFR Requirements.
+
+---
+
+## Issues #103 / #104 — U1 NFR Requirements Answers Received
+**Timestamp**: 2026-07-16T18:10:00Z
+**User Input**: "done"
+**AI Response**: Reading U1 NFR requirements plan answers; validating then generating nfr-requirements.md and tech-stack-decisions.md if clear.
+**Context**: CONSTRUCTION — U1 NFR Requirements; validating answers.
+
+---
+
+## Issues #103 / #104 — U1 NFR Requirements Complete / Approval Prompt
+**Timestamp**: 2026-07-16T18:11:00Z
+**User Input**: "(pending)"
+**AI Response**: All NFR answers A. Generated nfr-requirements.md and tech-stack-decisions.md. Presenting for approval before NFR Design.
+**Approval Prompt**: "NFR Requirements Complete - U1. Review aidlc-docs/construction/u1-photo-data-plane/nfr-requirements/. Request Changes or Continue to Next Stage (NFR Design)."
+**Context**: CONSTRUCTION — U1 NFR Requirements approval gate.
+
+---
+
+## Issues #103 / #104 — U1 NFR Requirements Approved
+**Timestamp**: 2026-07-16T18:11:30Z
+**User Input**: "approved"
+**AI Response**: U1 NFR Requirements approved. Proceeding to U1 NFR Design.
+**Context**: CONSTRUCTION — U1 NFR Design.
+
+---
+
+## Issues #103 / #104 — U1 NFR Design Answers Received
+**Timestamp**: 2026-07-16T18:55:00Z
+**User Input**: "done"
+**AI Response**: Reading U1 NFR design plan answers; validating then generating nfr-design artifacts if clear.
+**Context**: CONSTRUCTION — U1 NFR Design; validating answers.
+
+---
+
+## Issues #103 / #104 — U1 NFR Design Complete / Approval Prompt
+**Timestamp**: 2026-07-16T18:58:30Z
+**User Input**: "(pending)"
+**AI Response**: Generated nfr-design-patterns.md and logical-components.md (DLQ, best-effort enqueue, on-demand, GSI, minimal components). Presenting for approval before Infrastructure Design.
+**Approval Prompt**: "NFR Design Complete - U1. Review aidlc-docs/construction/u1-photo-data-plane/nfr-design/. Request Changes or Continue to Next Stage (Infrastructure Design)."
+**Context**: CONSTRUCTION — U1 NFR Design approval gate.
+
+---
+
+## Issues #103 / #104 — U1 NFR Design Approved
+**Timestamp**: 2026-07-16T19:02:00Z
+**User Input**: "approved"
+**AI Response**: U1 NFR Design approved. Proceeding to U1 Infrastructure Design.
+**Context**: CONSTRUCTION — U1 Infrastructure Design.
+
+---
+
+## Issues #103 / #104 — U1 Infrastructure Design Answers Received
+**Timestamp**: 2026-07-16T19:05:30Z
+**User Input**: "done"
+**AI Response**: Answers locked (table micahwalter-photos, GSI PHOTO/publishedAt#id, EventBridge enrichment stub, process SQS DLQ, same zip, PITR on, strip GitHub commit, no shared doc). Generating infrastructure design artifacts.
+**Context**: CONSTRUCTION — U1 Infrastructure Design generation.
+
+---
+
+## Issues #103 / #104 — U1 Infrastructure Design Complete / Approval Prompt
+**Timestamp**: 2026-07-16T19:06:00Z
+**User Input**: "(pending)"
+**AI Response**: Generated infrastructure-design.md and deployment-architecture.md. Presenting for approval before Code Generation.
+**Approval Prompt**: "Infrastructure Design Complete - U1. Review aidlc-docs/construction/u1-photo-data-plane/infrastructure-design/. Request Changes or Continue to Next Stage (Code Generation)."
+**Context**: CONSTRUCTION — U1 Infrastructure Design approval gate.
+
+---
+
+## Issues #103 / #104 — U1 Infrastructure Design Approved + Commit
+**Timestamp**: 2026-07-16T19:07:00Z
+**User Input**: "approved, but lets commit changes here"
+**AI Response**: U1 Infrastructure Design approved. Committing construction artifacts. Starting Code Generation Part 1 (plan) for U1.
+**Context**: CONSTRUCTION — U1 Code Generation planning.
+
+---
+
+## Issues #103 / #104 — U1 Code Generation Plan Approval Prompt
+**Timestamp**: 2026-07-16T19:08:00Z
+**User Input**: "(pending)"
+**AI Response**: Committed 6f85a6a with U1 design artifacts + code-generation plan. Presenting plan for approval before Part 2 implementation.
+**Approval Prompt**: "Review aidlc-docs/construction/plans/u1-photo-data-plane-code-generation-plan.md (9 steps: DB layer, DTO/auth, HTTP handlers, process changes, init caption, CFN/IAM, package docs, summary, verify). Approve to implement, or Request Changes."
+**Context**: CONSTRUCTION — U1 Code Generation plan approval gate.
+
+---
+
+## Issues #103 / #104 — U1 Code Gen Approved + Push + Implementation Start
+**Timestamp**: 2026-07-16T19:09:00Z
+**User Input**: "yes please push these commit to the remote branch and begin implementation"
+**AI Response**: Pushing cursor/photo-metadata-dynamodb-be02 to origin. Code generation plan approved. Starting Part 2 implementation of U1 photo data plane.
+**Context**: CONSTRUCTION — U1 Code Generation Part 2.
+
+---
+
+## Issues #103 / #104 — U1 Code Generation Implementation Complete
+**Timestamp**: 2026-07-16T19:20:00Z
+**User Input**: "(pending Continue)"
+**AI Response**: Implemented U1: DynamoDB photos API, process→DB+EventBridge, strip GitHub commit, CFN table/bus/DLQ/routes. Local require() OK; CFN validate deferred (no AWS creds). Presenting Code Generation completion for Continue to U2 or Request Changes.
+**Approval Prompt**: "Code Generation Complete - U1. Review implementation + code-summary. Request Changes or Continue to Next Stage (U2 Functional Design)."
+**Context**: CONSTRUCTION — U1 Code Generation approval gate.
+
+---
+
+## Issues #103 / #104 — PR Opened
+**Timestamp**: 2026-07-16T19:16:00Z
+**User Input**: "ok lets open a PR"
+**AI Response**: Created draft PR for branch cursor/photo-metadata-dynamodb-be02 against main covering U1 photo DynamoDB data plane + AI-DLC docs for #103/#104.
+**Context**: PR created; U1 CG still awaiting Continue to U2 if user wants to proceed in-branch.
+
+---
