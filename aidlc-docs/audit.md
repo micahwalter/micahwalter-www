@@ -596,3 +596,11 @@
 **Context**: PR created; U1 CG still awaiting Continue to U2 if user wants to proceed in-branch.
 
 ---
+
+## Issues #103 / #104 — Deploy Failure Diagnosed
+**Timestamp**: 2026-07-16T19:25:00Z
+**User Input**: "I merged the PR but there was an error with the deploy"
+**AI Response**: Diagnosed photo-upload-deploy run 29527818052 CFN failure as missing GitHubActionsDeployPhotoUpload permissions for DynamoDB/EventBridge/SQS/EventInvokeConfig. Opened fix branch cursor/fix-photo-upload-deploy-iam-be02; IAM stack must be redeployed manually before re-running photo-upload deploy.
+**Context**: Hotfix after #106 merge; U1 stack rolled back; upload still on pre-U1 template until IAM + redeploy succeed.
+
+---

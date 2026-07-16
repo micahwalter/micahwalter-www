@@ -520,6 +520,9 @@ Resources:
               - lambda:TagResource
               - lambda:UntagResource
               - lambda:ListTags
+              - lambda:PutFunctionEventInvokeConfig
+              - lambda:GetFunctionEventInvokeConfig
+              - lambda:DeleteFunctionEventInvokeConfig
             Resource:
               - !Sub 'arn:aws:lambda:us-east-1:${AWS::AccountId}:function:photo-upload-*'
           - Effect: Allow
@@ -540,6 +543,45 @@ Resources:
               - iam:ListAttachedRolePolicies
             Resource:
               - !Sub 'arn:aws:iam::${AWS::AccountId}:role/photo-upload-*-fn-role'
+          - Effect: Allow
+            Action:
+              - dynamodb:CreateTable
+              - dynamodb:DeleteTable
+              - dynamodb:DescribeTable
+              - dynamodb:UpdateTable
+              - dynamodb:TagResource
+              - dynamodb:UntagResource
+              - dynamodb:ListTagsOfResource
+              - dynamodb:DescribeContinuousBackups
+              - dynamodb:UpdateContinuousBackups
+              - dynamodb:DescribeTimeToLive
+            Resource:
+              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-photos'
+              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-photos/index/*'
+          - Effect: Allow
+            Action:
+              - events:CreateEventBus
+              - events:DeleteEventBus
+              - events:DescribeEventBus
+              - events:TagResource
+              - events:UntagResource
+              - events:ListTagsForResource
+            Resource:
+              - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:event-bus/photo-bus'
+          - Effect: Allow
+            Action:
+              - sqs:CreateQueue
+              - sqs:DeleteQueue
+              - sqs:GetQueueAttributes
+              - sqs:GetQueueUrl
+              - sqs:SetQueueAttributes
+              - sqs:TagQueue
+              - sqs:UntagQueue
+              - sqs:ListQueueTags
+              - sqs:AddPermission
+              - sqs:RemovePermission
+            Resource:
+              - !Sub 'arn:aws:sqs:us-east-1:${AWS::AccountId}:photo-upload-process-dlq'
           - Effect: Allow
             Action:
               - secretsmanager:CreateSecret
