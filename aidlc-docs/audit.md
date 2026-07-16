@@ -604,3 +604,11 @@
 **Context**: Hotfix after #106 merge; U1 stack rolled back; upload still on pre-U1 template until IAM + redeploy succeed.
 
 ---
+
+## Issues #103 / #104 — IAM Redeployed; Photo Stack Recovered
+**Timestamp**: 2026-07-16T19:40:00Z
+**User Input**: "AWS_PROFILE=www aws cloudformation deploy ... Successfully created/updated stack - micahwalter-www-github-actions"
+**AI Response**: Continued UPDATE_ROLLBACK_FAILED stack; deployed micahwalter-photo-upload successfully; fixed API routes relative to mapping key photos; added secretsmanager:UpdateSecret; noted bare /photos API GW 500 quirk (use /photos/). Live smoke: list 200, featured 404, auth 400, table/bus ACTIVE.
+**Context**: U1 data plane live in AWS; code/route fixes pending PR.
+
+---

@@ -589,6 +589,7 @@ Resources:
               - secretsmanager:DescribeSecret
               - secretsmanager:GetSecretValue
               - secretsmanager:PutSecretValue
+              - secretsmanager:UpdateSecret
               - secretsmanager:RestoreSecret
               - secretsmanager:TagResource
               - secretsmanager:UntagResource

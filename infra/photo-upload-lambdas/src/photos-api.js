@@ -1,6 +1,13 @@
 /**
  * HTTP API for photos — GET list/featured/{id}, PATCH {id}.
  * Routed by API Gateway routeKey on a single Lambda.
+ *
+ * Custom domain mapping key is `photos`, so public URLs are:
+ *   GET  https://api.micahwalter.com/photos
+ *   GET  https://api.micahwalter.com/photos/featured
+ *   GET  https://api.micahwalter.com/photos/{id}
+ *   PATCH https://api.micahwalter.com/photos/{id}
+ * RouteKeys below are relative to that mapping (not prefixed with /photos).
  */
 
 const { getSecret } = require('./lib/secrets');
@@ -29,11 +36,24 @@ function extractToken(event, body) {
   return body?.token;
 }
 
+function requestPath(event) {
+  const raw = event.rawPath || event.requestContext?.http?.path || '';
+  // Custom domain mapping key `photos` may leave path as /photos, /, or "".
+  return raw.replace(/^\/photos(?=\/|$)/, '') || '/';
+}
+
+function isListRoute(routeKey, method, path) {
+  if (routeKey === 'GET /' || routeKey === 'GET /photos') return true;
+  return method === 'GET' && (path === '/' || path === '');
+}
+
 exports.handler = async (event) => {
   const routeKey = event.routeKey || '';
+  const method = event.requestContext?.http?.method || event.requestContext?.httpMethod || 'GET';
+  const path = requestPath(event);
 
   try {
-    if (routeKey === 'GET /photos') {
+    if (isListRoute(routeKey, method, path)) {
       const qs = event.queryStringParameters || {};
       const limit = qs.limit;
       const cursor = qs.cursor;
@@ -45,22 +65,22 @@ exports.handler = async (event) => {
       });
     }
 
-    if (routeKey === 'GET /photos/featured') {
+    if (routeKey === 'GET /featured' || routeKey === 'GET /photos/featured' || (method === 'GET' && path === '/featured')) {
       const photo = await getFeaturedPhoto();
       if (!photo) return json(404, { message: 'No photos' });
       return json(200, toPublicPhoto(photo));
     }
 
-    if (routeKey === 'GET /photos/{id}') {
-      const id = event.pathParameters?.id;
-      if (!id) return json(400, { message: 'Missing id' });
+    if (routeKey === 'GET /{id}' || routeKey === 'GET /photos/{id}' || (method === 'GET' && /^\/[^/]+$/.test(path))) {
+      const id = event.pathParameters?.id || path.slice(1);
+      if (!id || id === 'featured') return json(404, { message: 'Not found' });
       const photo = await getPhoto(id);
       if (!photo || photo.draft) return json(404, { message: 'Not found' });
       return json(200, toPublicPhoto(photo));
     }
 
-    if (routeKey === 'PATCH /photos/{id}') {
-      const id = event.pathParameters?.id;
+    if (routeKey === 'PATCH /{id}' || routeKey === 'PATCH /photos/{id}' || (method === 'PATCH' && /^\/[^/]+$/.test(path))) {
+      const id = event.pathParameters?.id || path.slice(1);
       if (!id) return json(400, { message: 'Missing id' });
 
       let body = {};

@@ -160,6 +160,7 @@ Resources:
       - PhotosFeaturedRoute
       - PhotosGetRoute
       - PhotosPatchRoute
+      - PhotosDefaultRoute
     Properties:
       ApiId: !Ref PhotoApi
       StageName: $default
@@ -419,32 +420,41 @@ Resources:
       RouteKey: POST /upload-url
       Target: !Sub integrations/${InitIntegration}
 
+  # Routes are relative to ApiMappingKey `photos` → https://api.micahwalter.com/photos/...
+  # Bare /photos (no trailing slash) does not match GET /; $default covers that case.
   PhotosListRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref PhotoApi
-      RouteKey: GET /photos
+      RouteKey: GET /
       Target: !Sub integrations/${PhotosApiIntegration}
 
   PhotosFeaturedRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref PhotoApi
-      RouteKey: GET /photos/featured
+      RouteKey: GET /featured
       Target: !Sub integrations/${PhotosApiIntegration}
 
   PhotosGetRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref PhotoApi
-      RouteKey: GET /photos/{id}
+      RouteKey: GET /{id}
       Target: !Sub integrations/${PhotosApiIntegration}
 
   PhotosPatchRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref PhotoApi
-      RouteKey: PATCH /photos/{id}
+      RouteKey: PATCH /{id}
+      Target: !Sub integrations/${PhotosApiIntegration}
+
+  PhotosDefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PhotoApi
+      RouteKey: $default
       Target: !Sub integrations/${PhotosApiIntegration}
 
   AuthFnPermission:
