@@ -663,3 +663,11 @@
 **Context**: CONSTRUCTION — U2 NFR Design approval gate. Answers collected via chat (user could not open plan file).
 
 ---
+
+## Issues #103 / #104 — U2 NFR Design Approved → Infrastructure Design
+**Timestamp**: 2026-07-16T20:38:00Z
+**User Input**: "Approved"
+**AI Response**: Recorded U2 NFR Design approval. Started Infrastructure Design; created u2-enrichment-infrastructure-design-plan.md with 8 questions; printed questions in chat for accessibility.
+**Context**: CONSTRUCTION — U2 Infrastructure Design Step 2–4 (plan + questions gate).
+
+---
