@@ -706,3 +706,11 @@
 **Context**: CONSTRUCTION — U2 Code Generation approval gate.
 
 ---
+
+## Issues #103 / #104 — U2 Code Generation Approved → U3 Functional Design
+**Timestamp**: 2026-07-16T21:19:00Z
+**User Input**: "Approved"
+**AI Response**: Recorded U2 CG approval. Started U3 Upload UI Functional Design (light). Created u3-upload-ui-functional-design-plan.md with 8 questions; printing questions in chat.
+**Context**: CONSTRUCTION — U3 Functional Design Step 2–4. NFR/Infra skipped per unit plan unless answers require otherwise.
+
+---
