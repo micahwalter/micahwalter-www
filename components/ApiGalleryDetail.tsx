@@ -114,14 +114,14 @@ export default function ApiGalleryDetail({ slugHint }: ApiGalleryDetailProps) {
 
   return (
     <div className="min-h-screen">
-      <header className="max-w-wide mx-auto px-6 py-12 border-b border-gray/20">
+      <header className="max-w-wide mx-auto px-6 pt-12 pb-8 border-b border-gray/20">
         <Link
           href="/galleries"
-          className="text-sm text-gray hover:text-charcoal no-underline mb-4 inline-block"
+          className="text-sm text-gray hover:text-charcoal no-underline mb-6 inline-block"
         >
           ← Galleries
         </Link>
-        <h1 className="font-serif font-semibold text-4xl md:text-5xl mb-4 text-charcoal">
+        <h1 className="font-serif font-semibold text-4xl md:text-5xl mb-3 text-charcoal">
           {gallery.title}
         </h1>
         {gallery.description && (
@@ -130,7 +130,9 @@ export default function ApiGalleryDetail({ slugHint }: ApiGalleryDetailProps) {
       </header>
 
       {photos.length > 0 ? (
-        <GalleryViewer photos={photos} />
+        <div className="max-w-wide mx-auto px-6 py-12">
+          <GalleryViewer photos={photos} />
+        </div>
       ) : (
         <div className="max-w-wide mx-auto px-6 py-24 text-center text-gray">
           No photos in this gallery yet.

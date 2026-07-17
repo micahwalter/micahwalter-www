@@ -210,12 +210,13 @@ export default function ApiPhotoDetail({ idHint }: ApiPhotoDetailProps) {
               <span>·</span>
               <div className="flex flex-wrap gap-2">
                 {tags.map((tag) => (
-                  <span
+                  <Link
                     key={tag}
-                    className="text-xs text-gray border border-gray/30 rounded px-2 py-1"
+                    href={`/photos?tag=${encodeURIComponent(tag.toLowerCase())}`}
+                    className="text-xs text-gray border border-gray/30 rounded px-2 py-1 no-underline hover:border-gray hover:bg-gray/10 transition-colors"
                   >
                     {tag}
-                  </span>
+                  </Link>
                 ))}
               </div>
             </>
@@ -240,9 +241,16 @@ export default function ApiPhotoDetail({ idHint }: ApiPhotoDetailProps) {
             </div>
           )}
 
-          {hasMap && (
+          {hasMap ? (
             <PhotoStaticMap latitude={lat!} longitude={lon!} label={placeLabel} />
-          )}
+          ) : placeLabel ? (
+            <div className="mt-8">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-gray mb-1">
+                Location
+              </h3>
+              <p className="text-sm text-charcoal">{placeLabel}</p>
+            </div>
+          ) : null}
 
           <Comments />
         </div>

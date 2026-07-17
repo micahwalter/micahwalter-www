@@ -592,8 +592,10 @@ Resources:
       RouteKey: PATCH /galleries/{slug}
       Target: !Sub integrations/${PhotosApiIntegration}
 
-  # List: GET /photos/ (trailing slash). Do NOT add a $default route — on HTTP APIs
-  # it intercepts OPTIONS preflight and returns 500, which breaks browser CORS login.
+  # List: GET /photos/ (trailing slash) via GET /.
+  # Do NOT add $default — with ApiMappingKey `photos`, $default intercepts OPTIONS
+  # (breaking CORS unless perfectly handled) and bare GET /photos still 500s on this
+  # custom domain. Clients must use trailing slash (see listPhotos in lib/photos-api.ts).
   PhotosListRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:

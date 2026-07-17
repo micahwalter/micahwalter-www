@@ -54,8 +54,9 @@ export default function HomePhotos({ recentPosts }: HomePhotosProps) {
   return (
     <>
       {status === "loading" && (
-        <div className="text-gray text-sm mb-8" aria-live="polite">
-          Loading photos…
+        <div className="mb-8" aria-live="polite" aria-busy="true">
+          <div className="w-full aspect-[3/2] max-h-[70vh] rounded-lg bg-gray/15 animate-pulse" />
+          <span className="sr-only">Loading photos…</span>
         </div>
       )}
 
