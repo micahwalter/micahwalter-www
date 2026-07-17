@@ -1,83 +1,79 @@
-# Build Instructions — Issue #85 Ticket Server
+# Build Instructions — Issues #103 / #104 (Photo Cutover U1–U7)
 
 ## Prerequisites
 
-- **Node.js** — matches repo `.nvmrc` / package.json
-- **Go 1.25+** — see `infra/ticket-lambdas/go.mod`
-- **zip** — for Lambda packaging (Makefile)
-- **AWS CLI v2** — for deploy and seed script (profile `www`)
+| Item | Value |
+|------|-------|
+| Node | 20+ |
+| Package manager | npm |
+| AWS CLI | v2 (for Lambda zip deploy / migrate apply) |
+| Go | Not required for photo-upload Node Lambdas |
+| Env | `NEXT_PUBLIC_PHOTO_API_URL=https://api.micahwalter.com/photos` for site builds that exercise photo islands |
 
-## Build Steps
-
-### 1. Install Node dependencies
+## Dependencies
 
 ```bash
 npm install
-npm link   # optional: global `blog` CLI
+cd infra/photo-upload-lambdas && npm install && cd ../..
 ```
 
-### 2. Build Go ticket Lambdas
+## Build site (static export)
 
 ```bash
-cd infra/ticket-lambdas
-make build
-```
-
-**Expected artifacts:**
-- `infra/ticket-lambdas/dist/auth.zip`
-- `infra/ticket-lambdas/dist/next.zip`
-
-### 3. Build static site
-
-```bash
+export NEXT_PUBLIC_PHOTO_API_URL=https://api.micahwalter.com/photos
 npm run build
 ```
 
-**Expected:** Next.js static export to `/out` with no errors.
+**Success:** Next.js compiles, static pages export under `/out`, exit 0.  
+**Artifacts:** `/out/**`, plus prebuild `public/posts.json`, `public/feed.xml`, `public/sitemap.xml`.  
+**Note:** `public/mastodon.json` may refresh during prebuild — do not commit.
 
-### 4. Upload Lambda zips (deploy prep)
-
-```bash
-cd infra/ticket-lambdas
-make upload              # us-east-1
-make upload-secondary    # us-east-2
-```
-
-Requires `aws sso login --profile www`.
-
-### 5. Deploy CloudFormation stacks
+## Build photo-upload Lambda zip
 
 ```bash
-# Primary (us-east-1)
-make deploy
-
-# Secondary (us-east-2) — after primary + secret populated
-make deploy-secondary
+cd infra/photo-upload-lambdas
+make build
+# → dist/photo-upload.zip
 ```
 
-Or merge to `main` and let `.github/workflows/tickets-deploy.yml` run (after IAM role stack updated).
+Shared zip for: auth, init, process, photos-api, enrich, feed-publisher (and secondary auth/photos-api).
 
-## Environment Variables
+## Configure environment (local)
 
-| Variable | Used by | Default |
-|----------|---------|---------|
-| `TICKETS_API_URL` | CLI, photo-upload Lambda | `https://api.micahwalter.com/tickets` |
-| `TICKETS_PASSCODE` | CLI | — (or credentials file) |
-| `TICKETS_TABLE_NAME` | seed script | `post_tickets` |
-| `TICKETS_DYNAMODB_REGION` | seed script | `us-east-1` |
+```bash
+# .env.local (site)
+NEXT_PUBLIC_PHOTO_API_URL=https://api.micahwalter.com/photos
+
+# Migrators / CLI (operator machine)
+export AWS_PROFILE=www
+export AWS_REGION=us-east-1
+export PHOTOS_TABLE=micahwalter-photos
+export GALLERIES_TABLE=micahwalter-galleries
+# Optional: PHOTO_UPLOAD_PASSCODE / tickets credentials for CLI
+```
+
+## Verify build success
+
+- [ ] `npm run build` exit 0
+- [ ] `infra/photo-upload-lambdas/dist/photo-upload.zip` exists after `make build`
+- [ ] No TypeScript errors in photo/gallery client components
 
 ## Troubleshooting
 
-### Go build fails with missing module
+| Symptom | Fix |
+|---------|-----|
+| Build fails on empty `generateStaticParams` | Ensure placeholder routes (`/photos/0`, `/galleries/_placeholder`) exist |
+| Module not found `@aws-sdk/client-dynamodb` | `npm install` at repo root (cutover scripts) |
+| Sharp native binary issues in Lambda zip | Use `make build` (forces linux/arm64 sharp) |
+| Mastodon fetch warning | Non-blocking; existing `mastodon.json` kept |
 
-```bash
-cd infra/ticket-lambdas && go mod tidy && make build
-```
+## Deploy builds (CI)
 
-### CloudFormation deploy fails on IAM role names
+| Workflow | What |
+|----------|------|
+| `deploy.yml` | Site → S3 + CloudFront |
+| `photo-upload-deploy.yml` | Primary us-east-1 stack / function code |
+| `photo-upload-secondary-deploy.yml` | Secondary us-east-2 |
+| Infra stacks | `infra.yml`, `github-actions-role.yml` as needed |
 
-Stacks use fixed role names (`tickets-auth-fn-role`). Delete orphaned roles or use stack rollback before retry.
-
-### `make upload` fails with AccessDenied
-
-Redeploy `infra/github-actions-role.yml` locally with profile `www`, or verify SSO session: `aws sts get-caller-identity --profile www`.
+See also: `aidlc-docs/construction/u7-cutover/code/cutover-runbook.md`

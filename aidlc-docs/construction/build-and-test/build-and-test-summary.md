@@ -1,61 +1,59 @@
-# Build and Test Summary — Issue #85 Ticket Server
+# Build and Test Summary — Issues #103 / #104 (Photo Cutover)
 
-**Date:** 2026-07-07  
-**Branch:** `cursor/ticket-server-go-065a`  
-**PR:** [#86](https://github.com/micahwalter/micahwalter-www/pull/86)
+**Date:** 2026-07-17  
+**Branch:** `cursor/u2-enrichment-functional-design-be02`  
+**PR:** [#110](https://github.com/micahwalter/micahwalter-www/pull/110)  
+**Units:** U1–U7 complete through Code Generation  
 
 ## Build Status
 
 | Build | Command | Status |
 |-------|---------|--------|
-| Go Lambdas | `cd infra/ticket-lambdas && make build` | **Success** |
-| Static site | `npm run build` | **Success** |
+| Static site | `NEXT_PUBLIC_PHOTO_API_URL=… npm run build` | **Success** (verified during U6/U7 CG) |
+| Photo-upload zip | `cd infra/photo-upload-lambdas && make build` | Ready (CI / local) |
 
 **Artifacts:**
-- `infra/ticket-lambdas/dist/auth.zip`
-- `infra/ticket-lambdas/dist/next.zip`
-- `/out` static export
+- `/out` static export  
+- `infra/photo-upload-lambdas/dist/photo-upload.zip` (on build)  
+- Prebuild: `public/posts.json`, `public/feed.xml`, `public/sitemap.xml`  
 
 ## Test Execution Summary
 
 | Category | Status | Notes |
 |----------|--------|-------|
-| Unit tests | N/A | No automated tests added (opt-out) |
-| Integration tests | **Pending deploy** | Manual curl/CLI scenarios documented |
-| Performance tests | N/A | Low-traffic internal API |
-| Security tests | N/A | Extension opted out |
-| E2E tests | **Pending deploy** | Requires live API + secrets |
+| Unit tests | **N/A** | No test runner; PBT extension off |
+| Integration tests | **Pending deploy** | Scenarios in `integration-test-instructions.md` |
+| Performance tests | **N/A / soft smoke** | Best-effort NFRs; optional curl timing |
+| Contract tests | **N/A** | Manual API checks in integration doc |
+| Security tests | **N/A** | Security extension disabled; HMAC negative checks in integration |
+| E2E | **Pending deploy** | Upload → browse → edit → galleries → migrate → feeds |
 
 ## Local verification completed
 
-- [x] Go compiles for linux/arm64 (auth, next)
-- [x] Site builds with post-counter removed
-- [ ] Live API smoke test (requires AWS deploy)
-- [ ] Seed script applied to DynamoDB
-- [ ] Photo-upload end-to-end with `ticketsPasscode`
+- [x] Site production build with photo API URL  
+- [x] `migrate-photos.js` dry-run (~44 photos)  
+- [x] `cleanup-photo-content.js` dry-run  
+- [x] U6 galleries build routes (`/galleries`, `/galleries/_placeholder`)  
+- [ ] Live migrate `--apply`  
+- [ ] Feed publisher invoke  
+- [ ] Secondary stack smoke  
+- [ ] Content cleanup `--apply`  
 
 ## Overall Status
 
-- **Build:** Success
-- **Automated tests:** N/A
-- **Ready for AWS deploy:** Yes (code complete; infra not yet deployed)
-
-## Deploy sequence (Operations)
-
-1. Merge PR #86
-2. Redeploy `micahwalter-www-github-actions` IAM stack
-3. Deploy ticket primary + populate `ticket-server-secrets`
-4. `node scripts/seed-post-counter.js --apply`
-5. Deploy ticket secondary
-6. Update `photo-upload-secrets`; redeploy photo-upload
-7. Run integration test scenarios in `integration-test-instructions.md`
+- **Build:** Success  
+- **Automated tests:** N/A  
+- **Ready for Operations / cutover deploy:** Yes (follow runbook)
 
 ## Instruction files
 
-- `build-instructions.md`
-- `unit-test-instructions.md`
-- `integration-test-instructions.md`
+- `build-instructions.md`  
+- `unit-test-instructions.md`  
+- `integration-test-instructions.md`  
+- `performance-test-instructions.md`  
+- `build-and-test-summary.md` (this file)  
 
-## Known limitation
+## Ops pointer
 
-Ticket allocation requires us-east-1 DynamoDB availability even when API fails over to us-east-2.
+Full ordered deploy + migrate + cleanup:  
+`aidlc-docs/construction/u7-cutover/code/cutover-runbook.md`
