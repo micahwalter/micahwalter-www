@@ -48,6 +48,11 @@ Parameters:
     Default: micahwalter-galleries
     Description: DynamoDB table for gallery definitions
 
+  WebsiteBucketName:
+    Type: String
+    Default: micahwalter-www-website
+    Description: Primary website bucket for scheduled photo feed/sitemap artifacts
+
 Resources:
 
   UploadsBucket:
@@ -99,6 +104,8 @@ Resources:
         Photo upload secrets. Populate manually after first deploy:
         {"passcode":"<upload passcode>","hmac":"<random signing key>","ticketsPasscode":"<ticket server passcode>"}
         (githubToken no longer used by process Lambda)
+      ReplicaRegions:
+        - Region: us-east-2
       Tags:
         - { Key: Project, Value: micahwalter-photo-upload }
         - { Key: ManagedBy, Value: CloudFormation }
@@ -672,6 +679,76 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
+  # --- U7 FeedPublisher (scheduled photo RSS / sitemap artifacts) ---
+
+  FeedPublisherFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: photo-upload-feed-publisher-fn-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: FeedPublisherFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:Query
+                  - dynamodb:GetItem
+                Resource:
+                  - !GetAtt PhotosTable.Arn
+                  - !Sub ${PhotosTable.Arn}/index/*
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:AbortMultipartUpload
+                Resource: !Sub arn:aws:s3:::${WebsiteBucketName}/*
+
+  FeedPublisherFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: photo-upload-feed-publisher
+      Runtime: nodejs20.x
+      Architectures: [arm64]
+      Handler: src/feed-publisher.handler
+      Role: !GetAtt FeedPublisherFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/photo-upload.zip
+      Timeout: 60
+      MemorySize: 256
+      Environment:
+        Variables:
+          PHOTOS_TABLE: !Ref PhotosTable
+          WEBSITE_BUCKET: !Ref WebsiteBucketName
+          SITE_URL: !Ref SiteUrl
+
+  FeedPublisherSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: photo-feed-publisher-hourly
+      Description: Refresh photos-feed.xml and sitemap-photos.xml on the website bucket
+      ScheduleExpression: rate(1 hour)
+      State: ENABLED
+      Targets:
+        - Id: FeedPublisherFn
+          Arn: !GetAtt FeedPublisherFn.Arn
+
+  FeedPublisherSchedulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref FeedPublisherFn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt FeedPublisherSchedule.Arn
+
 Outputs:
 
   ApiEndpoint:
@@ -705,3 +782,7 @@ Outputs:
   SecretArn:
     Description: Secrets Manager ARN — set passcode / hmac / ticketsPasscode after first deploy
     Value: !Ref PhotoUploadSecret
+
+  FeedPublisherFnName:
+    Description: Scheduled photo feed publisher Lambda
+    Value: !Ref FeedPublisherFn

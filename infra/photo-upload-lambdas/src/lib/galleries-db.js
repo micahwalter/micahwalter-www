@@ -12,8 +12,9 @@ const {
 } = require('@aws-sdk/lib-dynamodb');
 
 const TABLE = process.env.GALLERIES_TABLE;
+const DDB_REGION = process.env.DYNAMODB_REGION || process.env.AWS_REGION;
 
-const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
+const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: DDB_REGION }), {
   marshallOptions: { removeUndefinedValues: true },
 });
 

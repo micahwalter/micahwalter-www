@@ -14,8 +14,9 @@ const { nowIso, gsiKeys } = require('./photo-defaults');
 
 const TABLE = process.env.PHOTOS_TABLE;
 const GSI1 = 'GSI1';
+const DDB_REGION = process.env.DYNAMODB_REGION || process.env.AWS_REGION;
 
-const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
+const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: DDB_REGION }), {
   marshallOptions: { removeUndefinedValues: true },
 });
 
@@ -38,6 +39,15 @@ async function putPhoto(photo) {
     TableName: TABLE,
     Item: photo,
     ConditionExpression: 'attribute_not_exists(id)',
+  }));
+  return photo;
+}
+
+/** Idempotent upsert for migration / CLI (overwrites by id). */
+async function upsertPhoto(photo) {
+  await ddb.send(new PutCommand({
+    TableName: TABLE,
+    Item: photo,
   }));
   return photo;
 }
@@ -176,6 +186,7 @@ async function getFeaturedPhoto() {
 
 module.exports = {
   putPhoto,
+  upsertPhoto,
   getPhoto,
   updatePhoto,
   updatePhotoEnrichment,

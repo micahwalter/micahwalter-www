@@ -1,59 +1,63 @@
 /**
- * AI Photo Tagging with Claude Vision
- *
- * Analyzes photos using Claude's vision API and suggests relevant tags
- * based on image content, composition, mood, and subject matter.
+ * AI Photo Tagging against DynamoDB-backed photos (Bedrock Vision).
  *
  * Usage:
- *   node scripts/tag-photos.js <post-folder>
- *   node scripts/tag-photos.js --all
- *   node scripts/tag-photos.js --all --auto-approve
+ *   blog photos:tag <id>
+ *   blog photos:tag --all
+ *   blog photos:tag --all --auto-approve --profile www
+ *   blog photos:tag 2026-02-16-sunset-park   # legacy markdown folder (if still present)
  */
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const readline = require('readline');
 const { BedrockRuntimeClient, ConverseCommand } = require('@aws-sdk/client-bedrock-runtime');
 const { fromIni } = require('@aws-sdk/credential-providers');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const {
+  DynamoDBDocumentClient,
+  GetCommand,
+  QueryCommand,
+  UpdateCommand,
+} = require('@aws-sdk/lib-dynamodb');
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
 const matter = require('gray-matter');
 
 const POSTS_DIR = path.join(process.cwd(), 'content/posts');
+const TABLE = process.env.PHOTOS_TABLE || 'micahwalter-photos';
+const IMAGES_BUCKET = process.env.IMAGES_BUCKET || 'micahwalter-www-images';
+const REGION = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1';
 
-// Create readline interface
 const rl = readline.createInterface({
   input: process.stdin,
-  output: process.stdout
+  output: process.stdout,
 });
 
-/**
- * Prompt user for input
- */
 function prompt(question) {
   return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      resolve(answer.trim());
-    });
+    rl.question(question, (answer) => resolve(answer.trim()));
   });
 }
 
-/**
- * Parse command line arguments
- */
 function parseArgs() {
   const args = process.argv.slice(2);
-
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     showHelp();
     process.exit(0);
   }
 
   const profileIndex = args.indexOf('--profile');
-  const profile = profileIndex !== -1 && args[profileIndex + 1] ? args[profileIndex + 1] : process.env.AWS_PROFILE;
+  const profile =
+    profileIndex !== -1 && args[profileIndex + 1]
+      ? args[profileIndex + 1]
+      : process.env.AWS_PROFILE;
   const profileValue = profileIndex !== -1 ? args[profileIndex + 1] : null;
-  const postFolder = args.find(arg => !arg.startsWith('--') && arg !== profileValue) || null;
+  const target =
+    args.find((arg) => !arg.startsWith('--') && arg !== profileValue) || null;
 
   return {
-    postFolder,
+    target,
     all: args.includes('--all'),
     autoApprove: args.includes('--auto-approve'),
     dryRun: args.includes('--dry-run'),
@@ -62,223 +66,170 @@ function parseArgs() {
   };
 }
 
-/**
- * Show help message
- */
 function showHelp() {
   console.log(`
-📸 AI Photo Tagging with Claude Vision (via AWS Bedrock)
+📸 AI Photo Tagging (DynamoDB / Bedrock)
 
 Usage:
-  blog photos:tag <post-folder>
+  blog photos:tag <id>
   blog photos:tag --all [options]
-
-Arguments:
-  <post-folder>     Specific post folder to tag (e.g., 2026-02-16-sunset)
-  --all            Process all photo posts
+  blog photos:tag <post-folder>   # legacy markdown folder
 
 Options:
-  --profile <name> AWS profile to use (default: AWS_PROFILE env var or "www")
-  --auto-approve   Automatically apply suggested tags without confirmation
-  --untagged-only  Only process photos with minimal tags (just "photography")
-  --dry-run        Show suggestions without updating files
+  --profile <name> AWS profile (default: AWS_PROFILE or www)
+  --auto-approve   Apply suggested tags without confirmation
+  --untagged-only  Only process photos with minimal tags
+  --dry-run        Show suggestions without updating
 
 Examples:
-  blog photos:tag 2026-02-16-sunset-park --profile www
-  blog photos:tag --all --profile www
+  blog photos:tag 157 --profile www
   blog photos:tag --all --auto-approve --profile www
-
-Requirements:
-  - AWS credentials configured for the specified profile
-  - Bedrock model access enabled in your AWS account (us-east-1)
-
-Notes:
-  - Analyzes photo content, composition, mood, and subject matter
-  - Suggests 3-8 relevant tags per photo
-  - Interactive approval unless --auto-approve is used
-  - Existing tags are preserved and merged with suggestions
 `);
 }
 
-/**
- * Get all photo post directories
- */
-function getPhotoPosts() {
-  if (!fs.existsSync(POSTS_DIR)) {
-    return [];
+function awsClients(profile) {
+  const cfg = { region: REGION };
+  if (profile) cfg.credentials = fromIni({ profile });
+  return {
+    ddb: DynamoDBDocumentClient.from(new DynamoDBClient(cfg), {
+      marshallOptions: { removeUndefinedValues: true },
+    }),
+    s3: new S3Client(cfg),
+    bedrock: new BedrockRuntimeClient({ region: 'us-east-1', ...(profile ? { credentials: fromIni({ profile }) } : {}) }),
+  };
+}
+
+async function streamToBuffer(stream) {
+  const bytes = await stream.transformToByteArray();
+  return Buffer.from(bytes);
+}
+
+async function getPhoto(ddb, id) {
+  const res = await ddb.send(new GetCommand({ TableName: TABLE, Key: { id: String(id) } }));
+  return res.Item || null;
+}
+
+async function listAllPhotos(ddb) {
+  const items = [];
+  let ExclusiveStartKey;
+  do {
+    const res = await ddb.send(
+      new QueryCommand({
+        TableName: TABLE,
+        IndexName: 'GSI1',
+        KeyConditionExpression: 'gsi1pk = :pk',
+        ExpressionAttributeValues: { ':pk': 'PHOTO' },
+        ScanIndexForward: false,
+        ExclusiveStartKey,
+      }),
+    );
+    items.push(...(res.Items || []));
+    ExclusiveStartKey = res.LastEvaluatedKey;
+  } while (ExclusiveStartKey);
+  return items;
+}
+
+async function downloadPhotoBuffer(s3, photo) {
+  const keys = [];
+  if (photo.coverImageKey) {
+    const base = photo.coverImageKey.replace(/\.[^.]+$/, '');
+    keys.push(`${base}-1200.jpg`, photo.coverImageKey);
   }
-
-  const postFolders = fs.readdirSync(POSTS_DIR);
-
-  return postFolders.filter(folder => {
-    const fullPath = path.join(POSTS_DIR, folder);
-    if (!fs.statSync(fullPath).isDirectory()) return false;
-
-    const mdxPath = path.join(fullPath, 'index.md');
-    if (!fs.existsSync(mdxPath)) return false;
-
-    // Check if it's a photo post
-    const fileContents = fs.readFileSync(mdxPath, 'utf8');
-    const { data } = matter(fileContents);
-    return data.type === 'photo';
-  });
+  if (photo.folderName) {
+    keys.push(
+      `images/posts/${photo.folderName}/photo-1200.jpg`,
+      `images/originals/posts/${photo.folderName}/photo.jpg`,
+      `images/originals/posts/${photo.folderName}/photo.jpeg`,
+    );
+  }
+  for (const key of [...new Set(keys)]) {
+    try {
+      const obj = await s3.send(new GetObjectCommand({ Bucket: IMAGES_BUCKET, Key: key }));
+      return await streamToBuffer(obj.Body);
+    } catch {
+      /* next */
+    }
+  }
+  throw new Error('Could not download photo bytes from S3');
 }
 
-/**
- * Find photo file in post directory
- */
-function findPhotoFile(postDir) {
-  const files = fs.readdirSync(postDir);
-  const photoExtensions = ['.jpg', '.jpeg', '.png'];
-
-  const photoFile = files.find(file => {
-    const ext = path.extname(file).toLowerCase();
-    return photoExtensions.includes(ext);
-  });
-
-  return photoFile ? path.join(postDir, photoFile) : null;
-}
-
-/**
- * Analyze photo with Claude Vision via AWS Bedrock
- */
-async function analyzePhoto(photoPath, profile) {
+async function analyzeBuffer(bedrock, imageBuffer) {
   const sharp = require('sharp');
-
-  // Read image and resize if needed (Bedrock has a 5MB limit)
-  // Resize to max 1600px on longest side, quality 85
-  const image = sharp(photoPath);
+  const image = sharp(imageBuffer);
   const metadata = await image.metadata();
-
-  let imageBuffer;
   const maxDimension = 1600;
-  const shouldResize = metadata.width > maxDimension || metadata.height > maxDimension;
-
-  if (shouldResize) {
-    console.log(`   📐 Resizing image (${metadata.width}x${metadata.height} → max ${maxDimension}px)`);
-    imageBuffer = await image
-      .resize(maxDimension, maxDimension, {
-        fit: 'inside',
-        withoutEnlargement: true,
-      })
-      .jpeg({ quality: 85 })
-      .toBuffer();
-  } else {
-    imageBuffer = fs.readFileSync(photoPath);
-  }
-
-  const clientConfig = { region: 'us-east-1' };
-  if (profile) {
-    clientConfig.credentials = fromIni({ profile });
-  }
-  const client = new BedrockRuntimeClient(clientConfig);
+  const shouldResize =
+    (metadata.width || 0) > maxDimension || (metadata.height || 0) > maxDimension;
+  const bytes = shouldResize
+    ? await image
+        .resize(maxDimension, maxDimension, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toBuffer()
+    : imageBuffer;
 
   console.log('   🤖 Analyzing with Claude Vision via Bedrock...');
-
-  const command = new ConverseCommand({
-    modelId: 'us.anthropic.claude-sonnet-4-6',
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            image: {
-              format: 'jpeg',
-              source: {
-                bytes: imageBuffer,
-              },
+  const response = await bedrock.send(
+    new ConverseCommand({
+      modelId: 'us.anthropic.claude-sonnet-4-6',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { image: { format: 'jpeg', source: { bytes } } },
+            {
+              text: `Analyze this photo and suggest 3-8 relevant tags (comma-separated, lowercase, hyphens for multi-word). Tags:`,
             },
-          },
-          {
-            text: `Analyze this photo and suggest 3-8 relevant tags that describe:
-- Main subject matter (people, objects, animals, architecture, etc.)
-- Location type (urban, nature, indoor, outdoor, beach, mountain, etc.)
-- Mood/atmosphere (serene, dramatic, vibrant, peaceful, energetic, etc.)
-- Visual style (minimalist, colorful, black-and-white, vintage, etc.)
-- Notable features (sunset, reflection, pattern, texture, bokeh, etc.)
-
-Provide ONLY the tags as a comma-separated list, lowercase, using hyphens for multi-word tags.
-Example format: street-photography, urban, night, city-lights, noir
-
-Tags:`,
-          },
-        ],
-      },
-    ],
-    inferenceConfig: {
-      maxTokens: 1024,
-    },
-  });
-
-  const response = await client.send(command);
+          ],
+        },
+      ],
+      inferenceConfig: { maxTokens: 1024 },
+    }),
+  );
   const responseText = response.output.message.content[0].text.trim();
-
-  // Parse tags from response
-  const tags = responseText
+  return responseText
     .split(',')
-    .map(tag => tag.trim().toLowerCase())
-    .filter(tag => tag.length > 0 && tag.length < 30); // Sanity check
-
-  return tags;
+    .map((tag) => tag.trim().toLowerCase())
+    .filter((tag) => tag.length > 0 && tag.length < 30);
 }
 
-/**
- * Update frontmatter with new tags
- */
-function updatePostTags(postDir, newTags) {
-  const mdxPath = path.join(postDir, 'index.md');
-  const fileContents = fs.readFileSync(mdxPath, 'utf8');
-  const { data, content } = matter(fileContents);
-
-  // Merge existing tags with new tags (remove duplicates)
-  const existingTags = data.tags || [];
-  const mergedTags = [...new Set([...existingTags, ...newTags])];
-
-  data.tags = mergedTags;
-
-  // Rebuild frontmatter
-  const updatedContent = matter.stringify(content, data);
-  fs.writeFileSync(mdxPath, updatedContent);
-
-  return mergedTags;
+async function updateDbTags(ddb, id, newTags, existing) {
+  const merged = [...new Set([...(existing || []), ...newTags])];
+  await ddb.send(
+    new UpdateCommand({
+      TableName: TABLE,
+      Key: { id: String(id) },
+      UpdateExpression: 'SET tags = :t, updatedAt = :u',
+      ExpressionAttributeValues: {
+        ':t': merged,
+        ':u': new Date().toISOString(),
+      },
+      ConditionExpression: 'attribute_exists(id)',
+    }),
+  );
+  return merged;
 }
 
-/**
- * Process a single photo post
- */
-async function processPhotoPost(postFolder, options, profile) {
-  const postDir = path.join(POSTS_DIR, postFolder);
-  const mdxPath = path.join(postDir, 'index.md');
+function isUntagged(tags) {
+  return (
+    !tags ||
+    tags.length === 0 ||
+    (tags.length === 1 && String(tags[0]).toLowerCase() === 'photography')
+  );
+}
 
-  console.log(`\n📸 Processing: ${postFolder}`);
+async function processDbPhoto(photo, options, clients) {
+  console.log(`\n📸 Processing id=${photo.id} (${photo.title || photo.folderName || ''})`);
+  console.log(`   🏷️  Current tags: ${(photo.tags || []).join(', ') || 'none'}`);
 
-  // Read current frontmatter
-  const fileContents = fs.readFileSync(mdxPath, 'utf8');
-  const { data } = matter(fileContents);
-
-  // Check if photo is already tagged (for --untagged-only mode)
-  const isUntagged = !data.tags || data.tags.length === 0 ||
-    (data.tags.length === 1 && data.tags[0].toLowerCase() === 'photography');
-
-  if (options.untaggedOnly && !isUntagged) {
-    console.log(`   ⏭️  Already tagged, skipping`);
+  if (options.untaggedOnly && !isUntagged(photo.tags)) {
+    console.log('   ⏭️  Already tagged, skipping');
     return { skipped: true };
   }
 
-  console.log(`   📝 Title: ${data.title}`);
-  console.log(`   🏷️  Current tags: ${data.tags ? data.tags.join(', ') : 'none'}`);
-
-  // Find photo file
-  const photoPath = findPhotoFile(postDir);
-  if (!photoPath) {
-    console.log('   ⚠️  No photo file found, skipping');
-    return { skipped: true };
-  }
-
-  // Analyze with Claude
   let suggestedTags;
   try {
-    suggestedTags = await analyzePhoto(photoPath, profile);
+    const buf = await downloadPhotoBuffer(clients.s3, photo);
+    suggestedTags = await analyzeBuffer(clients.bedrock, buf);
   } catch (error) {
     console.error(`   ❌ Error analyzing photo: ${error.message}`);
     return { error: true };
@@ -291,13 +242,15 @@ async function processPhotoPost(postFolder, options, profile) {
     return { dryRun: true };
   }
 
-  // Get approval
   let approve = options.autoApprove;
   if (!approve) {
     const answer = await prompt('   Apply these tags? (Y/n/edit): ');
     if (answer.toLowerCase() === 'edit' || answer.toLowerCase() === 'e') {
       const customTags = await prompt('   Enter tags (comma-separated): ');
-      suggestedTags = customTags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+      suggestedTags = customTags
+        .split(',')
+        .map((t) => t.trim().toLowerCase())
+        .filter(Boolean);
       approve = true;
     } else {
       approve = answer.toLowerCase() !== 'n';
@@ -309,93 +262,122 @@ async function processPhotoPost(postFolder, options, profile) {
     return { skipped: true };
   }
 
-  // Update tags
-  const finalTags = updatePostTags(postDir, suggestedTags);
-  console.log(`   ✅ Updated tags: ${finalTags.join(', ')}`);
-
+  const finalTags = await updateDbTags(clients.ddb, photo.id, suggestedTags, photo.tags);
+  console.log(`   ✅ Updated DynamoDB tags: ${finalTags.join(', ')}`);
   return { updated: true, tags: finalTags };
 }
 
-/**
- * Main execution
- */
+/** Legacy markdown folder path (pre-cutover). */
+async function processMarkdownFolder(postFolder, options, clients) {
+  const postDir = path.join(POSTS_DIR, postFolder);
+  const mdxPath = path.join(postDir, 'index.md');
+  if (!fs.existsSync(mdxPath)) {
+    console.error(`   ❌ No index.md in ${postFolder}`);
+    return { error: true };
+  }
+  const { data } = matter(fs.readFileSync(mdxPath, 'utf8'));
+  if (data.type !== 'photo') {
+    console.log('   ⏭️  Not a photo post');
+    return { skipped: true };
+  }
+  if (data.id != null) {
+    const photo = await getPhoto(clients.ddb, data.id);
+    if (photo) return processDbPhoto(photo, options, clients);
+  }
+  // Fallback: local file + write markdown only
+  const files = fs.readdirSync(postDir);
+  const photoFile = files.find((f) => ['.jpg', '.jpeg', '.png'].includes(path.extname(f).toLowerCase()));
+  if (!photoFile) {
+    console.log('   ⚠️  No photo file found');
+    return { skipped: true };
+  }
+  console.log(`\n📸 Processing markdown folder: ${postFolder}`);
+  const suggestedTags = await analyzeBuffer(
+    clients.bedrock,
+    fs.readFileSync(path.join(postDir, photoFile)),
+  );
+  console.log(`   ✨ Suggested tags: ${suggestedTags.join(', ')}`);
+  if (options.dryRun) return { dryRun: true };
+  let approve = options.autoApprove;
+  if (!approve) {
+    const answer = await prompt('   Apply these tags to markdown? (Y/n): ');
+    approve = answer.toLowerCase() !== 'n';
+  }
+  if (!approve) return { skipped: true };
+  const existing = data.tags || [];
+  data.tags = [...new Set([...existing, ...suggestedTags])];
+  const { content } = matter(fs.readFileSync(mdxPath, 'utf8'));
+  fs.writeFileSync(mdxPath, matter.stringify(content, data));
+  console.log(`   ✅ Updated markdown tags: ${data.tags.join(', ')}`);
+  return { updated: true };
+}
+
 async function main() {
-  console.log('📸 AI Photo Tagging with Claude Vision\n');
-
+  console.log('📸 AI Photo Tagging (DynamoDB)\n');
   const options = parseArgs();
-  const { profile } = options;
+  const clients = awsClients(options.profile);
+  if (options.profile) console.log(`🔑 AWS profile: ${options.profile}\n`);
 
-  if (profile) {
-    console.log(`🔑 Using AWS profile: ${profile}\n`);
-  }
+  const results = { updated: 0, skipped: 0, errors: 0, dryRun: 0 };
 
-  // Determine which posts to process
-  let postsToProcess = [];
-
-  if (options.all) {
-    postsToProcess = getPhotoPosts();
-    if (postsToProcess.length === 0) {
-      console.log('⚠️  No photo posts found\n');
-      process.exit(0);
-    }
-    console.log(`📊 Found ${postsToProcess.length} photo post(s)\n`);
-  } else if (options.postFolder) {
-    const postDir = path.join(POSTS_DIR, options.postFolder);
-    if (!fs.existsSync(postDir)) {
-      console.error(`❌ Error: Post folder not found: ${options.postFolder}\n`);
-      process.exit(1);
-    }
-    postsToProcess = [options.postFolder];
-  } else {
-    console.error('❌ Error: Must specify post folder or --all\n');
-    showHelp();
-    process.exit(1);
-  }
-
-  // Process each post
-  const results = {
-    updated: 0,
-    skipped: 0,
-    errors: 0,
-    dryRun: 0,
-  };
-
-  for (const postFolder of postsToProcess) {
-    try {
-      const result = await processPhotoPost(postFolder, options, profile);
+  try {
+    if (options.all) {
+      const photos = await listAllPhotos(clients.ddb);
+      console.log(`📊 Found ${photos.length} photo(s) in DynamoDB\n`);
+      for (const photo of photos) {
+        const result = await processDbPhoto(photo, options, clients);
+        if (result.updated) results.updated++;
+        if (result.skipped) results.skipped++;
+        if (result.error) results.errors++;
+        if (result.dryRun) results.dryRun++;
+      }
+    } else if (options.target && /^\d+$/.test(options.target)) {
+      const photo = await getPhoto(clients.ddb, options.target);
+      if (!photo) {
+        console.error(`❌ Photo id ${options.target} not found in ${TABLE}\n`);
+        process.exit(1);
+      }
+      const result = await processDbPhoto(photo, options, clients);
       if (result.updated) results.updated++;
       if (result.skipped) results.skipped++;
       if (result.error) results.errors++;
       if (result.dryRun) results.dryRun++;
-    } catch (error) {
-      console.error(`   ❌ Error: ${error.message}`);
-      results.errors++;
+    } else if (options.target) {
+      const result = await processMarkdownFolder(options.target, options, clients);
+      if (result.updated) results.updated++;
+      if (result.skipped) results.skipped++;
+      if (result.error) results.errors++;
+      if (result.dryRun) results.dryRun++;
+    } else {
+      console.error('❌ Must specify photo id, folder, or --all\n');
+      showHelp();
+      process.exit(1);
     }
+  } finally {
+    rl.close();
   }
 
-  // Summary
   console.log('\n' + '─'.repeat(50));
   console.log('\n📊 Tagging Summary:');
   console.log(`   ✅ Updated: ${results.updated}`);
-  if (results.skipped > 0) console.log(`   ⏭️  Skipped: ${results.skipped}`);
-  if (results.errors > 0) console.log(`   ❌ Errors: ${results.errors}`);
-  if (results.dryRun > 0) console.log(`   🔍 Dry run: ${results.dryRun}`);
-
+  if (results.skipped) console.log(`   ⏭️  Skipped: ${results.skipped}`);
+  if (results.errors) console.log(`   ❌ Errors: ${results.errors}`);
+  if (results.dryRun) console.log(`   🔍 Dry run: ${results.dryRun}`);
   if (options.dryRun) {
-    console.log('\n💡 This was a dry run. Remove --dry-run to apply changes.');
+    console.log('\n💡 Dry run only — remove --dry-run to apply.');
   } else if (results.updated > 0) {
-    console.log('\n💡 Next steps:');
-    console.log('   1. Review the updated tags in your posts');
-    console.log('   2. Run: git add content/posts/');
-    console.log('   3. Run: git commit -m "Update photo tags with AI suggestions"');
+    console.log('\n💡 Tags written to DynamoDB; site reads live via the photo API.');
   }
-
   console.log('');
-  rl.close();
+  if (results.errors) process.exit(1);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('❌ Fatal error:', err);
-  rl.close();
+  try {
+    rl.close();
+  } catch {
+    /* ignore */
+  }
   process.exit(1);
 });
