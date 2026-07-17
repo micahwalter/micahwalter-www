@@ -965,3 +965,12 @@
 **Context**: CONSTRUCTION — U7 Functional Design approval gate.
 
 ---
+
+## Issues #103 / #104 — U7 FD Approved → NFR Requirements Generated
+**Timestamp**: 2026-07-17T01:16:09Z
+**User Input**: "approved"
+**AI Response**: Recorded U7 Functional Design approval. Derived NFR Requirements from Requirements NFR-1–7, FD, and tickets/images secondary posture (no re-ask). Generated u7-cutover/nfr-requirements/{nfr-requirements,tech-stack-decisions}.md. Multi-region = us-east-2 secondary stack + primary DynamoDB (tickets pattern), feed job primary, migrate/cleanup scripts. Presenting NFR Requirements Complete - U7 gate.
+**Approval Prompt**: "NFR Requirements Complete - U7. Request Changes or Continue to Next Stage (NFR Design)."
+**Context**: CONSTRUCTION — U7 NFR Requirements approval gate.
+
+---
