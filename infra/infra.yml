@@ -309,10 +309,24 @@ Resources:
             };
           }
 
+          // Photo ids moved to /photos/<id>: permanent redirect from /posts/<digits>
+          var photoPostRedirect = getPhotoPostRedirect(uri);
+          if (photoPostRedirect) {
+            return photoPostRedirect;
+          }
+
           // Legacy post URL patterns -> /posts/[slug] (replaces ~1,150 Next.js redirect pages)
           var legacyRedirect = getLegacyPostRedirect(uri);
           if (legacyRedirect) {
             return legacyRedirect;
+          }
+
+          // Static-export shell: serve /photos/0.html for any /photos/<digits>
+          // (browser URL unchanged; client reads id from pathname)
+          var photoShell = rewritePhotoDetailShell(uri);
+          if (photoShell) {
+            request.uri = photoShell;
+            return request;
           }
 
           if (uri === '/' || uri === '') {
@@ -322,6 +336,45 @@ Resources:
           }
 
           return request;
+        }
+
+        function isAllDigits(s) {
+          if (!s || s.length === 0) return false;
+          for (var i = 0; i < s.length; i++) {
+            var c = s.charAt(i);
+            if (c < '0' || c > '9') return false;
+          }
+          return true;
+        }
+
+        function getPhotoPostRedirect(uri) {
+          var path = uri;
+          if (path.charAt(0) === '/') {
+            path = path.slice(1);
+          }
+          if (path.endsWith('/')) {
+            path = path.slice(0, -1);
+          }
+          var parts = path.split('/');
+          if (parts.length === 2 && parts[0] === 'posts' && isAllDigits(parts[1])) {
+            return redirect301('/photos/' + parts[1]);
+          }
+          return null;
+        }
+
+        function rewritePhotoDetailShell(uri) {
+          var path = uri;
+          if (path.charAt(0) === '/') {
+            path = path.slice(1);
+          }
+          if (path.endsWith('/')) {
+            path = path.slice(0, -1);
+          }
+          var parts = path.split('/');
+          if (parts.length === 2 && parts[0] === 'photos' && isAllDigits(parts[1])) {
+            return '/photos/0.html';
+          }
+          return null;
         }
 
         function isValidMonth(month) {

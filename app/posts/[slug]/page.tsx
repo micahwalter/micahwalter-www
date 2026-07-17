@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getAllPosts, getPostBySlug } from "@/lib/content";
 import PostContent from "@/components/PostContent";
 import PostLayout from "@/components/PostLayout";
@@ -73,6 +73,12 @@ export async function generateMetadata({
 
 export default async function PostPage({ params }: PostPageProps) {
   const { slug } = await params;
+
+  // Dev/local parity with CloudFront: numeric photo ids live under /photos/<id>
+  if (/^\d+$/.test(slug)) {
+    redirect(`/photos/${slug}`);
+  }
+
   const post = getPostBySlug(slug);
 
   if (!post) {
@@ -82,6 +88,10 @@ export default async function PostPage({ params }: PostPageProps) {
   const content = <PostContent content={post.content} folderName={post.folderName} />;
 
   if (post.type === 'photo') {
+    // Prefer canonical /photos/<id> when the markdown photo still has a numeric id
+    if (post.id && /^\d+$/.test(String(post.id))) {
+      redirect(`/photos/${post.id}`);
+    }
     return <PhotoLayout post={post}>{content}</PhotoLayout>;
   }
 

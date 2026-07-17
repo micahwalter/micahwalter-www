@@ -842,3 +842,12 @@
 **Context**: CONSTRUCTION — U4 Code Generation Part 2 (after docs commit).
 
 ---
+
+## Issues #103 / #104 — U4 Code Generation Implementation Complete
+**Timestamp**: 2026-07-17T00:25:33Z
+**User Input**: "(pending Continue)"
+**AI Response**: Implemented photos-api reads, HomePhotos, PhotosGrid, ApiPhotoDetail/map, SearchBar photo merge, CF Function redirects+shell rewrite, local numeric /posts redirect. npm run build succeeded (/photos, /photos/0). Presenting Code Generation completion. Note: infra.yml deploy required for prod CF behavior; do not commit mastodon.json.
+**Approval Prompt**: "Code Generation Complete - U4. Request Changes or Continue to Next Stage (U5 Edit UI Functional Design)."
+**Context**: CONSTRUCTION — U4 Code Generation approval gate.
+
+---

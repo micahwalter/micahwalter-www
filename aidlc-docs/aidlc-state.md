@@ -3,16 +3,17 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-07-16T15:24:00Z
-- **Current Stage**: CONSTRUCTION — U4 Code Generation Part 1 (plan approval)
+- **Current Stage**: CONSTRUCTION — U4 Code Generation (approval gate)
 - **Engagement Status**: In progress
 - **Branch:** `cursor/u2-enrichment-functional-design-be02`
 
 ## Active Engagement — Issues #103 / #104
-- **Current unit:** U4 Browse & detail — Code Generation plan awaiting approval
-- **CG plan:** `aidlc-docs/construction/plans/u4-browse-detail-code-generation-plan.md`
-- **Prior design:** `aidlc-docs/construction/u4-browse-detail/` (FD, NFR, NFR Design, Infra — approved)
+- **Current unit:** U4 Browse & detail — Code Generation implemented, awaiting Continue
+- **CG plan:** `aidlc-docs/construction/plans/u4-browse-detail-code-generation-plan.md` (complete)
+- **Code summary:** `aidlc-docs/construction/u4-browse-detail/code/code-summary.md`
 - **Stories:** US-007, US-008, US-009, US-010
-- **Next:** Approve CG plan → Part 2 implementation
+- **Next:** Continue → U5 Functional Design, or Request Changes
+- **Deploy note:** Redeploy `infra/infra.yml` for CF redirects + `/photos/<id>` shell rewrite
 
 ## Extension Configuration
 | Extension | Enabled | Notes |
@@ -34,7 +35,7 @@
 - [x] NFR Requirements (approved)
 - [x] NFR Design (approved)
 - [x] Infrastructure Design (approved)
-- [ ] Code Generation (plan ready — awaiting approval)
+- [x] Code Generation (implemented — awaiting approval)
 
 ### CONSTRUCTION — U5–U7 + Build and Test
 - [ ] Pending

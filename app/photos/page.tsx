@@ -1,8 +1,5 @@
-import { getPhotos } from "@/lib/content";
-import PaginatedPostGrid from "@/components/PaginatedPostGrid";
+import PhotosGrid from "@/components/PhotosGrid";
 import type { Metadata } from "next";
-
-const POSTS_PER_PAGE = 12;
 
 export const metadata: Metadata = {
   title: "Photos - Micah Walter",
@@ -14,11 +11,8 @@ export const metadata: Metadata = {
 };
 
 export default function PhotosPage() {
-  const photos = getPhotos();
-
   return (
     <div className="min-h-screen">
-      {/* Header */}
       <header className="max-w-wide mx-auto px-6 py-12 border-b border-gray/20">
         <h1 className="font-serif font-semibold text-4xl md:text-5xl mb-4 text-charcoal">
           Photos
@@ -28,13 +22,7 @@ export default function PhotosPage() {
         </p>
       </header>
 
-      {photos.length > 0 ? (
-        <PaginatedPostGrid posts={photos} perPage={POSTS_PER_PAGE} />
-      ) : (
-        <div className="max-w-wide mx-auto px-6 py-24 text-center">
-          <p className="text-gray text-lg">No photos yet. Check back soon!</p>
-        </div>
-      )}
+      <PhotosGrid />
     </div>
   );
 }
