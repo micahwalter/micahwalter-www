@@ -828,6 +828,7 @@ Resources:
               - !Sub 'arn:aws:cloudformation:us-east-2:${AWS::AccountId}:stack/micahwalter-www-secondary/*'
           - Effect: Allow
             Action:
+              - cloudfront:GetFunction
               - cloudfront:DescribeFunction
               - cloudfront:CreateFunction
               - cloudfront:UpdateFunction
