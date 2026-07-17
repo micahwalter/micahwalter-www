@@ -3,17 +3,16 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-07-16T15:24:00Z
-- **Current Stage**: CONSTRUCTION — Build and Test (awaiting approval)
-- **Engagement Status**: In progress
+- **Current Stage**: OPERATIONS — Placeholder / handoff complete
+- **Engagement Status**: Construction complete — awaiting production cutover
 - **Branch:** `cursor/u2-enrichment-functional-design-be02`
+- **PR:** https://github.com/micahwalter/micahwalter-www/pull/110
 
 ## Active Engagement — Issues #103 / #104
-- **Units U1–U7:** Code Generation complete
-- **Build and Test:** Instructions generated — awaiting approval
-- **Summary:** `aidlc-docs/construction/build-and-test/build-and-test-summary.md`
-- **Cutover runbook:** `aidlc-docs/construction/u7-cutover/code/cutover-runbook.md`
-- **Next:** Approve Build and Test → Operations (placeholder)
-- **Deploy pending:** See cutover runbook (IAM, primary+secondary photo-upload, migrate, feeds, cleanup)
+- **Units U1–U7:** Complete through Code Generation + Build and Test (approved)
+- **Operations:** Placeholder — handoff at `aidlc-docs/operations/issue-103-photo-cutover-handoff.md`
+- **Runbook:** `aidlc-docs/construction/u7-cutover/code/cutover-runbook.md`
+- **Next:** Merge PR #110 and execute cutover runbook in AWS
 
 ## Extension Configuration
 | Extension | Enabled | Notes |
@@ -28,10 +27,10 @@
 - [x] All inception stages approved
 
 ### CONSTRUCTION — U1–U7
-- [x] U1–U7 design + Code Generation (approved through U7 CG)
+- [x] Design + Code Generation (all units)
 
 ### CONSTRUCTION — Build and Test
-- [x] Instruction files generated (awaiting approval)
+- [x] Approved
 
 ### OPERATIONS
-- [ ] Placeholder (after Build and Test approval)
+- [x] Placeholder acknowledged; production handoff documented
