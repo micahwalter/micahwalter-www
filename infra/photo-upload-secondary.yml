@@ -264,8 +264,7 @@ Resources:
       RouteKey: PATCH /{id}
       Target: !Sub integrations/${PhotosApiIntegration}
 
-  # Do NOT add a $default route — on HTTP APIs it intercepts OPTIONS preflight
-  # and returns 500, which breaks browser CORS login on /photos/auth.
+  # Do NOT add $default — see primary photo-upload.yml note (CORS + bare-path 500s).
 
   AuthFnPermission:
     Type: AWS::Lambda::Permission

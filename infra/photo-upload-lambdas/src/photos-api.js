@@ -26,10 +26,10 @@ const {
   toPublicGallery,
 } = require('./lib/galleries-db');
 
-function json(statusCode, body) {
+function json(statusCode, body, extraHeaders = {}) {
   return {
     statusCode,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...extraHeaders },
     body: JSON.stringify(body),
   };
 }
@@ -93,6 +93,11 @@ exports.handler = async (event) => {
   const routeKey = event.routeKey || '';
   const method = event.requestContext?.http?.method || event.requestContext?.httpMethod || 'GET';
   const path = requestPath(event);
+
+  // Defense-in-depth if a catch-all route is ever added; prefer API Gateway CORS.
+  if (method === 'OPTIONS') {
+    return { statusCode: 204 };
+  }
 
   try {
     // --- Galleries (must run before GET /{id}) ---
