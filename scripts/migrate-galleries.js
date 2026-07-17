@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Migrate content/galleries/*/index.md → DynamoDB micahwalter-galleries.
+ * Migrate gallery markdown under content/galleries into DynamoDB
+ * table micahwalter-galleries.
  *
  * Usage:
  *   node scripts/migrate-galleries.js              # dry-run
