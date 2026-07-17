@@ -1027,3 +1027,98 @@
 **Context**: OPERATIONS — placeholder handoff for Issues #103 / #104.
 
 ---
+
+## Workspace Detection — Photo UX Polish Engagement
+**Timestamp**: 2026-07-17T14:56:46Z
+**User Input**: "OK the photo upload process seems to work. I have some feedback.\n\n1. I see tags for the photo I uploaded for the locaition, but I don't see a map on the photo details page\n2. The tags are not clickable.. meaning I see the tags, but I can't click and then see all photos with the same tag\n3. The homepage featured photo takes a moment to load and says \"loading photo\" or something similar while you wait.. is there a way to cache this?\n4. The galleries layout looks wrong, I think it's missing the standard container as the photos thumbnails bleed to the edge of the viewport"
+**AI Response**: Started new AI-DLC engagement for post-cutover photo UX polish. Welcome message displayed. Workspace Detection: brownfield Next.js blog; RE artifacts exist — skip Reverse Engineering. Investigated feedback: (1) photo 171 has publicLatitude/publicLongitude but staticmap.openstreetmap.de does not resolve (dead host) so PhotoStaticMap onError hides map; (2) ApiPhotoDetail tags are non-link spans; (3) HomePhotos client-fetches with "Loading photos…"; (4) GalleryViewer grid missing max-w-wide mx-auto px-6. Proceeding to Requirements Analysis clarifying questions.
+**Context**: INCEPTION — Workspace Detection complete → Requirements Analysis questions gate
+
+---
+
+## Requirements Analysis — Clarifying Questions Presented
+**Timestamp**: 2026-07-17T14:58:00Z
+**User Input**: "(awaiting answers in requirement-verification-questions.md)"
+**AI Response**: Created aidlc-docs/inception/requirements/requirement-verification-questions.md with 8 questions (map provider, tag navigation, homepage bake vs skeleton, galleries container confirm, scope extras, three extension opt-ins). Depth: standard. Awaiting user answers before generating requirements.md.
+**Approval Prompt**: Please fill [Answer]: tags in aidlc-docs/inception/requirements/requirement-verification-questions.md
+**Context**: INCEPTION — Requirements Analysis Step 6 gate
+
+---
+
+## Requirements Analysis — Answers Received → Document Generated
+**Timestamp**: 2026-07-17T15:00:30Z
+**User Input**: "done"
+**AI Response**: Read answers from requirement-verification-questions.md: Q1=A (OSM embed/tiles + place label), Q2=A (/photos?tag=), Q3=B (skeleton, keep client fetch), Q4=A+B (container + tighten header), Q5="yes fix these as well" interpreted as include B (place text) and C (bare GET /photos), Q6=B Security off, Q7=B Resiliency off, Q8=C PBT off. Generated aidlc-docs/inception/requirements/requirements.md. Presenting Requirements Analysis Complete gate.
+**Approval Prompt**: Review requirements.md — Request Changes or Approve & Continue
+**Context**: INCEPTION — Requirements Analysis approval gate
+
+---
+
+## Requirements Analysis — Approved
+**Timestamp**: 2026-07-17T15:02:30Z
+**User Input**: "approve"
+**AI Response**: Recorded requirements approval. Extension config locked (Security/Resiliency/PBT off). Proceeding to User Stories (Part 1 — Planning) for photo UX polish engagement.
+**Context**: INCEPTION — Requirements approved → User Stories
+
+---
+
+## User Stories — Part 1 Plan Presented
+**Timestamp**: 2026-07-17T15:03:00Z
+**User Input**: "(awaiting answers in story-generation-plan.md)"
+**AI Response**: Assessment: Execute User Stories (Yes) — UX changes + new tag filter path. Created user-stories-assessment.md and story-generation-plan.md with 5 planning questions (breakdown, personas, granularity, AC style, format). Awaiting answers before plan approval / Part 2 generation.
+**Approval Prompt**: Fill [Answer]: tags in aidlc-docs/inception/plans/story-generation-plan.md
+**Context**: INCEPTION — User Stories Part 1 planning gate
+
+---
+
+## User Stories — Part 1 Answers Received → Plan Approval Gate
+**Timestamp**: 2026-07-17T15:06:30Z
+**User Input**: "done"
+**AI Response**: Validated story-generation-plan answers: Q1=A Feature-Based, Q2=A Visitor+Owner, Q3=A five stories FR-1..FR-5, Q4=A G/W/T, Q5=A standard As-a format. No ambiguities. Presenting plan for explicit approval before Part 2 generation.
+**Approval Prompt**: Approve story generation plan to generate personas.md and stories.md?
+**Context**: INCEPTION — User Stories Part 1 plan approval gate
+
+---
+
+## User Stories — Part 2 Generated
+**Timestamp**: 2026-07-17T15:12:30Z
+**User Input**: "approved"
+**AI Response**: Recorded story plan approval. Generated personas.md (Visitor, Owner) and stories.md (US-1..US-5 Feature-Based, G/W/T, FR-1..FR-5 coverage). Marked all Part 2 plan checkboxes complete. Presenting User Stories Complete gate.
+**Approval Prompt**: Review stories.md and personas.md — Request Changes or Approve & Continue to Workflow Planning
+**Context**: INCEPTION — User Stories Part 2 approval gate
+
+---
+
+## User Stories — Approved → Workflow Planning
+**Timestamp**: 2026-07-17T17:13:30Z
+**User Input**: "approved"
+**AI Response**: Recorded user stories approval. Proceeding to Workflow Planning for photo UX polish (US-1..US-5 / FR-1..FR-5).
+**Context**: INCEPTION — User Stories approved → Workflow Planning
+
+---
+
+## Workflow Planning — Plan Presented
+**Timestamp**: 2026-07-17T17:14:00Z
+**User Input**: "(awaiting workflow plan approval)"
+**AI Response**: Created execution-plan.md. Recommendations: SKIP Application Design, Units Generation, Functional Design, NFR Requirements/Design, Infrastructure Design; EXECUTE Code Generation + Build and Test. Risk Low. Emphasized user may override skip/execute choices.
+**Approval Prompt**: Approve execution plan or request changes / override stage inclusion?
+**Context**: INCEPTION — Workflow Planning approval gate
+
+---
+
+## Workflow Planning — Approved → Code Generation Planning
+**Timestamp**: 2026-07-17T17:14:45Z
+**User Input**: "approved"
+**AI Response**: Recorded execution plan approval. Skipping Application Design, Units Generation, Functional/NFR/Infrastructure Design per plan. Proceeding to Code Generation Part 1 (Planning) for photo UX polish US-1..US-5.
+**Context**: INCEPTION complete → CONSTRUCTION Code Generation Part 1
+
+---
+
+## Code Generation Part 1 — Plan Presented
+**Timestamp**: 2026-07-17T17:15:30Z
+**User Input**: "(awaiting code generation plan approval)"
+**AI Response**: Created aidlc-docs/construction/plans/photo-ux-polish-code-generation-plan.md with 10 steps covering US-1..US-5 (OSM map, place label, clickable tags + ?tag= filter, homepage skeleton, galleries container, bare GET /photos without $default, docs, verify).
+**Approval Prompt**: Approve photo-ux-polish code generation plan to begin implementation?
+**Context**: CONSTRUCTION — Code Generation Part 1 approval gate
+
+---

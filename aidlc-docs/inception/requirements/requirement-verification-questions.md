@@ -1,110 +1,107 @@
-# Requirements Clarification Questions
+# Requirements Clarification — Photo UX Polish
 
-Please answer the following questions directly in this file by filling in each `[Answer]:` tag. Use the letter of your chosen option (e.g., `A`) or describe your choice after the tag for "Other" responses.
+Please answer each question by filling in the `[Answer]:` tag (letter + any notes).
 
-The original request was to **examine the current state** of this brownfield project using AI-DLC. Reverse engineering is complete. These questions clarify what you want to accomplish next so the workflow can adapt appropriately.
+**Context already confirmed from the live site / code:**
+
+1. **Map** — Your new upload (`id=171`) *does* have coordinates (`publicLatitude` / `publicLongitude`) and location tags (`port-washington`, `usa`). The detail page *tries* to render a static OSM map, but the image host `staticmap.openstreetmap.de` no longer resolves, so the component silently hides the map on load error.
+2. **Tags** — API photo detail renders tags as plain `<span>`s (not links). Blog/MDX tags still link to `/tags/[tag]`, which only indexes markdown posts — not DynamoDB photos.
+3. **Homepage** — Featured photo is fetched client-side after JS loads (`Loading photos…`). Static export cannot ISR the API response.
+4. **Galleries** — Gallery *index* has the standard `max-w-wide mx-auto px-6` wrapper; gallery *detail* grid (`GalleryViewer`) does not, so thumbnails flush to the viewport edge.
 
 ---
 
-## Question 1
 
-What is the primary goal for this AI-DLC engagement?
 
-A) Documentation and analysis only — establish a baseline understanding of the brownfield project (examination complete; no implementation planned yet)
+## Question 1 — Photo detail map
 
-B) Examination plus planning — understand the current state, then define and plan a specific change or feature to implement
+How should we fix the missing map?
 
-C) Full development cycle — examine, plan, and implement a specific feature or improvement in this session
+A) Replace the dead static-map host with an in-page OpenStreetMap embed / lightweight tile map (no API key), and always show the place label (city, country) even if the map fails
 
-D) Ongoing baseline — use AI-DLC artifacts as living documentation to support future work over multiple sessions
+B) Keep a static map image, but switch to a different working static-map provider (may need an API key / account)
+
+C) Drop the map image for now — show place text + a link to OpenStreetMap only
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: D
+[Answer]:  A
 
 ---
 
-## Question 2
 
-If you plan to implement changes after examination, which area is the highest priority?
 
-A) Static site (Next.js app, components, content layer)
+## Question 2 — Clickable photo tags
 
-B) Newsletter system (Go Lambdas, DynamoDB, SES, EventBridge)
+When a visitor clicks a tag on a photo detail page, where should they go?
 
-C) Infrastructure (CloudFormation, multi-region failover, CI/CD)
+A) Filter the photos index: `/photos?tag=<tag>` (DynamoDB photos only; client or API filter)
 
-D) Developer tooling (blog CLI, scripts, image pipeline)
+B) Use the existing `/tags/<tag>` page, extended to include DynamoDB photos alongside blog posts
 
-E) Code quality and testing (lint in CI, unit tests, integration tests)
-
-F) Not applicable — no implementation planned at this time
+C) Both — tags link to `/photos?tag=<tag>` on photo pages; blog tags stay on `/tags/<tag>`
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: X - Still thinking about this. No priority for now but all are on the table
+[Answer]: A
 
 ---
 
-## Question 3
 
-What is the expected scope of any planned work?
 
-A) Single file or isolated fix
+## Question 3 — Homepage featured photo loading
 
-B) Single component or subsystem (e.g., one Lambda, one page, one script)
+How should we reduce or remove the “Loading photos…” wait?
 
-C) Multiple components within one subsystem
+A) Bake featured (+ recent) photo metadata into the static homepage at **build/deploy time**, so the image can paint immediately; optionally soft-refresh from the API in the background
 
-D) Cross-system changes (site + newsletter + infra)
+B) Keep client fetch, but show a skeleton / reserved aspect-ratio placeholder instead of a text loading message (faster perceived load, still waits on API)
 
-E) Not applicable — examination only
+C) Both A and B — build-time bake for first paint, plus skeleton fallback if the bake is stale/missing
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: E
+[Answer]: B
 
 ---
 
-## Question 4
 
-Are there known pain points or issues you want addressed? (Select the closest match.)
 
-A) No known issues — examination is exploratory
+## Question 4 — Galleries layout bleed
 
-B) Technical debt (no tests, lint not in CI, legacy scripts)
+Confirm the galleries fix:
 
-C) Newsletter reliability or deliverability concerns
+A) Yes — wrap the gallery detail photo grid in the standard `max-w-wide mx-auto px-6` (and matching vertical padding), same as `/photos` and the galleries index. Leave the lightbox full-bleed.
 
-D) Content or image workflow friction
-
-E) Performance, SEO, or accessibility improvements
-
-F) Infrastructure or deployment concerns
+B) Also tighten the gallery detail *header* / other spacing while you’re there (describe under X if you pick this via Other)
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: I'd like to improve the CLI, I'd like the deployment process to be better and more automated, I'd like to triage and reoslve all the open GitHub issues
+[Answer]: A + B
 
 ---
 
-## Question 5
 
-Should the User Stories stage be included in the workflow?
 
-A) Skip User Stories — examination/analysis work does not need formal user stories
+## Question 5 — Scope of this engagement
 
-B) Include User Stories — even for analysis, stories would help frame future work
+Anything else to include in this same pass?
 
-C) Decide later — skip for now, revisit if implementation scope emerges
+A) Only the four items above (map, clickable tags, homepage featured load, galleries container)
+
+B) Also include a small follow-up: show city/country text on photo detail even when there is no map
+
+C) Also fix bare `GET /photos` (no trailing slash) API 404/500 quirks while we’re here
 
 X) Other (please describe after [Answer]: tag below)
 
-[Answer]: C
+[Answer]:  yes fix these as well
 
 ---
 
-## Question 6: Security Extensions
+
+
+## Question 6 — Security Extensions
 
 Should security extension rules be enforced for this project?
 
@@ -118,17 +115,19 @@ X) Other (please describe after [Answer]: tag below)
 
 ---
 
-## Question 7: Resiliency Extensions
+
+
+## Question 7 — Resiliency Extensions
 
 Should the resiliency baseline be applied to this project?
 
-**What this extension is.** Enabling it applies directional, design-time best practices for building resilient systems, derived from the AWS Well-Architected Framework (Reliability Pillar). It steers requirements, design, and code toward fault tolerance, high availability, observability, and recoverability.
+**What this extension is.** Enabling it applies a set of **directional, design-time best practices** for building resilient systems, derived from the **AWS Well-Architected Framework (Reliability Pillar)** and resilience-review guidance. It steers requirements, design, and code toward fault tolerance, high availability, observability, and recoverability.
 
-**What this extension is NOT.** Enabling it does not make your workload production-ready, nor does it certify any availability, RTO, or RPO target. It is a starting point — not a substitute for a formal AWS Well-Architected Review.
+**What this extension is NOT.** Enabling it does **not** make your workload production-ready, nor does it certify availability, RTO, or RPO. It is a starting point — not a substitute for a formal Well-Architected Review.
 
-A) Yes — apply the resiliency baseline as directional best practices and design-time guidance (recommended for business-critical workloads)
+A) Yes — apply the resiliency baseline as directional best practices and design-time guidance
 
-B) No — skip the resiliency baseline (suitable for PoCs, prototypes, and experimental projects where rapid iteration matters more)
+B) No — skip the resiliency baseline
 
 X) Other (please describe after [Answer]: tag below)
 
@@ -136,50 +135,18 @@ X) Other (please describe after [Answer]: tag below)
 
 ---
 
-## Question 8: Property-Based Testing Extension
+
+
+## Question 8 — Property-Based Testing Extension
 
 Should property-based testing (PBT) rules be enforced for this project?
 
-A) Yes — enforce all PBT rules as blocking constraints (recommended for projects with business logic, data transformations, serialization, or stateful components)
+A) Yes — enforce all PBT rules as blocking constraints
 
 B) Partial — enforce PBT rules only for pure functions and serialization round-trips
 
-C) No — skip all PBT rules (suitable for simple CRUD applications, UI-only projects, or thin integration layers)
+C) No — skip all PBT rules (suitable for UI-focused polish with little new algorithmic logic)
 
 X) Other (please describe after [Answer]: tag below)
 
 [Answer]: C
-
----
-
-## Question 9
-
-What requirements depth is appropriate for this engagement?
-
-A) Minimal — document intent and baseline understanding only (appropriate for examination-only work)
-
-B) Standard — functional and non-functional requirements for a defined scope of work
-
-C) Comprehensive — detailed requirements with traceability (appropriate for complex or high-risk changes)
-
-X) Other (please describe after [Answer]: tag below)
-
-[Answer]: A
-
----
-
-## Question 10
-
-What are the success criteria for this AI-DLC engagement?
-
-A) Complete reverse engineering artifacts and baseline documentation (already largely done)
-
-B) Actionable execution plan for a specific improvement or feature
-
-C) Working code changes deployed and tested
-
-D) Living documentation foundation for ongoing development
-
-X) Other (please describe after [Answer]: tag below)
-
-[Answer]: D

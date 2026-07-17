@@ -2,35 +2,40 @@
 
 ## Project Information
 - **Project Type**: Brownfield
-- **Start Date**: 2026-07-16T15:24:00Z
-- **Current Stage**: OPERATIONS — Placeholder / handoff complete
-- **Engagement Status**: Construction complete — awaiting production cutover
-- **Branch:** `cursor/u2-enrichment-functional-design-be02`
-- **PR:** https://github.com/micahwalter/micahwalter-www/pull/110
+- **Start Date**: 2026-07-17T14:56:46Z
+- **Current Stage**: CONSTRUCTION — Code Generation Part 1 (awaiting plan approval)
+- **Engagement**: Post-cutover photo UX polish
+- **Unit**: photo-ux-polish
 
-## Active Engagement — Issues #103 / #104
-- **Units U1–U7:** Complete through Code Generation + Build and Test (approved)
-- **Operations:** Placeholder — handoff at `aidlc-docs/operations/issue-103-photo-cutover-handoff.md`
-- **Runbook:** `aidlc-docs/construction/u7-cutover/code/cutover-runbook.md`
-- **Next:** Merge PR #110 and execute cutover runbook in AWS
+## Execution Plan Summary
+- **Execute**: Code Generation, Build and Test
+- **Skip**: Application Design, Units Generation, Functional Design, NFR Requirements, NFR Design, Infrastructure Design
 
 ## Extension Configuration
-| Extension | Enabled | Notes |
-|-----------|---------|-------|
-| Security Baseline | No | |
-| Resiliency Baseline | No | |
-| Property-Based Testing | No | |
+| Extension | Enabled | Decided At |
+|-----------|---------|------------|
+| Security Baseline | No | Requirements Analysis |
+| Resiliency Baseline | No | Requirements Analysis |
+| Property-Based Testing | No | Requirements Analysis |
 
 ## Stage Progress
 
-### INCEPTION
-- [x] All inception stages approved
+### 🔵 INCEPTION PHASE
+- [x] Workspace Detection
+- [x] Reverse Engineering (skipped)
+- [x] Requirements Analysis (approved)
+- [x] User Stories (approved)
+- [x] Workflow Planning (approved)
+- [x] Application Design — SKIP
+- [x] Units Generation — SKIP
 
-### CONSTRUCTION — U1–U7
-- [x] Design + Code Generation (all units)
+### 🟢 CONSTRUCTION PHASE
+- [x] Functional Design — SKIP
+- [x] NFR Requirements — SKIP
+- [x] NFR Design — SKIP
+- [x] Infrastructure Design — SKIP
+- [ ] Code Generation — Part 1 plan ready (awaiting approval)
+- [ ] Build and Test — EXECUTE after Code Generation
 
-### CONSTRUCTION — Build and Test
-- [x] Approved
-
-### OPERATIONS
-- [x] Placeholder acknowledged; production handoff documented
+### 🟡 OPERATIONS PHASE
+- [ ] Operations — PLACEHOLDER
