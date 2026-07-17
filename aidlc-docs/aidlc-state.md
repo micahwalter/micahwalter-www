@@ -3,15 +3,15 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-07-16T15:24:00Z
-- **Current Stage**: CONSTRUCTION — U7 Infrastructure Design (awaiting approval)
+- **Current Stage**: CONSTRUCTION — U7 Code Generation Part 1 (plan approval)
 - **Engagement Status**: In progress
 - **Branch:** `cursor/u2-enrichment-functional-design-be02`
 
 ## Active Engagement — Issues #103 / #104
-- **Current unit:** U7 Cutover — Infrastructure Design complete, awaiting approval
-- **Infra artifacts:** `aidlc-docs/construction/u7-cutover/infrastructure-design/`
+- **Current unit:** U7 Cutover — Code Generation plan awaiting approval
+- **CG plan:** `aidlc-docs/construction/plans/u7-cutover-code-generation-plan.md`
 - **Stories:** US-006, US-013, US-014, US-015, US-016
-- **Next:** Approve U7 Infra Design → Code Generation (plan then implement)
+- **Next:** Approve CG plan → Part 2 implementation
 - **U6 deploy pending:** photo-upload stack, CF Function, `migrate-galleries.js --apply`
 
 ## Extension Configuration
@@ -33,8 +33,8 @@
 - [x] Functional Design (approved)
 - [x] NFR Requirements (approved)
 - [x] NFR Design (approved)
-- [x] Infrastructure Design (derived locks — awaiting approval)
-- [ ] Code Generation
+- [x] Infrastructure Design (approved)
+- [ ] Code Generation (plan ready — awaiting approval)
 
 ### CONSTRUCTION — Build and Test
 - [ ] Pending
