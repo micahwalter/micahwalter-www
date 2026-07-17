@@ -191,7 +191,6 @@ Resources:
       - PhotosFeaturedRoute
       - PhotosGetRoute
       - PhotosPatchRoute
-      - PhotosDefaultRoute
     Properties:
       ApiId: !Ref PhotoApi
       StageName: $default
@@ -593,7 +592,8 @@ Resources:
       RouteKey: PATCH /galleries/{slug}
       Target: !Sub integrations/${PhotosApiIntegration}
 
-  # Bare /photos (no trailing slash) does not match GET /; $default covers that case.
+  # List: GET /photos/ (trailing slash). Do NOT add a $default route — on HTTP APIs
+  # it intercepts OPTIONS preflight and returns 500, which breaks browser CORS login.
   PhotosListRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -620,13 +620,6 @@ Resources:
     Properties:
       ApiId: !Ref PhotoApi
       RouteKey: PATCH /{id}
-      Target: !Sub integrations/${PhotosApiIntegration}
-
-  PhotosDefaultRoute:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref PhotoApi
-      RouteKey: $default
       Target: !Sub integrations/${PhotosApiIntegration}
 
   AuthFnPermission:

@@ -74,7 +74,6 @@ Resources:
       - PhotosFeaturedRoute
       - PhotosGetRoute
       - PhotosPatchRoute
-      - PhotosDefaultRoute
     Properties:
       ApiId: !Ref PhotoApi
       StageName: $default
@@ -265,12 +264,8 @@ Resources:
       RouteKey: PATCH /{id}
       Target: !Sub integrations/${PhotosApiIntegration}
 
-  PhotosDefaultRoute:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref PhotoApi
-      RouteKey: $default
-      Target: !Sub integrations/${PhotosApiIntegration}
+  # Do NOT add a $default route — on HTTP APIs it intercepts OPTIONS preflight
+  # and returns 500, which breaks browser CORS login on /photos/auth.
 
   AuthFnPermission:
     Type: AWS::Lambda::Permission
