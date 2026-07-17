@@ -749,3 +749,96 @@
 **Context**: CONSTRUCTION — U3 Code Generation approval gate.
 
 ---
+
+## Issues #103 / #104 — U3 Code Generation Approved → U4 Functional Design
+**Timestamp**: 2026-07-16T23:02:00Z
+**User Input**: "Approve"
+**AI Response**: Recorded U3 CG approval. Started U4 Browse & detail Functional Design plan with 8 questions; printing in chat. Git push still blocked (invalid gh token); commits remain local ahead of origin.
+**Context**: CONSTRUCTION — U4 Functional Design Step 2–4.
+
+---
+
+## Issues #103 / #104 — U4 Functional Design Questions Ready
+**Timestamp**: 2026-07-16T23:23:41Z
+**User Input**: "(awaiting answers to u4-browse-detail-functional-design-plan.md)"
+**AI Response**: Confirmed U3 approved and U4 FD plan on disk (8 questions). Updated aidlc-state for U3 complete / U4 FD awaiting answers. Presenting question file path for user answers (file or chat shorthand like All A / 1A 2B…).
+**Context**: CONSTRUCTION — U4 Functional Design Step 5 (collect answers).
+
+---
+
+## Issues #103 / #104 — U4 FD: user noted prior answers; locked overlaps
+**Timestamp**: 2026-07-17T00:02:48Z
+**User Input**: "I thought I already answered these"
+**AI Response**: Confirmed overlap with Requirements/App Design. Locked U4 Q1/Q5/Q6/Q7/Q8 from prior decisions. Narrowed plan to 3 open questions (Q2 markdown fallback, Q3 map provider, Q4 redirect implementation). Updated u4-browse-detail-functional-design-plan.md.
+**Context**: CONSTRUCTION — U4 Functional Design Step 5 (collect remaining answers).
+
+---
+
+## Issues #103 / #104 — U4 Functional Design Generated
+**Timestamp**: 2026-07-17T00:03:53Z
+**User Input**: "2 A, 3 B, 4 A"
+**AI Response**: Locked Q2=A (API-only), Q3=B (OSM static map), Q4=A (CF Function). Generated u4-browse-detail/functional-design/{domain-entities,business-rules,business-logic-model,frontend-components}.md. Presenting FD completion for Continue to NFR Requirements or Request Changes.
+**Approval Prompt**: "Functional Design Complete - U4. Request Changes or Continue to Next Stage (NFR Requirements)."
+**Context**: CONSTRUCTION — U4 Functional Design approval gate.
+
+---
+
+## Issues #103 / #104 — U4 Functional Design Approved → NFR Requirements
+**Timestamp**: 2026-07-17T00:05:05Z
+**User Input**: "Approved"
+**AI Response**: Recorded U4 FD approval. Created u4-browse-detail-nfr-requirements-plan.md with 6 focused questions (inherited NFRs locked; no re-ask of FD decisions). Presenting questions for answers.
+**Context**: CONSTRUCTION — U4 NFR Requirements Step 2–4.
+
+---
+
+## Issues #103 / #104 — U4 NFR Requirements Generated
+**Timestamp**: 2026-07-17T00:07:57Z
+**User Input**: "All A"
+**AI Response**: Locked NFR Q1–Q6=A. Generated u4-browse-detail/nfr-requirements/{nfr-requirements,tech-stack-decisions}.md. Presenting NFR Requirements completion for Continue to NFR Design or Request Changes.
+**Approval Prompt**: "NFR Requirements Complete - U4. Request Changes or Continue to Next Stage (NFR Design)."
+**Context**: CONSTRUCTION — U4 NFR Requirements approval gate.
+
+---
+
+## Issues #103 / #104 — U4 NFR Requirements Approved → NFR Design
+**Timestamp**: 2026-07-17T00:18:49Z
+**User Input**: "Approved "
+**AI Response**: Recorded U4 NFR Requirements approval. Created u4-browse-detail-nfr-design-plan.md with 6 pattern questions. Presenting for answers.
+**Context**: CONSTRUCTION — U4 NFR Design Step 2–4.
+
+---
+
+## Issues #103 / #104 — U4 NFR Design Generated (derived locks)
+**Timestamp**: 2026-07-17T00:19:41Z
+**User Input**: "I’ve already answered all these"
+**AI Response**: Confirmed overlap with approved NFR Requirements/FD/issue-90. Locked Q1–Q6=A from prior decisions (no re-ask). Generated u4-browse-detail/nfr-design/{nfr-design-patterns,logical-components}.md. Presenting NFR Design completion for Continue to Infrastructure Design or Request Changes.
+**Approval Prompt**: "NFR Design Complete - U4. Request Changes or Continue to Next Stage (Infrastructure Design)."
+**Context**: CONSTRUCTION — U4 NFR Design approval gate.
+
+---
+
+## Issues #103 / #104 — U4 NFR Design Approved → Infrastructure Design
+**Timestamp**: 2026-07-17T00:20:23Z
+**User Input**: "Approved "
+**AI Response**: Recorded U4 NFR Design approval. Derived infra category locks from prior decisions (no re-ask). Generated u4-browse-detail/infrastructure-design/{infrastructure-design,deployment-architecture}.md. Presenting Infrastructure Design completion for Continue to Code Generation or Request Changes.
+**Approval Prompt**: "Infrastructure Design Complete - U4. Request Changes or Continue to Next Stage (Code Generation)."
+**Context**: CONSTRUCTION — U4 Infrastructure Design approval gate.
+
+---
+
+## Issues #103 / #104 — U4 Infrastructure Design Approved → Code Generation Plan
+**Timestamp**: 2026-07-17T00:21:09Z
+**User Input**: "Approved"
+**AI Response**: Recorded U4 Infrastructure Design approval. Created u4-browse-detail-code-generation-plan.md (9 steps: photos-api reads, mosaic, homepage, grid, detail, search, CF redirect, summary, build). Presenting plan for explicit approval before Part 2.
+**Approval Prompt**: "Approve U4 Code Generation plan to begin implementation?"
+**Context**: CONSTRUCTION — U4 Code Generation Part 1 (Planning) approval gate.
+
+---
+
+## Issues #103 / #104 — U4 Code Generation Plan Approved → Commit then Part 2
+**Timestamp**: 2026-07-17T00:21:59Z
+**User Input**: "Yes do a commit first and then implement"
+**AI Response**: CG plan approved. Committing U4 design/plan docs, then executing Part 2 implementation steps 1–9.
+**Context**: CONSTRUCTION — U4 Code Generation Part 2 (after docs commit).
+
+---

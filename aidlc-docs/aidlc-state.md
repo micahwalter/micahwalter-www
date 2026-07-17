@@ -3,26 +3,21 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-07-16T15:24:00Z
-- **Current Stage**: CONSTRUCTION — U3 Code Generation (approval gate after implementation)
+- **Current Stage**: CONSTRUCTION — U4 Code Generation Part 1 (plan approval)
 - **Engagement Status**: In progress
 - **Branch:** `cursor/u2-enrichment-functional-design-be02`
 
 ## Active Engagement — Issues #103 / #104
-- **Current unit:** U3 Upload UI — implementation complete; awaiting Continue
-- **Artifacts:** `aidlc-docs/construction/u2-enrichment/functional-design/`
-- **Plan:** `aidlc-docs/construction/plans/u2-enrichment-functional-design-plan.md`
-- **Stories:** US-003, US-004
-- **NFR artifacts:** `aidlc-docs/construction/u2-enrichment/nfr-requirements/` (approved)
-- **NFR design:** `aidlc-docs/construction/u2-enrichment/nfr-design/` (approved)
-- **Infra design:** `aidlc-docs/construction/u2-enrichment/infrastructure-design/` (approved)
-- **CG plan:** `aidlc-docs/construction/plans/u2-enrichment-code-generation-plan.md`
-- **Code summary:** `aidlc-docs/construction/u2-enrichment/code/code-summary.md`
-- **Next:** Continue to U3 or Request Changes
+- **Current unit:** U4 Browse & detail — Code Generation plan awaiting approval
+- **CG plan:** `aidlc-docs/construction/plans/u4-browse-detail-code-generation-plan.md`
+- **Prior design:** `aidlc-docs/construction/u4-browse-detail/` (FD, NFR, NFR Design, Infra — approved)
+- **Stories:** US-007, US-008, US-009, US-010
+- **Next:** Approve CG plan → Part 2 implementation
 
 ## Extension Configuration
 | Extension | Enabled | Notes |
 |-----------|---------|-------|
-| Security Baseline | No | GPS privacy in BR-U2-22/23 |
+| Security Baseline | No | |
 | Resiliency Baseline | No | |
 | Property-Based Testing | No | |
 
@@ -31,19 +26,15 @@
 ### INCEPTION
 - [x] All inception stages approved
 
-### CONSTRUCTION — U1 Photo data plane
+### CONSTRUCTION — U1–U3
+- [x] U1 deployed; U2 CG approved; U3 CG approved
+
+### CONSTRUCTION — U4 Browse & detail
 - [x] Functional Design (approved)
 - [x] NFR Requirements (approved)
 - [x] NFR Design (approved)
 - [x] Infrastructure Design (approved)
-- [x] Code Generation (implemented + deployed)
+- [ ] Code Generation (plan ready — awaiting approval)
 
-### CONSTRUCTION — U2 Enrichment
-- [x] Functional Design (approved)
-- [x] NFR Requirements (approved)
-- [x] NFR Design (approved)
-- [x] Infrastructure Design (approved)
-- [x] Code Generation (implemented + approved)
-
-### CONSTRUCTION — U3–U7 + Build and Test
-- [ ] Pending (Build and Test after all units)
+### CONSTRUCTION — U5–U7 + Build and Test
+- [ ] Pending
