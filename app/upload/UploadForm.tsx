@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import {
-  authWithPasscode,
+  clearAdminToken,
   getUploadUrl,
   putToPresignedUrl,
   PhotoApiError,
@@ -12,7 +12,6 @@ const MAX_FILES = 20;
 const CONCURRENCY = 3;
 const ALLOWED = new Set(["image/jpeg", "image/png"]);
 
-type PagePhase = "locked" | "ready";
 type ItemStatus = "pending" | "uploading" | "done" | "error";
 
 type UploadItem = {
@@ -57,11 +56,13 @@ async function mapPool<T>(
   await Promise.all(runners);
 }
 
-export default function UploadForm() {
+type UploadFormProps = {
+  token: string;
+  onSessionExpired: () => void;
+};
+
+export default function UploadForm({ token, onSessionExpired }: UploadFormProps) {
   const formId = useId();
-  const [phase, setPhase] = useState<PagePhase>("locked");
-  const [passcode, setPasscode] = useState("");
-  const [token, setToken] = useState("");
   const [items, setItems] = useState<UploadItem[]>([]);
   const [errorMsg, setErrorMsg] = useState("");
   const [uploadingBatch, setUploadingBatch] = useState(false);
@@ -70,23 +71,6 @@ export default function UploadForm() {
     setItems((prev) =>
       prev.map((it) => (it.localId === localId ? { ...it, ...patch } : it)),
     );
-  }
-
-  async function handleUnlock(e: React.FormEvent) {
-    e.preventDefault();
-    setErrorMsg("");
-    try {
-      const data = await authWithPasscode(passcode);
-      setToken(data.token);
-      setPasscode("");
-      setPhase("ready");
-    } catch (err) {
-      if (err instanceof PhotoApiError) {
-        setErrorMsg(err.message);
-      } else {
-        setErrorMsg("Could not reach the server. Please try again.");
-      }
-    }
   }
 
   function handleFilesSelected(fileList: FileList | null) {
@@ -182,8 +166,8 @@ export default function UploadForm() {
       } catch (err) {
         if (err instanceof PhotoApiError && err.status === 401) {
           sessionExpired = true;
-          setToken("");
-          setPhase("locked");
+          clearAdminToken();
+          onSessionExpired();
           setErrorMsg(err.message);
           updateItem(item.localId, {
             status: "error",
@@ -201,37 +185,6 @@ export default function UploadForm() {
     });
 
     setUploadingBatch(false);
-  }
-
-  if (phase === "locked") {
-    return (
-      <form onSubmit={handleUnlock} className="space-y-5 max-w-sm">
-        <div>
-          <label htmlFor={`${formId}-passcode`} className="block text-sm text-gray mb-1.5" style={labelStyle}>
-            Passcode
-          </label>
-          <input
-            id={`${formId}-passcode`}
-            type="password"
-            required
-            value={passcode}
-            onChange={(e) => setPasscode(e.target.value)}
-            autoComplete="current-password"
-            className="w-full border border-gray/30 px-4 py-3 text-charcoal bg-cream focus:outline-none focus:border-charcoal transition-colors"
-          />
-        </div>
-        {errorMsg && (
-          <p className="text-sm text-red-700" style={labelStyle}>{errorMsg}</p>
-        )}
-        <button
-          type="submit"
-          className="bg-charcoal text-cream px-8 py-3 text-sm tracking-wide hover:bg-charcoal/80 transition-colors cursor-pointer"
-          style={labelStyle}
-        >
-          Unlock
-        </button>
-      </form>
-    );
   }
 
   const pendingCount = items.filter((it) => it.status === "pending" || it.status === "error").length;

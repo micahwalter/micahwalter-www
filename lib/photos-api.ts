@@ -227,3 +227,75 @@ export async function prefetchPhotosForSearch(maxItems = 100): Promise<PublicPho
 
   return items.slice(0, maxItems);
 }
+
+const ADMIN_TOKEN_KEY = "micahwalter.photoAdminToken";
+
+export function getAdminToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return sessionStorage.getItem(ADMIN_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setAdminToken(token: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+export function clearAdminToken(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export type PhotoUpdatePatch = {
+  title?: string;
+  caption?: string;
+  tags?: string[];
+  featured?: boolean;
+};
+
+export async function updatePhoto(
+  id: string | number,
+  patch: PhotoUpdatePatch,
+  token: string,
+): Promise<PublicPhoto> {
+  const res = await fetch(`${getPhotoApiBase()}/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ ...patch, token }),
+  });
+
+  if (!res.ok) {
+    throw new PhotoApiError(
+      res.status === 401
+        ? "Your session expired. Please enter the passcode again."
+        : res.status === 400
+          ? "Could not save. Check the fields and try again."
+          : "Could not save. Please try again.",
+      res.status,
+    );
+  }
+
+  return res.json() as Promise<PublicPhoto>;
+}
+
+/** Parse comma-separated tags into a trimmed string array. */
+export function parseTagsInput(value: string): string[] {
+  return value
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+}

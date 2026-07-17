@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import {
+  getAdminToken,
   getPhoto,
   photoCoverFilename,
   photoIdString,
@@ -102,6 +103,11 @@ function ExifPanel({ photo }: { photo: PublicPhoto }) {
 export default function ApiPhotoDetail({ idHint }: ApiPhotoDetailProps) {
   const [status, setStatus] = useState<Status>("loading");
   const [photo, setPhoto] = useState<PublicPhoto | null>(null);
+  const [canEdit, setCanEdit] = useState(false);
+
+  useEffect(() => {
+    setCanEdit(!!getAdminToken());
+  }, []);
 
   const load = useCallback(async () => {
     const id = resolveId(idHint);
@@ -223,8 +229,16 @@ export default function ApiPhotoDetail({ idHint }: ApiPhotoDetailProps) {
             <p className="text-lg text-charcoal whitespace-pre-wrap">{photo.caption}</p>
           ) : null}
 
-          {/* U5 stub — hidden until edit auth exists */}
-          <div className="hidden" data-photo-edit-stub={id} />
+          {canEdit && (
+            <div className="mt-8">
+              <Link
+                href={`/upload?edit=${id}`}
+                className="text-sm text-charcoal underline hover:text-accent"
+              >
+                Edit photo →
+              </Link>
+            </div>
+          )}
 
           {hasMap && (
             <PhotoStaticMap latitude={lat!} longitude={lon!} label={placeLabel} />

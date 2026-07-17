@@ -851,3 +851,38 @@
 **Context**: CONSTRUCTION — U4 Code Generation approval gate.
 
 ---
+
+## Issues #103 / #104 — U4 Code Generation Approved → U5 Functional Design
+**Timestamp**: 2026-07-17T00:29:37Z
+**User Input**: "Approved "
+**AI Response**: Recorded U4 CG approval. Started U5 Edit UI Functional Design (light; NFR/Infra skipped). Created u5-edit-ui-functional-design-plan.md with 6 questions; locked hub+shortcut/auth/fields from prior decisions.
+**Context**: CONSTRUCTION — U5 Functional Design Step 2–4.
+
+---
+
+## Issues #103 / #104 — U5 Functional Design Generated (derived locks)
+**Timestamp**: 2026-07-17T00:30:49Z
+**User Input**: "I already answered most of these"
+**AI Response**: Locked Q1–Q6=A from App Design/US-005 (hub editor, multi-edit list, comma tags default, shared session, detail→hub, no draft). Generated u5-edit-ui/functional-design artifacts. Presenting FD completion for Continue to Code Generation or Request Changes.
+**Approval Prompt**: "Functional Design Complete - U5. Request Changes or Continue to Next Stage (Code Generation)."
+**Context**: CONSTRUCTION — U5 Functional Design approval gate.
+
+---
+
+## Issues #103 / #104 — U5 Functional Design Approved → Code Generation Plan
+**Timestamp**: 2026-07-17T00:31:31Z
+**User Input**: "approved "
+**AI Response**: Recorded U5 FD approval. Created u5-edit-ui-code-generation-plan.md (6 steps). Presenting plan for explicit approval before Part 2.
+**Approval Prompt**: "Approve U5 Code Generation plan to begin implementation?"
+**Context**: CONSTRUCTION — U5 Code Generation Part 1 (Planning) approval gate.
+
+---
+
+## Issues #103 / #104 — U5 Code Generation Implementation Complete
+**Timestamp**: 2026-07-17T00:32:29Z
+**User Input**: "Approved "
+**AI Response**: Implemented updatePhoto + sessionStorage, UploadHub (Upload|Edit), PhotoEditPanel, detail Edit shortcut. npm run build succeeded. Presenting Code Generation completion for Continue to U6 or Request Changes.
+**Approval Prompt**: "Code Generation Complete - U5. Request Changes or Continue to Next Stage (U6 Galleries Functional Design)."
+**Context**: CONSTRUCTION — U5 Code Generation approval gate.
+
+---

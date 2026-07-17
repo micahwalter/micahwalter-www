@@ -3,17 +3,15 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-07-16T15:24:00Z
-- **Current Stage**: CONSTRUCTION — U4 Code Generation (approval gate)
+- **Current Stage**: CONSTRUCTION — U5 Code Generation (approval gate)
 - **Engagement Status**: In progress
 - **Branch:** `cursor/u2-enrichment-functional-design-be02`
 
 ## Active Engagement — Issues #103 / #104
-- **Current unit:** U4 Browse & detail — Code Generation implemented, awaiting Continue
-- **CG plan:** `aidlc-docs/construction/plans/u4-browse-detail-code-generation-plan.md` (complete)
-- **Code summary:** `aidlc-docs/construction/u4-browse-detail/code/code-summary.md`
-- **Stories:** US-007, US-008, US-009, US-010
-- **Next:** Continue → U5 Functional Design, or Request Changes
-- **Deploy note:** Redeploy `infra/infra.yml` for CF redirects + `/photos/<id>` shell rewrite
+- **Current unit:** U5 Edit UI — Code Generation implemented, awaiting Continue
+- **Code summary:** `aidlc-docs/construction/u5-edit-ui/code/code-summary.md`
+- **Stories:** US-005
+- **Next:** Continue → U6 Galleries Functional Design, or Request Changes
 
 ## Extension Configuration
 | Extension | Enabled | Notes |
@@ -27,15 +25,13 @@
 ### INCEPTION
 - [x] All inception stages approved
 
-### CONSTRUCTION — U1–U3
-- [x] U1 deployed; U2 CG approved; U3 CG approved
+### CONSTRUCTION — U1–U4
+- [x] Complete through U4 Code Generation (approved)
 
-### CONSTRUCTION — U4 Browse & detail
+### CONSTRUCTION — U5 Edit UI
 - [x] Functional Design (approved)
-- [x] NFR Requirements (approved)
-- [x] NFR Design (approved)
-- [x] Infrastructure Design (approved)
+- [x] NFR / Infra (skipped)
 - [x] Code Generation (implemented — awaiting approval)
 
-### CONSTRUCTION — U5–U7 + Build and Test
+### CONSTRUCTION — U6–U7 + Build and Test
 - [ ] Pending
