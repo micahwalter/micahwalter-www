@@ -3,15 +3,17 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-07-16T15:24:00Z
-- **Current Stage**: CONSTRUCTION — U5 Code Generation (approval gate)
+- **Current Stage**: CONSTRUCTION — U6 Code Generation Part 2 complete (awaiting approval)
 - **Engagement Status**: In progress
 - **Branch:** `cursor/u2-enrichment-functional-design-be02`
 
 ## Active Engagement — Issues #103 / #104
-- **Current unit:** U5 Edit UI — Code Generation implemented, awaiting Continue
-- **Code summary:** `aidlc-docs/construction/u5-edit-ui/code/code-summary.md`
-- **Stories:** US-005
-- **Next:** Continue → U6 Galleries Functional Design, or Request Changes
+- **Current unit:** U6 Galleries — Code Generation complete, awaiting approval
+- **CG plan:** `aidlc-docs/construction/plans/u6-galleries-code-generation-plan.md`
+- **Code summary:** `aidlc-docs/construction/u6-galleries/code/code-summary.md`
+- **Stories:** US-011, US-012
+- **Next:** Approve U6 Code Gen → U7 Cutover Functional Design
+- **Deploy pending:** photo-upload stack (galleries table/routes), github-actions IAM if needed, infra CF Function, `migrate-galleries.js --apply`
 
 ## Extension Configuration
 | Extension | Enabled | Notes |
@@ -25,13 +27,15 @@
 ### INCEPTION
 - [x] All inception stages approved
 
-### CONSTRUCTION — U1–U4
-- [x] Complete through U4 Code Generation (approved)
+### CONSTRUCTION — U1–U5
+- [x] Complete through U5 Code Generation (approved)
 
-### CONSTRUCTION — U5 Edit UI
+### CONSTRUCTION — U6 Galleries
 - [x] Functional Design (approved)
-- [x] NFR / Infra (skipped)
-- [x] Code Generation (implemented — awaiting approval)
+- [x] NFR Requirements (approved)
+- [x] NFR Design (approved)
+- [x] Infrastructure Design (approved)
+- [x] Code Generation (Part 2 complete — awaiting approval)
 
-### CONSTRUCTION — U6–U7 + Build and Test
+### CONSTRUCTION — U7 + Build and Test
 - [ ] Pending

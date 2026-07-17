@@ -886,3 +886,73 @@
 **Context**: CONSTRUCTION — U5 Code Generation approval gate.
 
 ---
+
+## Issues #103 / #104 — U5 Code Generation Approved → U6 Functional Design
+**Timestamp**: 2026-07-17T00:37:11Z
+**User Input**: "Approved"
+**AI Response**: Recorded U5 CG approval. Started U6 Galleries Functional Design plan with 6 questions; locked DynamoDB/hub/auth/migrate/client-fetch from prior decisions.
+**Context**: CONSTRUCTION — U6 Functional Design Step 2–4.
+
+---
+
+## Issues #103 / #104 — U6 Functional Design Generated
+**Timestamp**: 2026-07-17T00:38:19Z
+**User Input**: "All A"
+**AI Response**: Locked Q1–Q6=A. Generated u6-galleries/functional-design artifacts. Presenting FD completion for Continue to NFR Requirements or Request Changes.
+**Approval Prompt**: "Functional Design Complete - U6. Request Changes or Continue to Next Stage (NFR Requirements)."
+**Context**: CONSTRUCTION — U6 Functional Design approval gate.
+
+---
+
+## Issues #103 / #104 — U6 Functional Design Approved → NFR Requirements
+**Timestamp**: 2026-07-17T00:39:18Z
+**User Input**: "Approved"
+**AI Response**: Recorded U6 FD approval. Created u6-galleries-nfr-requirements-plan.md with 6 questions (inherited U1/U4 locks noted).
+**Context**: CONSTRUCTION — U6 NFR Requirements Step 2–4.
+
+---
+
+## Issues #103 / #104 — U6 NFR Requirements Generated (derived locks)
+**Timestamp**: 2026-07-17T00:58:44Z
+**User Input**: "Again, I already answered these questions"
+**AI Response**: Confirmed overlap with U1/App Design/FD. Locked Q1–Q6=A from prior decisions. Generated u6-galleries/nfr-requirements artifacts. Presenting NFR Requirements completion for Continue to NFR Design or Request Changes.
+**Approval Prompt**: "NFR Requirements Complete - U6. Request Changes or Continue to Next Stage (NFR Design)."
+**Context**: CONSTRUCTION — U6 NFR Requirements approval gate.
+
+---
+
+## Issues #103 / #104 — U6 NFR Design Generated (derived locks)
+**Timestamp**: 2026-07-17T00:59:45Z
+**User Input**: "Approved"
+**AI Response**: Recorded U6 NFR Requirements approval. Derived NFR Design from U1/U4/U6 NFR locks (no re-ask). Generated u6-galleries/nfr-design/{nfr-design-patterns,logical-components}.md. Presenting NFR Design completion for Continue to Infrastructure Design or Request Changes.
+**Approval Prompt**: "NFR Design Complete - U6. Request Changes or Continue to Next Stage (Infrastructure Design)."
+**Context**: CONSTRUCTION — U6 NFR Design approval gate.
+
+---
+
+## Issues #103 / #104 — U6 Infrastructure Design Generated (derived locks)
+**Timestamp**: 2026-07-17T01:00:45Z
+**User Input**: "Approved "
+**AI Response**: Recorded U6 NFR Design approval. Derived Infrastructure Design (galleries table, photos-api routes before GET /{id}, migrator, hub/public UI). Generated u6-galleries/infrastructure-design artifacts. Presenting for Continue to Code Generation or Request Changes.
+**Approval Prompt**: "Infrastructure Design Complete - U6. Request Changes or Continue to Next Stage (Code Generation)."
+**Context**: CONSTRUCTION — U6 Infrastructure Design approval gate.
+
+---
+
+## Issues #103 / #104 — U6 Infrastructure Design Approved → Code Generation Plan
+**Timestamp**: 2026-07-17T01:02:16Z
+**User Input**: "approved"
+**AI Response**: Recorded U6 Infrastructure Design approval. Created u6-galleries-code-generation-plan.md (7 steps: CFN/table/routes, Lambda handlers, client API, hub tab, public pages, migrator, verify). Presenting plan for explicit approval before Part 2.
+**Approval Prompt**: "Approve U6 Code Generation plan to begin implementation?"
+**Context**: CONSTRUCTION — U6 Code Generation Part 1 (Planning) approval gate.
+
+---
+
+## Issues #103 / #104 — U6 Code Generation Part 2 Executed
+**Timestamp**: 2026-07-17T01:08:30Z
+**User Input**: "yes begin"
+**AI Response**: Recorded U6 Code Generation plan approval. Implemented Part 2: GalleriesTable + routes + galleries-db, photos-api handlers, client helpers, GalleryAdminPanel + hub tab, ApiGalleries* public UI, CF rewrite, migrate-galleries.js. npm run build succeeded with NEXT_PUBLIC_PHOTO_API_URL. Wrote code-summary.md; plan checkboxes complete. Presenting Code Generation Complete - U6 gate.
+**Approval Prompt**: "Code Generation Complete - U6. Request Changes or Continue to Next Stage (U7 Cutover Functional Design)."
+**Context**: CONSTRUCTION — U6 Code Generation Part 2 approval gate.
+
+---

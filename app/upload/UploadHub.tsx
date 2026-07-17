@@ -11,10 +11,11 @@ import {
 } from "@/lib/photos-api";
 import UploadForm from "./UploadForm";
 import PhotoEditPanel from "./PhotoEditPanel";
+import GalleryAdminPanel from "./GalleryAdminPanel";
 
 const labelStyle = { fontFamily: "system-ui, -apple-system, sans-serif" };
 
-type Tab = "upload" | "edit";
+type Tab = "upload" | "edit" | "galleries";
 
 function UploadHubInner() {
   const formId = useId();
@@ -132,6 +133,20 @@ function UploadHubInner() {
           >
             Edit
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "galleries"}
+            onClick={() => setTab("galleries")}
+            className={`px-4 py-2 text-sm tracking-wide transition-colors ${
+              tab === "galleries"
+                ? "bg-charcoal text-cream"
+                : "text-charcoal border border-gray/30 hover:bg-charcoal/5"
+            }`}
+            style={labelStyle}
+          >
+            Galleries
+          </button>
         </div>
         <button
           type="button"
@@ -149,14 +164,18 @@ function UploadHubInner() {
         </p>
       )}
 
-      {tab === "upload" ? (
+      {tab === "upload" && (
         <UploadForm token={token} onSessionExpired={handleSessionExpired} />
-      ) : (
+      )}
+      {tab === "edit" && (
         <PhotoEditPanel
           token={token}
           initialEditId={editParam}
           onSessionExpired={handleSessionExpired}
         />
+      )}
+      {tab === "galleries" && (
+        <GalleryAdminPanel token={token} onSessionExpired={handleSessionExpired} />
       )}
     </div>
   );

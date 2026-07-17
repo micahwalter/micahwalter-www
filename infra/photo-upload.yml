@@ -43,6 +43,11 @@ Parameters:
     Default: micahwalter-photos
     Description: DynamoDB table for photo metadata
 
+  GalleriesTableName:
+    Type: String
+    Default: micahwalter-galleries
+    Description: DynamoDB table for gallery definitions
+
 Resources:
 
   UploadsBucket:
@@ -121,6 +126,21 @@ Resources:
         - { Key: Project, Value: micahwalter-photo-upload }
         - { Key: ManagedBy, Value: CloudFormation }
 
+  GalleriesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref GalleriesTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: slug, AttributeType: S }
+      KeySchema:
+        - { AttributeName: slug, KeyType: HASH }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - { Key: Project, Value: micahwalter-photo-upload }
+        - { Key: ManagedBy, Value: CloudFormation }
+
   PhotoEventBus:
     Type: AWS::Events::EventBus
     Properties:
@@ -156,6 +176,10 @@ Resources:
     DependsOn:
       - AuthRoute
       - InitRoute
+      - GalleriesListRoute
+      - GalleriesCreateRoute
+      - GalleriesGetRoute
+      - GalleriesPatchRoute
       - PhotosListRoute
       - PhotosFeaturedRoute
       - PhotosGetRoute
@@ -296,6 +320,14 @@ Resources:
                 Resource:
                   - !GetAtt PhotosTable.Arn
                   - !Sub ${PhotosTable.Arn}/index/*
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:Scan
+                Resource:
+                  - !GetAtt GalleriesTable.Arn
 
   AuthFn:
     Type: AWS::Lambda::Function
@@ -381,6 +413,7 @@ Resources:
         Variables:
           SECRET_ARN: !Ref PhotoUploadSecret
           PHOTOS_TABLE: !Ref PhotosTable
+          GALLERIES_TABLE: !Ref GalleriesTable
 
   PhotosPlaceIndex:
     Type: AWS::Location::PlaceIndex
@@ -524,6 +557,35 @@ Resources:
       Target: !Sub integrations/${InitIntegration}
 
   # Routes are relative to ApiMappingKey `photos` → https://api.micahwalter.com/photos/...
+  # Gallery routes must be registered so GET /{id} never treats "galleries" as a photo id.
+  GalleriesListRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PhotoApi
+      RouteKey: GET /galleries
+      Target: !Sub integrations/${PhotosApiIntegration}
+
+  GalleriesCreateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PhotoApi
+      RouteKey: POST /galleries
+      Target: !Sub integrations/${PhotosApiIntegration}
+
+  GalleriesGetRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PhotoApi
+      RouteKey: GET /galleries/{slug}
+      Target: !Sub integrations/${PhotosApiIntegration}
+
+  GalleriesPatchRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PhotoApi
+      RouteKey: PATCH /galleries/{slug}
+      Target: !Sub integrations/${PhotosApiIntegration}
+
   # Bare /photos (no trailing slash) does not match GET /; $default covers that case.
   PhotosListRoute:
     Type: AWS::ApiGatewayV2::Route

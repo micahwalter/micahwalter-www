@@ -558,6 +558,8 @@ Resources:
             Resource:
               - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-photos'
               - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-photos/index/*'
+              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-galleries'
+              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-galleries/index/*'
           - Effect: Allow
             Action:
               - events:CreateEventBus

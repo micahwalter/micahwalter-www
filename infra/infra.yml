@@ -329,6 +329,13 @@ Resources:
             return request;
           }
 
+          // Static-export shell for API galleries: /galleries/<slug> → placeholder
+          var galleryShell = rewriteGalleryDetailShell(uri);
+          if (galleryShell) {
+            request.uri = galleryShell;
+            return request;
+          }
+
           if (uri === '/' || uri === '') {
             request.uri = '/index.html';
           } else {
@@ -373,6 +380,26 @@ Resources:
           var parts = path.split('/');
           if (parts.length === 2 && parts[0] === 'photos' && isAllDigits(parts[1])) {
             return '/photos/0.html';
+          }
+          return null;
+        }
+
+        function rewriteGalleryDetailShell(uri) {
+          var path = uri;
+          if (path.charAt(0) === '/') {
+            path = path.slice(1);
+          }
+          if (path.endsWith('/')) {
+            path = path.slice(0, -1);
+          }
+          var parts = path.split('/');
+          if (
+            parts.length === 2 &&
+            parts[0] === 'galleries' &&
+            parts[1] &&
+            parts[1] !== '_placeholder'
+          ) {
+            return '/galleries/_placeholder.html';
           }
           return null;
         }

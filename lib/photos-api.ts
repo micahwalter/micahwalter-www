@@ -299,3 +299,137 @@ export function parseTagsInput(value: string): string[] {
     .map((t) => t.trim())
     .filter(Boolean);
 }
+
+export type PublicGallery = {
+  slug: string;
+  title: string;
+  description?: string;
+  coverPhotoId?: string | number | null;
+  publishedAt: string;
+  photoIds: (string | number)[];
+  draft?: boolean;
+  content?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export async function listGalleries(opts?: {
+  includeDrafts?: boolean;
+  token?: string;
+}): Promise<PublicGallery[]> {
+  const params = new URLSearchParams();
+  const headers: Record<string, string> = {};
+  if (opts?.includeDrafts) {
+    params.set("all", "1");
+    if (opts.token) headers.Authorization = `Bearer ${opts.token}`;
+  }
+  const qs = params.toString();
+  const res = await fetch(
+    `${getPhotoApiBase()}/galleries${qs ? `?${qs}` : ""}`,
+    { headers },
+  );
+  const data = await readJson<{ items: PublicGallery[] }>(res);
+  return data.items || [];
+}
+
+export async function getGallery(slug: string): Promise<PublicGallery> {
+  const res = await fetch(`${getPhotoApiBase()}/galleries/${encodeURIComponent(slug)}`);
+  return readJson<PublicGallery>(res);
+}
+
+export async function createGallery(
+  input: {
+    slug: string;
+    title: string;
+    description?: string;
+    coverPhotoId?: string | null;
+    publishedAt?: string;
+    photoIds?: (string | number)[];
+    draft?: boolean;
+    content?: string;
+  },
+  token: string,
+): Promise<PublicGallery> {
+  const res = await fetch(`${getPhotoApiBase()}/galleries`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ ...input, token }),
+  });
+  if (!res.ok) {
+    throw new PhotoApiError(
+      res.status === 401
+        ? "Your session expired. Please enter the passcode again."
+        : res.status === 409
+          ? "A gallery with that slug already exists."
+          : "Could not create gallery.",
+      res.status,
+    );
+  }
+  return res.json() as Promise<PublicGallery>;
+}
+
+export async function updateGallery(
+  slug: string,
+  patch: {
+    title?: string;
+    description?: string;
+    coverPhotoId?: string | null;
+    publishedAt?: string;
+    photoIds?: (string | number)[];
+    draft?: boolean;
+    content?: string;
+  },
+  token: string,
+): Promise<PublicGallery> {
+  const res = await fetch(`${getPhotoApiBase()}/galleries/${encodeURIComponent(slug)}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ ...patch, token }),
+  });
+  if (!res.ok) {
+    throw new PhotoApiError(
+      res.status === 401
+        ? "Your session expired. Please enter the passcode again."
+        : res.status === 404
+          ? "Gallery not found."
+          : "Could not save gallery.",
+      res.status,
+    );
+  }
+  return res.json() as Promise<PublicGallery>;
+}
+
+/** Resolve photo ids with modest concurrency; skip missing. */
+export async function resolveGalleryPhotos(
+  photoIds: (string | number)[],
+  concurrency = 4,
+): Promise<PublicPhoto[]> {
+  const ids = photoIds.map(String).filter(Boolean);
+  const out: PublicPhoto[] = [];
+  let i = 0;
+
+  async function worker() {
+    while (i < ids.length) {
+      const id = ids[i++];
+      try {
+        out.push(await getPhoto(id));
+      } catch {
+        /* skip missing */
+      }
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, ids.length || 1) }, () => worker()),
+  );
+
+  // Preserve membership order
+  const byId = new Map(out.map((p) => [photoIdString(p), p]));
+  return ids.map((id) => byId.get(id)).filter((p): p is PublicPhoto => !!p);
+}
