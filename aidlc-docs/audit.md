@@ -983,3 +983,12 @@
 **Context**: CONSTRUCTION — U7 NFR Design approval gate.
 
 ---
+
+## Issues #103 / #104 — U7 NFR Design Approved → Infrastructure Design Generated
+**Timestamp**: 2026-07-17T01:20:21Z
+**User Input**: "approved"
+**AI Response**: Recorded U7 NFR Design approval. Derived Infrastructure Design (migrate-photos/cleanup scripts, PhotosCLI→API, FeedPublisher EventBridge+Lambda→website S3 artifacts, photo-upload-secondary us-east-2 tickets-style, secrets ReplicaRegions, process GitHub-commit removal). Generated infrastructure-design + deployment-architecture. Presenting Infrastructure Design Complete - U7 gate for Continue to Code Generation or Request Changes.
+**Approval Prompt**: "Infrastructure Design Complete - U7. Request Changes or Continue to Next Stage (Code Generation)."
+**Context**: CONSTRUCTION — U7 Infrastructure Design approval gate.
+
+---
