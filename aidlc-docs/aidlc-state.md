@@ -3,10 +3,9 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-07-17T14:56:46Z
-- **Current Stage**: CONSTRUCTION — Code Generation (awaiting approval)
-- **Engagement**: Post-cutover photo UX polish
-- **Unit**: photo-ux-polish
-- **Branch**: cursor/photo-ux-polish-be02
+- **Current Stage**: OPERATIONS — Complete (placeholder handoff)
+- **Engagement Status**: Complete — photo UX polish shipped (PR #115)
+- **Production sign-off**: 2026-07-17 (user: merged, deployed, looks good)
 
 ## Extension Configuration
 | Extension | Enabled | Decided At |
@@ -31,8 +30,8 @@
 - [x] NFR Requirements — SKIP
 - [x] NFR Design — SKIP
 - [x] Infrastructure Design — SKIP
-- [x] Code Generation — Part 2 complete (awaiting approval)
-- [ ] Build and Test — next after Code Generation approval
+- [x] Code Generation (PR #115)
+- [x] Build and Test (approved → Operations)
 
 ### 🟡 OPERATIONS PHASE
-- [ ] Operations — PLACEHOLDER
+- [x] Operations — PLACEHOLDER (handoff documented)
