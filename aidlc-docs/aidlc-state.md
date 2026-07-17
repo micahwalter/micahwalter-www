@@ -3,17 +3,17 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-07-16T15:24:00Z
-- **Current Stage**: CONSTRUCTION — U6 Code Generation Part 2 complete (awaiting approval)
+- **Current Stage**: CONSTRUCTION — U7 Functional Design (awaiting approval)
 - **Engagement Status**: In progress
 - **Branch:** `cursor/u2-enrichment-functional-design-be02`
 
 ## Active Engagement — Issues #103 / #104
-- **Current unit:** U6 Galleries — Code Generation complete, awaiting approval
-- **CG plan:** `aidlc-docs/construction/plans/u6-galleries-code-generation-plan.md`
-- **Code summary:** `aidlc-docs/construction/u6-galleries/code/code-summary.md`
-- **Stories:** US-011, US-012
-- **Next:** Approve U6 Code Gen → U7 Cutover Functional Design
-- **Deploy pending:** photo-upload stack (galleries table/routes), github-actions IAM if needed, infra CF Function, `migrate-galleries.js --apply`
+- **Current unit:** U7 Cutover — Functional Design complete, awaiting approval
+- **FD artifacts:** `aidlc-docs/construction/u7-cutover/functional-design/`
+- **FD plan:** `aidlc-docs/construction/plans/u7-cutover-functional-design-plan.md`
+- **Stories:** US-006, US-013, US-014, US-015, US-016
+- **Next:** Approve U7 FD → NFR Requirements
+- **U6 deploy pending:** photo-upload stack, CF Function, `migrate-galleries.js --apply`
 
 ## Extension Configuration
 | Extension | Enabled | Notes |
@@ -27,15 +27,15 @@
 ### INCEPTION
 - [x] All inception stages approved
 
-### CONSTRUCTION — U1–U5
-- [x] Complete through U5 Code Generation (approved)
+### CONSTRUCTION — U1–U6
+- [x] Complete through U6 Code Generation (approved; committed `c140849`)
 
-### CONSTRUCTION — U6 Galleries
-- [x] Functional Design (approved)
-- [x] NFR Requirements (approved)
-- [x] NFR Design (approved)
-- [x] Infrastructure Design (approved)
-- [x] Code Generation (Part 2 complete — awaiting approval)
+### CONSTRUCTION — U7 Cutover
+- [x] Functional Design (derived locks — awaiting approval)
+- [ ] NFR Requirements
+- [ ] NFR Design
+- [ ] Infrastructure Design
+- [ ] Code Generation
 
-### CONSTRUCTION — U7 + Build and Test
+### CONSTRUCTION — Build and Test
 - [ ] Pending
