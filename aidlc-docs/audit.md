@@ -612,3 +612,418 @@
 **Context**: U1 data plane live in AWS; code/route fixes pending PR.
 
 ---
+
+## Issues #103 / #104 — Continue to U2 Functional Design
+**Timestamp**: 2026-07-16T19:57:30Z
+**User Input**: "lets continue to u2"
+**AI Response**: Approved U1 CG Continue. Started U2 Enrichment Functional Design. Created u2-enrichment-functional-design-plan.md with 12 clarification questions. Awaiting answers before generating FD artifacts.
+**Context**: CONSTRUCTION — U2 Functional Design Step 2–4 (plan + questions gate). Extensions remain disabled.
+
+---
+
+## Issues #103 / #104 — U2 Functional Design Answers + Artifacts
+**Timestamp**: 2026-07-16T20:03:00Z
+**User Input**: "done"
+**AI Response**: Validated Q1–Q12 answers (all clear, no follow-ups). Generated u2-enrichment/functional-design/{domain-entities,business-rules,business-logic-model}.md. Presenting Functional Design completion for Continue to NFR Requirements or Request Changes.
+**Approval Prompt**: "Functional Design Complete - U2. Request Changes or Continue to Next Stage (NFR Requirements)."
+**Context**: CONSTRUCTION — U2 Functional Design approval gate.
+
+---
+
+## Issues #103 / #104 — U2 Functional Design Approved → NFR Requirements
+**Timestamp**: 2026-07-16T20:05:00Z
+**User Input**: "approved"
+**AI Response**: Recorded U2 Functional Design approval. Started U2 NFR Requirements; created u2-enrichment-nfr-requirements-plan.md with 10 clarification questions. Awaiting answers.
+**Context**: CONSTRUCTION — U2 NFR Requirements Step 2–4 (plan + questions gate).
+
+---
+
+## Issues #103 / #104 — U2 NFR Requirements Artifacts
+**Timestamp**: 2026-07-16T20:10:00Z
+**User Input**: "done"
+**AI Response**: Validated NFR Q1–Q10 (clear). Generated u2-enrichment/nfr-requirements/{nfr-requirements,tech-stack-decisions}.md. Notable: no enricher DLQ (EventBridge archive/replay); 60s/1024MB; soft-fail providers; logs-only observability. Presenting NFR Requirements completion for Continue to NFR Design or Request Changes.
+**Approval Prompt**: "NFR Requirements Complete - U2. Request Changes or Continue to Next Stage (NFR Design)."
+**Context**: CONSTRUCTION — U2 NFR Requirements approval gate.
+
+---
+
+## Issues #103 / #104 — U2 NFR Requirements Approved → NFR Design
+**Timestamp**: 2026-07-16T20:33:00Z
+**User Input**: "Approved"
+**AI Response**: Recorded U2 NFR Requirements approval. Started U2 NFR Design; created u2-enrichment-nfr-design-plan.md with 7 clarification questions. Awaiting answers.
+**Context**: CONSTRUCTION — U2 NFR Design Step 2–4 (plan + questions gate).
+
+---
+
+## Issues #103 / #104 — U2 NFR Design Answers + Artifacts
+**Timestamp**: 2026-07-16T20:37:00Z
+**User Input**: "1.A\n2.A\n3.A\n4. A\n5.A\n6.A\n7.A"
+**AI Response**: Recorded all-A answers into plan. Generated nfr-design-patterns.md and logical-components.md. Presenting NFR Design completion for Continue to Infrastructure Design or Request Changes.
+**Approval Prompt**: "NFR Design Complete - U2. Request Changes or Continue to Next Stage (Infrastructure Design)."
+**Context**: CONSTRUCTION — U2 NFR Design approval gate. Answers collected via chat (user could not open plan file).
+
+---
+
+## Issues #103 / #104 — U2 NFR Design Approved → Infrastructure Design
+**Timestamp**: 2026-07-16T20:38:00Z
+**User Input**: "Approved"
+**AI Response**: Recorded U2 NFR Design approval. Started Infrastructure Design; created u2-enrichment-infrastructure-design-plan.md with 8 questions; printed questions in chat for accessibility.
+**Context**: CONSTRUCTION — U2 Infrastructure Design Step 2–4 (plan + questions gate).
+
+---
+
+## Issues #103 / #104 — U2 Infrastructure Design Answers + Artifacts
+**Timestamp**: 2026-07-16T20:42:00Z
+**User Input**: "All A for all questions"
+**AI Response**: Locked Q1–Q8=A. Generated infrastructure-design.md and deployment-architecture.md. Presenting Infrastructure Design completion for Continue to Code Generation or Request Changes.
+**Approval Prompt**: "Infrastructure Design Complete - U2. Request Changes or Continue to Next Stage (Code Generation)."
+**Context**: CONSTRUCTION — U2 Infrastructure Design approval gate.
+
+---
+
+## Issues #103 / #104 — U2 Infrastructure Design Approved → Code Generation Plan
+**Timestamp**: 2026-07-16T20:43:00Z
+**User Input**: "Approved"
+**AI Response**: Recorded Infrastructure Design approval. Created u2-enrichment-code-generation-plan.md (12 steps). Presenting plan for explicit approval before Part 2 implementation.
+**Approval Prompt**: "Approve U2 Code Generation plan to begin implementation?"
+**Context**: CONSTRUCTION — U2 Code Generation Part 1 (Planning) approval gate.
+
+---
+
+## Issues #103 / #104 — U2 Code Generation Plan Approved → Part 2
+**Timestamp**: 2026-07-16T20:44:00Z
+**User Input**: "Approved"
+**AI Response**: Code Generation plan approved. Beginning Part 2 implementation of U2 enrichment (helpers, enrich handler, CFN, CI IAM, docs).
+**Context**: CONSTRUCTION — U2 Code Generation Part 2 execution.
+
+---
+
+## Issues #103 / #104 — U2 Code Generation Implementation Complete
+**Timestamp**: 2026-07-16T20:50:00Z
+**User Input**: "(pending Continue)"
+**AI Response**: Implemented U2 enricher (GPS/Location/Bedrock), CFN rule+archive+Place Index, CI IAM/workflow, DTO city/country. Local require() OK. Presenting Code Generation completion for Continue to U3 or Request Changes.
+**Approval Prompt**: "Code Generation Complete - U2. Request Changes or Continue to Next Stage (U3 Upload UI Functional Design)."
+**Context**: CONSTRUCTION — U2 Code Generation approval gate.
+
+---
+
+## Issues #103 / #104 — U2 Code Generation Approved → U3 Functional Design
+**Timestamp**: 2026-07-16T21:19:00Z
+**User Input**: "Approved"
+**AI Response**: Recorded U2 CG approval. Started U3 Upload UI Functional Design (light). Created u3-upload-ui-functional-design-plan.md with 8 questions; printing questions in chat.
+**Context**: CONSTRUCTION — U3 Functional Design Step 2–4. NFR/Infra skipped per unit plan unless answers require otherwise.
+
+---
+
+## Issues #103 / #104 — U3 Functional Design Answers + Artifacts
+**Timestamp**: 2026-07-16T21:26:00Z
+**User Input**: "All A"
+**AI Response**: Locked Q1–Q8=A. Generated u3-upload-ui/functional-design artifacts. Presenting FD completion for Continue to Code Generation or Request Changes.
+**Approval Prompt**: "Functional Design Complete - U3. Request Changes or Continue to Next Stage (Code Generation)."
+**Context**: CONSTRUCTION — U3 Functional Design approval gate. NFR/Infra skipped.
+
+---
+
+## Issues #103 / #104 — U3 Functional Design Approved → Code Generation Plan
+**Timestamp**: 2026-07-16T21:28:00Z
+**User Input**: "Approved"
+**AI Response**: Recorded U3 FD approval. Created u3-upload-ui-code-generation-plan.md (5 steps). Presenting plan for explicit approval before Part 2.
+**Approval Prompt**: "Approve U3 Code Generation plan to begin implementation?"
+**Context**: CONSTRUCTION — U3 Code Generation Part 1 (Planning) approval gate.
+
+---
+
+## Issues #103 / #104 — U3 Code Generation Plan Approved → Part 2
+**Timestamp**: 2026-07-16T22:39:00Z
+**User Input**: "Approve"
+**AI Response**: Code Generation plan approved. Implementing photos-api.ts, multi-file UploadForm, page copy, code-summary.
+**Context**: CONSTRUCTION — U3 Code Generation Part 2 execution.
+
+---
+
+## Issues #103 / #104 — U3 Code Generation Implementation Complete
+**Timestamp**: 2026-07-16T22:45:00Z
+**User Input**: "(pending Continue)"
+**AI Response**: Implemented lib/photos-api.ts, multi-file UploadForm, page copy, code-summary. npm run build succeeded (/upload). Presenting Code Generation completion. Note: git push failed (GitHub token auth); commits are local until push succeeds.
+**Approval Prompt**: "Code Generation Complete - U3. Request Changes or Continue to Next Stage (U4 Browse & detail Functional Design)."
+**Context**: CONSTRUCTION — U3 Code Generation approval gate.
+
+---
+
+## Issues #103 / #104 — U3 Code Generation Approved → U4 Functional Design
+**Timestamp**: 2026-07-16T23:02:00Z
+**User Input**: "Approve"
+**AI Response**: Recorded U3 CG approval. Started U4 Browse & detail Functional Design plan with 8 questions; printing in chat. Git push still blocked (invalid gh token); commits remain local ahead of origin.
+**Context**: CONSTRUCTION — U4 Functional Design Step 2–4.
+
+---
+
+## Issues #103 / #104 — U4 Functional Design Questions Ready
+**Timestamp**: 2026-07-16T23:23:41Z
+**User Input**: "(awaiting answers to u4-browse-detail-functional-design-plan.md)"
+**AI Response**: Confirmed U3 approved and U4 FD plan on disk (8 questions). Updated aidlc-state for U3 complete / U4 FD awaiting answers. Presenting question file path for user answers (file or chat shorthand like All A / 1A 2B…).
+**Context**: CONSTRUCTION — U4 Functional Design Step 5 (collect answers).
+
+---
+
+## Issues #103 / #104 — U4 FD: user noted prior answers; locked overlaps
+**Timestamp**: 2026-07-17T00:02:48Z
+**User Input**: "I thought I already answered these"
+**AI Response**: Confirmed overlap with Requirements/App Design. Locked U4 Q1/Q5/Q6/Q7/Q8 from prior decisions. Narrowed plan to 3 open questions (Q2 markdown fallback, Q3 map provider, Q4 redirect implementation). Updated u4-browse-detail-functional-design-plan.md.
+**Context**: CONSTRUCTION — U4 Functional Design Step 5 (collect remaining answers).
+
+---
+
+## Issues #103 / #104 — U4 Functional Design Generated
+**Timestamp**: 2026-07-17T00:03:53Z
+**User Input**: "2 A, 3 B, 4 A"
+**AI Response**: Locked Q2=A (API-only), Q3=B (OSM static map), Q4=A (CF Function). Generated u4-browse-detail/functional-design/{domain-entities,business-rules,business-logic-model,frontend-components}.md. Presenting FD completion for Continue to NFR Requirements or Request Changes.
+**Approval Prompt**: "Functional Design Complete - U4. Request Changes or Continue to Next Stage (NFR Requirements)."
+**Context**: CONSTRUCTION — U4 Functional Design approval gate.
+
+---
+
+## Issues #103 / #104 — U4 Functional Design Approved → NFR Requirements
+**Timestamp**: 2026-07-17T00:05:05Z
+**User Input**: "Approved"
+**AI Response**: Recorded U4 FD approval. Created u4-browse-detail-nfr-requirements-plan.md with 6 focused questions (inherited NFRs locked; no re-ask of FD decisions). Presenting questions for answers.
+**Context**: CONSTRUCTION — U4 NFR Requirements Step 2–4.
+
+---
+
+## Issues #103 / #104 — U4 NFR Requirements Generated
+**Timestamp**: 2026-07-17T00:07:57Z
+**User Input**: "All A"
+**AI Response**: Locked NFR Q1–Q6=A. Generated u4-browse-detail/nfr-requirements/{nfr-requirements,tech-stack-decisions}.md. Presenting NFR Requirements completion for Continue to NFR Design or Request Changes.
+**Approval Prompt**: "NFR Requirements Complete - U4. Request Changes or Continue to Next Stage (NFR Design)."
+**Context**: CONSTRUCTION — U4 NFR Requirements approval gate.
+
+---
+
+## Issues #103 / #104 — U4 NFR Requirements Approved → NFR Design
+**Timestamp**: 2026-07-17T00:18:49Z
+**User Input**: "Approved "
+**AI Response**: Recorded U4 NFR Requirements approval. Created u4-browse-detail-nfr-design-plan.md with 6 pattern questions. Presenting for answers.
+**Context**: CONSTRUCTION — U4 NFR Design Step 2–4.
+
+---
+
+## Issues #103 / #104 — U4 NFR Design Generated (derived locks)
+**Timestamp**: 2026-07-17T00:19:41Z
+**User Input**: "I’ve already answered all these"
+**AI Response**: Confirmed overlap with approved NFR Requirements/FD/issue-90. Locked Q1–Q6=A from prior decisions (no re-ask). Generated u4-browse-detail/nfr-design/{nfr-design-patterns,logical-components}.md. Presenting NFR Design completion for Continue to Infrastructure Design or Request Changes.
+**Approval Prompt**: "NFR Design Complete - U4. Request Changes or Continue to Next Stage (Infrastructure Design)."
+**Context**: CONSTRUCTION — U4 NFR Design approval gate.
+
+---
+
+## Issues #103 / #104 — U4 NFR Design Approved → Infrastructure Design
+**Timestamp**: 2026-07-17T00:20:23Z
+**User Input**: "Approved "
+**AI Response**: Recorded U4 NFR Design approval. Derived infra category locks from prior decisions (no re-ask). Generated u4-browse-detail/infrastructure-design/{infrastructure-design,deployment-architecture}.md. Presenting Infrastructure Design completion for Continue to Code Generation or Request Changes.
+**Approval Prompt**: "Infrastructure Design Complete - U4. Request Changes or Continue to Next Stage (Code Generation)."
+**Context**: CONSTRUCTION — U4 Infrastructure Design approval gate.
+
+---
+
+## Issues #103 / #104 — U4 Infrastructure Design Approved → Code Generation Plan
+**Timestamp**: 2026-07-17T00:21:09Z
+**User Input**: "Approved"
+**AI Response**: Recorded U4 Infrastructure Design approval. Created u4-browse-detail-code-generation-plan.md (9 steps: photos-api reads, mosaic, homepage, grid, detail, search, CF redirect, summary, build). Presenting plan for explicit approval before Part 2.
+**Approval Prompt**: "Approve U4 Code Generation plan to begin implementation?"
+**Context**: CONSTRUCTION — U4 Code Generation Part 1 (Planning) approval gate.
+
+---
+
+## Issues #103 / #104 — U4 Code Generation Plan Approved → Commit then Part 2
+**Timestamp**: 2026-07-17T00:21:59Z
+**User Input**: "Yes do a commit first and then implement"
+**AI Response**: CG plan approved. Committing U4 design/plan docs, then executing Part 2 implementation steps 1–9.
+**Context**: CONSTRUCTION — U4 Code Generation Part 2 (after docs commit).
+
+---
+
+## Issues #103 / #104 — U4 Code Generation Implementation Complete
+**Timestamp**: 2026-07-17T00:25:33Z
+**User Input**: "(pending Continue)"
+**AI Response**: Implemented photos-api reads, HomePhotos, PhotosGrid, ApiPhotoDetail/map, SearchBar photo merge, CF Function redirects+shell rewrite, local numeric /posts redirect. npm run build succeeded (/photos, /photos/0). Presenting Code Generation completion. Note: infra.yml deploy required for prod CF behavior; do not commit mastodon.json.
+**Approval Prompt**: "Code Generation Complete - U4. Request Changes or Continue to Next Stage (U5 Edit UI Functional Design)."
+**Context**: CONSTRUCTION — U4 Code Generation approval gate.
+
+---
+
+## Issues #103 / #104 — U4 Code Generation Approved → U5 Functional Design
+**Timestamp**: 2026-07-17T00:29:37Z
+**User Input**: "Approved "
+**AI Response**: Recorded U4 CG approval. Started U5 Edit UI Functional Design (light; NFR/Infra skipped). Created u5-edit-ui-functional-design-plan.md with 6 questions; locked hub+shortcut/auth/fields from prior decisions.
+**Context**: CONSTRUCTION — U5 Functional Design Step 2–4.
+
+---
+
+## Issues #103 / #104 — U5 Functional Design Generated (derived locks)
+**Timestamp**: 2026-07-17T00:30:49Z
+**User Input**: "I already answered most of these"
+**AI Response**: Locked Q1–Q6=A from App Design/US-005 (hub editor, multi-edit list, comma tags default, shared session, detail→hub, no draft). Generated u5-edit-ui/functional-design artifacts. Presenting FD completion for Continue to Code Generation or Request Changes.
+**Approval Prompt**: "Functional Design Complete - U5. Request Changes or Continue to Next Stage (Code Generation)."
+**Context**: CONSTRUCTION — U5 Functional Design approval gate.
+
+---
+
+## Issues #103 / #104 — U5 Functional Design Approved → Code Generation Plan
+**Timestamp**: 2026-07-17T00:31:31Z
+**User Input**: "approved "
+**AI Response**: Recorded U5 FD approval. Created u5-edit-ui-code-generation-plan.md (6 steps). Presenting plan for explicit approval before Part 2.
+**Approval Prompt**: "Approve U5 Code Generation plan to begin implementation?"
+**Context**: CONSTRUCTION — U5 Code Generation Part 1 (Planning) approval gate.
+
+---
+
+## Issues #103 / #104 — U5 Code Generation Implementation Complete
+**Timestamp**: 2026-07-17T00:32:29Z
+**User Input**: "Approved "
+**AI Response**: Implemented updatePhoto + sessionStorage, UploadHub (Upload|Edit), PhotoEditPanel, detail Edit shortcut. npm run build succeeded. Presenting Code Generation completion for Continue to U6 or Request Changes.
+**Approval Prompt**: "Code Generation Complete - U5. Request Changes or Continue to Next Stage (U6 Galleries Functional Design)."
+**Context**: CONSTRUCTION — U5 Code Generation approval gate.
+
+---
+
+## Issues #103 / #104 — U5 Code Generation Approved → U6 Functional Design
+**Timestamp**: 2026-07-17T00:37:11Z
+**User Input**: "Approved"
+**AI Response**: Recorded U5 CG approval. Started U6 Galleries Functional Design plan with 6 questions; locked DynamoDB/hub/auth/migrate/client-fetch from prior decisions.
+**Context**: CONSTRUCTION — U6 Functional Design Step 2–4.
+
+---
+
+## Issues #103 / #104 — U6 Functional Design Generated
+**Timestamp**: 2026-07-17T00:38:19Z
+**User Input**: "All A"
+**AI Response**: Locked Q1–Q6=A. Generated u6-galleries/functional-design artifacts. Presenting FD completion for Continue to NFR Requirements or Request Changes.
+**Approval Prompt**: "Functional Design Complete - U6. Request Changes or Continue to Next Stage (NFR Requirements)."
+**Context**: CONSTRUCTION — U6 Functional Design approval gate.
+
+---
+
+## Issues #103 / #104 — U6 Functional Design Approved → NFR Requirements
+**Timestamp**: 2026-07-17T00:39:18Z
+**User Input**: "Approved"
+**AI Response**: Recorded U6 FD approval. Created u6-galleries-nfr-requirements-plan.md with 6 questions (inherited U1/U4 locks noted).
+**Context**: CONSTRUCTION — U6 NFR Requirements Step 2–4.
+
+---
+
+## Issues #103 / #104 — U6 NFR Requirements Generated (derived locks)
+**Timestamp**: 2026-07-17T00:58:44Z
+**User Input**: "Again, I already answered these questions"
+**AI Response**: Confirmed overlap with U1/App Design/FD. Locked Q1–Q6=A from prior decisions. Generated u6-galleries/nfr-requirements artifacts. Presenting NFR Requirements completion for Continue to NFR Design or Request Changes.
+**Approval Prompt**: "NFR Requirements Complete - U6. Request Changes or Continue to Next Stage (NFR Design)."
+**Context**: CONSTRUCTION — U6 NFR Requirements approval gate.
+
+---
+
+## Issues #103 / #104 — U6 NFR Design Generated (derived locks)
+**Timestamp**: 2026-07-17T00:59:45Z
+**User Input**: "Approved"
+**AI Response**: Recorded U6 NFR Requirements approval. Derived NFR Design from U1/U4/U6 NFR locks (no re-ask). Generated u6-galleries/nfr-design/{nfr-design-patterns,logical-components}.md. Presenting NFR Design completion for Continue to Infrastructure Design or Request Changes.
+**Approval Prompt**: "NFR Design Complete - U6. Request Changes or Continue to Next Stage (Infrastructure Design)."
+**Context**: CONSTRUCTION — U6 NFR Design approval gate.
+
+---
+
+## Issues #103 / #104 — U6 Infrastructure Design Generated (derived locks)
+**Timestamp**: 2026-07-17T01:00:45Z
+**User Input**: "Approved "
+**AI Response**: Recorded U6 NFR Design approval. Derived Infrastructure Design (galleries table, photos-api routes before GET /{id}, migrator, hub/public UI). Generated u6-galleries/infrastructure-design artifacts. Presenting for Continue to Code Generation or Request Changes.
+**Approval Prompt**: "Infrastructure Design Complete - U6. Request Changes or Continue to Next Stage (Code Generation)."
+**Context**: CONSTRUCTION — U6 Infrastructure Design approval gate.
+
+---
+
+## Issues #103 / #104 — U6 Infrastructure Design Approved → Code Generation Plan
+**Timestamp**: 2026-07-17T01:02:16Z
+**User Input**: "approved"
+**AI Response**: Recorded U6 Infrastructure Design approval. Created u6-galleries-code-generation-plan.md (7 steps: CFN/table/routes, Lambda handlers, client API, hub tab, public pages, migrator, verify). Presenting plan for explicit approval before Part 2.
+**Approval Prompt**: "Approve U6 Code Generation plan to begin implementation?"
+**Context**: CONSTRUCTION — U6 Code Generation Part 1 (Planning) approval gate.
+
+---
+
+## Issues #103 / #104 — U6 Code Generation Part 2 Executed
+**Timestamp**: 2026-07-17T01:08:30Z
+**User Input**: "yes begin"
+**AI Response**: Recorded U6 Code Generation plan approval. Implemented Part 2: GalleriesTable + routes + galleries-db, photos-api handlers, client helpers, GalleryAdminPanel + hub tab, ApiGalleries* public UI, CF rewrite, migrate-galleries.js. npm run build succeeded with NEXT_PUBLIC_PHOTO_API_URL. Wrote code-summary.md; plan checkboxes complete. Presenting Code Generation Complete - U6 gate.
+**Approval Prompt**: "Code Generation Complete - U6. Request Changes or Continue to Next Stage (U7 Cutover Functional Design)."
+**Context**: CONSTRUCTION — U6 Code Generation Part 2 approval gate.
+
+---
+
+## Issues #103 / #104 — U6 Code Gen Approved; Commit/Push; U7 FD Generated
+**Timestamp**: 2026-07-17T01:11:18Z
+**User Input**: "commit and push and conitnue to next step"
+**AI Response**: Committed and pushed U6 galleries implementation (`c140849`). Updated PR #110. Started U7 Cutover Functional Design; derived all locks from Requirements/App Design/U1–U6 (no new questions). Generated u7-cutover/functional-design artifacts + plan. Presenting Functional Design Complete - U7 gate for Continue to NFR Requirements or Request Changes.
+**Approval Prompt**: "Functional Design Complete - U7. Request Changes or Continue to Next Stage (NFR Requirements)."
+**Context**: CONSTRUCTION — U7 Functional Design approval gate.
+
+---
+
+## Issues #103 / #104 — U7 FD Approved → NFR Requirements Generated
+**Timestamp**: 2026-07-17T01:16:09Z
+**User Input**: "approved"
+**AI Response**: Recorded U7 Functional Design approval. Derived NFR Requirements from Requirements NFR-1–7, FD, and tickets/images secondary posture (no re-ask). Generated u7-cutover/nfr-requirements/{nfr-requirements,tech-stack-decisions}.md. Multi-region = us-east-2 secondary stack + primary DynamoDB (tickets pattern), feed job primary, migrate/cleanup scripts. Presenting NFR Requirements Complete - U7 gate.
+**Approval Prompt**: "NFR Requirements Complete - U7. Request Changes or Continue to Next Stage (NFR Design)."
+**Context**: CONSTRUCTION — U7 NFR Requirements approval gate.
+
+---
+
+## Issues #103 / #104 — U7 NFR Requirements Approved → NFR Design Generated
+**Timestamp**: 2026-07-17T01:19:29Z
+**User Input**: "approved"
+**AI Response**: Recorded U7 NFR Requirements approval. Derived NFR Design patterns/components (idempotent migrate, soft-fail feeds, tickets-style PhotoUploadSecondary, PhotosCLI, ContentCleanup, ProcessCommitRemover). Generated u7-cutover/nfr-design artifacts. Presenting NFR Design Complete - U7 gate for Continue to Infrastructure Design or Request Changes.
+**Approval Prompt**: "NFR Design Complete - U7. Request Changes or Continue to Next Stage (Infrastructure Design)."
+**Context**: CONSTRUCTION — U7 NFR Design approval gate.
+
+---
+
+## Issues #103 / #104 — U7 NFR Design Approved → Infrastructure Design Generated
+**Timestamp**: 2026-07-17T01:20:21Z
+**User Input**: "approved"
+**AI Response**: Recorded U7 NFR Design approval. Derived Infrastructure Design (migrate-photos/cleanup scripts, PhotosCLI→API, FeedPublisher EventBridge+Lambda→website S3 artifacts, photo-upload-secondary us-east-2 tickets-style, secrets ReplicaRegions, process GitHub-commit removal). Generated infrastructure-design + deployment-architecture. Presenting Infrastructure Design Complete - U7 gate for Continue to Code Generation or Request Changes.
+**Approval Prompt**: "Infrastructure Design Complete - U7. Request Changes or Continue to Next Stage (Code Generation)."
+**Context**: CONSTRUCTION — U7 Infrastructure Design approval gate.
+
+---
+
+## Issues #103 / #104 — U7 Infrastructure Design Approved → Code Generation Plan
+**Timestamp**: 2026-07-17T01:25:39Z
+**User Input**: "approved"
+**AI Response**: Recorded U7 Infrastructure Design approval. Created u7-cutover-code-generation-plan.md (steps A–G: process commit removal + secrets replica, migrate-photos, cleanup-photo-content, CLI→API, FeedPublisher, photo-upload-secondary, docs/verify). Presenting plan for explicit approval before Part 2.
+**Approval Prompt**: "Approve U7 Code Generation plan to begin implementation?"
+**Context**: CONSTRUCTION — U7 Code Generation Part 1 (Planning) approval gate.
+
+---
+
+## Issues #103 / #104 — U7 Code Generation Part 2 Executed
+**Timestamp**: 2026-07-17T01:28:00Z
+**User Input**: "approved"
+**AI Response**: Recorded U7 Code Generation plan approval. Implemented Part 2: removed github.js; secrets ReplicaRegions; migrate-photos + cleanup-photo-content; CLI import/tag → DynamoDB; feed-publisher Lambda + EventBridge; photo-upload-secondary.yml + deploy workflow + IAM; DYNAMODB_REGION support; code-summary + cutover-runbook. migrate-photos dry-run found 44 photos; npm run build succeeded. Presenting Code Generation Complete - U7 gate.
+**Approval Prompt**: "Code Generation Complete - U7. Request Changes or Continue to Next Stage (Build and Test)."
+**Context**: CONSTRUCTION — U7 Code Generation Part 2 approval gate.
+
+---
+
+## Issues #103 / #104 — U7 Code Gen Approved → Build and Test Generated
+**Timestamp**: 2026-07-17T01:51:49Z
+**User Input**: "approved"
+**AI Response**: Recorded U7 Code Generation approval. Generated build-and-test instructions for full U1–U7 photo cutover (build, unit N/A, integration scenarios S1–S9, performance soft smoke, summary). Presenting Build and Test Complete gate for Approve & Continue to Operations or Request Changes.
+**Approval Prompt**: "Build and test instructions complete. Ready to proceed to Operations stage?"
+**Context**: CONSTRUCTION — Build and Test approval gate.
+
+---
+
+## Issues #103 / #104 — Build and Test Approved → Operations Handoff
+**Timestamp**: 2026-07-17T02:03:03Z
+**User Input**: "approved"
+**AI Response**: Recorded Build and Test approval. Operations phase is a placeholder; generated production handoff at aidlc-docs/operations/issue-103-photo-cutover-handoff.md pointing to U7 cutover runbook. Marked engagement construction-complete pending AWS cutover execute.
+**Context**: OPERATIONS — placeholder handoff for Issues #103 / #104.
+
+---

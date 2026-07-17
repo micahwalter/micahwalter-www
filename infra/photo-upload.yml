@@ -43,6 +43,16 @@ Parameters:
     Default: micahwalter-photos
     Description: DynamoDB table for photo metadata
 
+  GalleriesTableName:
+    Type: String
+    Default: micahwalter-galleries
+    Description: DynamoDB table for gallery definitions
+
+  WebsiteBucketName:
+    Type: String
+    Default: micahwalter-www-website
+    Description: Primary website bucket for scheduled photo feed/sitemap artifacts
+
 Resources:
 
   UploadsBucket:
@@ -94,6 +104,8 @@ Resources:
         Photo upload secrets. Populate manually after first deploy:
         {"passcode":"<upload passcode>","hmac":"<random signing key>","ticketsPasscode":"<ticket server passcode>"}
         (githubToken no longer used by process Lambda)
+      ReplicaRegions:
+        - Region: us-east-2
       Tags:
         - { Key: Project, Value: micahwalter-photo-upload }
         - { Key: ManagedBy, Value: CloudFormation }
@@ -115,6 +127,21 @@ Resources:
             - { AttributeName: gsi1pk, KeyType: HASH }
             - { AttributeName: gsi1sk, KeyType: RANGE }
           Projection: { ProjectionType: ALL }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - { Key: Project, Value: micahwalter-photo-upload }
+        - { Key: ManagedBy, Value: CloudFormation }
+
+  GalleriesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref GalleriesTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: slug, AttributeType: S }
+      KeySchema:
+        - { AttributeName: slug, KeyType: HASH }
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
       Tags:
@@ -156,6 +183,10 @@ Resources:
     DependsOn:
       - AuthRoute
       - InitRoute
+      - GalleriesListRoute
+      - GalleriesCreateRoute
+      - GalleriesGetRoute
+      - GalleriesPatchRoute
       - PhotosListRoute
       - PhotosFeaturedRoute
       - PhotosGetRoute
@@ -296,6 +327,14 @@ Resources:
                 Resource:
                   - !GetAtt PhotosTable.Arn
                   - !Sub ${PhotosTable.Arn}/index/*
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:Scan
+                Resource:
+                  - !GetAtt GalleriesTable.Arn
 
   AuthFn:
     Type: AWS::Lambda::Function
@@ -381,6 +420,110 @@ Resources:
         Variables:
           SECRET_ARN: !Ref PhotoUploadSecret
           PHOTOS_TABLE: !Ref PhotosTable
+          GALLERIES_TABLE: !Ref GalleriesTable
+
+  PhotosPlaceIndex:
+    Type: AWS::Location::PlaceIndex
+    Properties:
+      IndexName: micahwalter-photos-place-index
+      DataSource: Esri
+      DataSourceConfiguration:
+        IntendedUse: SingleUse
+      Tags:
+        - { Key: Project, Value: micahwalter-photo-upload }
+        - { Key: ManagedBy, Value: CloudFormation }
+
+  PhotoEventBusArchive:
+    Type: AWS::Events::Archive
+    Properties:
+      ArchiveName: photo-bus-archive
+      Description: Replay window for PhotoPendingEnrichment (U2 recovery)
+      SourceArn: !GetAtt PhotoEventBus.Arn
+      RetentionDays: 14
+
+  EnrichFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: photo-upload-enrich-fn-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: EnrichFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                Resource:
+                  - !GetAtt PhotosTable.Arn
+                  - !Sub ${PhotosTable.Arn}/index/*
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub arn:aws:s3:::${ImagesBucketName}/images/*
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource:
+                  - !Sub arn:aws:bedrock:${AWS::Region}::foundation-model/*
+                  - !Sub arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/*
+              - Effect: Allow
+                Action:
+                  - geo:SearchPlaceIndexForPosition
+                  - geo:DescribePlaceIndex
+                Resource: !GetAtt PhotosPlaceIndex.Arn
+
+  EnrichFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: photo-upload-enrich
+      Runtime: nodejs20.x
+      Architectures: [arm64]
+      Handler: src/enrich.handler
+      Role: !GetAtt EnrichFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/photo-upload.zip
+      Timeout: 60
+      MemorySize: 1024
+      Environment:
+        Variables:
+          PHOTOS_TABLE: !Ref PhotosTable
+          IMAGES_BUCKET: !Ref ImagesBucketName
+          PLACE_INDEX_NAME: !Ref PhotosPlaceIndex
+          BEDROCK_MODEL_ID: us.anthropic.claude-sonnet-4-6
+
+  PhotoPendingEnrichmentRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: photo-pending-enrichment
+      Description: Route PhotoPendingEnrichment events to enricher
+      EventBusName: !Ref PhotoEventBus
+      EventPattern:
+        source:
+          - micahwalter.photos
+        detail-type:
+          - PhotoPendingEnrichment
+      State: ENABLED
+      Targets:
+        - Id: EnrichFnTarget
+          Arn: !GetAtt EnrichFn.Arn
+
+  EnrichFnPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref EnrichFn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt PhotoPendingEnrichmentRule.Arn
 
   AuthIntegration:
     Type: AWS::ApiGatewayV2::Integration
@@ -421,6 +564,35 @@ Resources:
       Target: !Sub integrations/${InitIntegration}
 
   # Routes are relative to ApiMappingKey `photos` → https://api.micahwalter.com/photos/...
+  # Gallery routes must be registered so GET /{id} never treats "galleries" as a photo id.
+  GalleriesListRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PhotoApi
+      RouteKey: GET /galleries
+      Target: !Sub integrations/${PhotosApiIntegration}
+
+  GalleriesCreateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PhotoApi
+      RouteKey: POST /galleries
+      Target: !Sub integrations/${PhotosApiIntegration}
+
+  GalleriesGetRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PhotoApi
+      RouteKey: GET /galleries/{slug}
+      Target: !Sub integrations/${PhotosApiIntegration}
+
+  GalleriesPatchRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PhotoApi
+      RouteKey: PATCH /galleries/{slug}
+      Target: !Sub integrations/${PhotosApiIntegration}
+
   # Bare /photos (no trailing slash) does not match GET /; $default covers that case.
   PhotosListRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -507,6 +679,76 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
+  # --- U7 FeedPublisher (scheduled photo RSS / sitemap artifacts) ---
+
+  FeedPublisherFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: photo-upload-feed-publisher-fn-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: FeedPublisherFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:Query
+                  - dynamodb:GetItem
+                Resource:
+                  - !GetAtt PhotosTable.Arn
+                  - !Sub ${PhotosTable.Arn}/index/*
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:AbortMultipartUpload
+                Resource: !Sub arn:aws:s3:::${WebsiteBucketName}/*
+
+  FeedPublisherFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: photo-upload-feed-publisher
+      Runtime: nodejs20.x
+      Architectures: [arm64]
+      Handler: src/feed-publisher.handler
+      Role: !GetAtt FeedPublisherFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/photo-upload.zip
+      Timeout: 60
+      MemorySize: 256
+      Environment:
+        Variables:
+          PHOTOS_TABLE: !Ref PhotosTable
+          WEBSITE_BUCKET: !Ref WebsiteBucketName
+          SITE_URL: !Ref SiteUrl
+
+  FeedPublisherSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: photo-feed-publisher-hourly
+      Description: Refresh photos-feed.xml and sitemap-photos.xml on the website bucket
+      ScheduleExpression: rate(1 hour)
+      State: ENABLED
+      Targets:
+        - Id: FeedPublisherFn
+          Arn: !GetAtt FeedPublisherFn.Arn
+
+  FeedPublisherSchedulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref FeedPublisherFn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt FeedPublisherSchedule.Arn
+
 Outputs:
 
   ApiEndpoint:
@@ -529,6 +771,18 @@ Outputs:
     Description: DLQ for process Lambda async failures
     Value: !Ref ProcessDlq
 
+  PlaceIndexName:
+    Description: AWS Location Place Index for reverse geocode
+    Value: !Ref PhotosPlaceIndex
+
+  EnrichFnName:
+    Description: Enrichment Lambda function name
+    Value: !Ref EnrichFn
+
   SecretArn:
     Description: Secrets Manager ARN — set passcode / hmac / ticketsPasscode after first deploy
     Value: !Ref PhotoUploadSecret
+
+  FeedPublisherFnName:
+    Description: Scheduled photo feed publisher Lambda
+    Value: !Ref FeedPublisherFn

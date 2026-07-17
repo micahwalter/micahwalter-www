@@ -1,29 +1,37 @@
 /**
- * Import Photos with EXIF Extraction
+ * Import Photos → DynamoDB (API/DB source of truth).
  *
- * Scans a directory for photos, extracts EXIF metadata, and creates
- * photo posts with proper frontmatter and original image files.
+ * Scans a directory for photos, extracts EXIF, allocates ticket ids, writes
+ * PhotoRecords to DynamoDB, and stages the original under content/posts for
+ * blog images:optimize + images:sync (no index.md).
  *
  * Usage:
  *   node scripts/import-photos.js /path/to/photos
  *   node scripts/import-photos.js ~/Desktop/photos --dry-run
- *   node scripts/import-photos.js ./photos --category Photography
+ *   node scripts/import-photos.js ./photos --category Photography --featured
+ *
+ * Env:
+ *   PHOTOS_TABLE (default micahwalter-photos)
+ *   AWS_PROFILE / AWS_REGION
  */
 
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 const ExifReader = require('exifreader');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
 const { allocatePostId } = require('./lib/allocate-post-id');
 
 const POSTS_DIR = path.join(process.cwd(), 'content/posts');
-
-// Supported image formats
+const TABLE = process.env.PHOTOS_TABLE || 'micahwalter-photos';
+const REGION = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1';
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.heic', '.heif'];
 
-/**
- * Parse command line arguments
- */
+const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }), {
+  marshallOptions: { removeUndefinedValues: true },
+});
+
 function parseArgs() {
   const args = process.argv.slice(2);
 
@@ -32,7 +40,7 @@ function parseArgs() {
     process.exit(0);
   }
 
-  const sourcePath = args.find(arg => !arg.startsWith('--'));
+  const sourcePath = args.find((arg) => !arg.startsWith('--'));
   if (!sourcePath) {
     console.error('❌ Error: Source directory is required\n');
     showHelp();
@@ -47,42 +55,15 @@ function parseArgs() {
   };
 }
 
-/**
- * Get value for a flag argument
- */
 function getArgValue(args, flag) {
   const index = args.indexOf(flag);
-  if (index !== -1 && args[index + 1]) {
-    return args[index + 1];
-  }
+  if (index !== -1 && args[index + 1]) return args[index + 1];
   return null;
 }
 
-/**
- * Highest numeric id found in post frontmatter (for dry-run previews).
- */
-function maxPostIdFromFrontmatter() {
-  if (!fs.existsSync(POSTS_DIR)) return 0;
-  let max = 0;
-  for (const folder of fs.readdirSync(POSTS_DIR)) {
-    const indexPath = path.join(POSTS_DIR, folder, 'index.md');
-    if (!fs.existsSync(indexPath)) continue;
-    const source = fs.readFileSync(indexPath, 'utf8');
-    const match = source.match(/^id\s*:\s*(\d+)\s*$/m);
-    if (match) {
-      const n = parseInt(match[1], 10);
-      if (n > max) max = n;
-    }
-  }
-  return max;
-}
-
-/**
- * Show help message
- */
 function showHelp() {
   console.log(`
-📸 Import Photos with EXIF Extraction
+📸 Import Photos → DynamoDB (no photo markdown)
 
 Usage:
   blog photos:import <directory> [options]
@@ -91,132 +72,70 @@ Arguments:
   <directory>        Path to directory containing photos
 
 Options:
-  --dry-run         Preview what would be imported without creating files
-  --category NAME   Set category for imported photos (default: Photography)
-  --featured        Flag imported photo(s) as the homepage featured image
+  --dry-run         Preview without writing DynamoDB or files
+  --category NAME   Category / default tag (default: Photography)
+  --featured        Flag imported photo(s) as homepage featured
 
 Examples:
   blog photos:import ~/Desktop/photos
   blog photos:import ./my-photos --dry-run
-  blog photos:import ~/trips/europe --category Travel
+  blog photos:import ~/trips/europe --category Travel --featured
 
 Notes:
-  - Extracts EXIF metadata (camera, lens, settings, date taken, etc.)
-  - Creates one post per photo in content/posts/YYYY-MM-DD-slug/
-  - Folder date = today (upload/post date)
-  - EXIF dateTaken = actual capture date (preserved in frontmatter)
-  - Copies original photo to post folder
-  - Generates frontmatter with EXIF data
-  - Slugs are generated from filename
+  - Allocates ids via the ticket server
+  - Writes PhotoRecord to DynamoDB (source of truth)
+  - Stages original image under content/posts/<folder>/ for images:optimize + sync
+  - Does NOT create index.md
+  - Public URL: /photos/<id>
 `);
 }
 
-/**
- * Get all image files from directory
- */
 function getImageFiles(dirPath) {
   if (!fs.existsSync(dirPath)) {
     throw new Error(`Directory does not exist: ${dirPath}`);
   }
-
-  const stat = fs.statSync(dirPath);
-  if (!stat.isDirectory()) {
-    throw new Error(`Not a directory: ${dirPath}`);
-  }
-
   const files = fs.readdirSync(dirPath);
   return files
-    .filter(file => {
-      const ext = path.extname(file).toLowerCase();
-      return IMAGE_EXTENSIONS.includes(ext);
-    })
-    .map(file => path.join(dirPath, file));
+    .filter((file) => IMAGE_EXTENSIONS.includes(path.extname(file).toLowerCase()))
+    .map((file) => path.join(dirPath, file))
+    .sort();
 }
 
-/**
- * Extract EXIF metadata from image
- */
 async function extractExif(photoPath) {
   try {
-    // Read file and parse EXIF
-    const tags = ExifReader.load(fs.readFileSync(photoPath));
-
-    // Helper to get tag value
-    const getTagValue = (tagName) => {
-      const tag = tags[tagName];
+    const buffer = fs.readFileSync(photoPath);
+    const tags = ExifReader.load(buffer);
+    const getTagValue = (name) => {
+      const tag = tags[name];
       if (!tag) return undefined;
       return tag.description || tag.value;
     };
 
-    // Extract make and model
     const make = getTagValue('Make');
     const model = getTagValue('Model');
+    const camera = [make, model].filter(Boolean).join(' ') || undefined;
+    const lens = getTagValue('LensModel') || getTagValue('Lens') || undefined;
+    const aperture = getTagValue('FNumber') || getTagValue('ApertureValue');
+    const shutterSpeed = getTagValue('ExposureTime') || getTagValue('ShutterSpeedValue');
+    const iso = getTagValue('ISOSpeedRatings') || getTagValue('PhotographicSensitivity');
+    const focalLength = getTagValue('FocalLength');
 
-    // Build camera string
-    let camera = undefined;
-    if (make && model) {
-      // Remove make from model if it's already included
-      const cleanModel = model.replace(make, '').trim();
-      camera = `${make} ${cleanModel}`.trim();
-    } else if (model) {
-      camera = model;
-    }
-
-    // Extract lens
-    const lens = getTagValue('LensModel') || getTagValue('LensMake');
-
-    // Extract aperture
-    let aperture = undefined;
-    const fNumber = tags.FNumber;
-    if (fNumber && fNumber.description) {
-      const desc = fNumber.description;
-      // Check if description already starts with "f/"
-      aperture = desc.startsWith('f/') ? desc : `f/${desc}`;
-    } else if (tags.ApertureValue) {
-      const desc = tags.ApertureValue.description;
-      aperture = desc.startsWith('f/') ? desc : `f/${desc}`;
-    }
-
-    // Extract shutter speed
-    let shutterSpeed = undefined;
-    const exposureTime = tags.ExposureTime;
-    if (exposureTime && exposureTime.description) {
-      shutterSpeed = exposureTime.description;
-    }
-
-    // Extract ISO
-    let iso = undefined;
-    const isoValue = getTagValue('ISOSpeedRatings') || getTagValue('ISO');
-    if (isoValue) {
-      iso = isoValue.toString();
-    }
-
-    // Extract focal length
-    let focalLength = undefined;
-    const focalLengthTag = tags.FocalLength;
-    if (focalLengthTag && focalLengthTag.description) {
-      focalLength = focalLengthTag.description;
-    }
-
-    // Extract date taken
-    let dateTaken = undefined;
+    let dateTaken;
     const dateTimeOriginal = getTagValue('DateTimeOriginal') || getTagValue('DateTime');
     if (dateTimeOriginal) {
-      // Convert EXIF date format (YYYY:MM:DD HH:MM:SS) to ISO format
-      dateTaken = dateTimeOriginal.replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
+      dateTaken = String(dateTimeOriginal).replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
     }
 
-    // Get image dimensions using Sharp
     const image = sharp(photoPath);
     const metadata = await image.metadata();
 
     return {
       camera,
       lens,
-      aperture,
+      aperture: aperture ? `f/${aperture}` : undefined,
       shutterSpeed,
-      iso,
-      focalLength,
+      iso: iso != null ? String(iso) : undefined,
+      focalLength: focalLength ? String(focalLength) : undefined,
       dateTaken,
       width: metadata.width,
       height: metadata.height,
@@ -228,31 +147,18 @@ async function extractExif(photoPath) {
   }
 }
 
-/**
- * Generate slug from filename
- */
 function generateSlug(filename) {
-  // Remove extension
   const nameWithoutExt = path.parse(filename).name;
-
-  // Clean up filename
   let slug = nameWithoutExt
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-
-  // If slug is just numbers (like IMG_1234 or DSC_0001), make it more descriptive
   if (/^(img|dsc|p)?[-_]?\d+$/i.test(slug)) {
-    // Add photo prefix to generic numbered files
     slug = `photo-${slug}`;
   }
-
   return slug;
 }
 
-/**
- * Get today's date for post/upload date (YYYY-MM-DD)
- */
 function getTodayDate() {
   const today = new Date();
   const year = today.getFullYear();
@@ -261,60 +167,17 @@ function getTodayDate() {
   return `${year}-${month}-${day}`;
 }
 
-/**
- * Generate frontmatter for photo post
- */
-function generateFrontmatter(photoData) {
-  const { title, date, excerpt, category, tags, photoFilename, exif, id, featured } = photoData;
-
-  let frontmatter = `---
-type: photo
-id: ${id}`;
-  if (featured) {
-    frontmatter += `\nfeatured: true`;
-  }
-  frontmatter += `
-title: "${title}"
-publishedAt: "${date}"
-excerpt: "${excerpt}"
-category: "${category}"
-tags: [${tags.map(t => `"${t}"`).join(', ')}]
-coverImage: "./${photoFilename}"`;
-
-  // Add EXIF metadata if available
-  if (exif.camera) {
-    frontmatter += `\ncamera: "${exif.camera}"`;
-  }
-  if (exif.lens) {
-    frontmatter += `\nlens: "${exif.lens}"`;
-  }
-  if (exif.aperture) {
-    frontmatter += `\naperture: "${exif.aperture}"`;
-  }
-  if (exif.shutterSpeed) {
-    frontmatter += `\nshutterSpeed: "${exif.shutterSpeed}"`;
-  }
-  if (exif.iso) {
-    frontmatter += `\niso: "${exif.iso}"`;
-  }
-  if (exif.focalLength) {
-    frontmatter += `\nfocalLength: "${exif.focalLength}"`;
-  }
-  if (exif.dateTaken) {
-    frontmatter += `\ndateTaken: "${exif.dateTaken}"`;
-  }
-
-  frontmatter += `
-draft: false
----
-`;
-
-  return frontmatter;
+function nowIso() {
+  return new Date().toISOString();
 }
 
-/**
- * Import a single photo
- */
+function gsiKeys(publishedAt, id) {
+  return {
+    gsi1pk: 'PHOTO',
+    gsi1sk: `${publishedAt}#${id}`,
+  };
+}
+
 async function importPhoto(photoPath, options) {
   const { category, dryRun, previewId, featured } = options;
   const filename = path.basename(photoPath);
@@ -322,104 +185,86 @@ async function importPhoto(photoPath, options) {
 
   console.log(`\n📸 Processing: ${filename}`);
 
-  // Extract EXIF
   const exif = await extractExif(photoPath);
-
-  // Assign a unique photo ID (or preview ID in dry-run mode)
   const id = dryRun ? previewId : await allocatePostId();
-
-  // Generate slug from filename and use today's date for post
   const slug = generateSlug(filename);
-  const date = getTodayDate(); // Use current date for post/upload date
-  const dirName = `${date}-${slug}`; // Format: YYYY-MM-DD-filename
+  const date = getTodayDate();
+  const dirName = `${date}-${slug}`;
   const postDir = path.join(POSTS_DIR, dirName);
+  const photoFilename = `photo${ext === '.jpeg' ? '.jpeg' : ext}`;
 
-  // Check if post already exists
   if (fs.existsSync(postDir) && !dryRun) {
     console.log(`   ⚠️  Skipping - directory already exists: ${dirName}`);
     return { skipped: true };
   }
 
-  // Generate title from filename
-  const title = path.parse(filename).name
-    .replace(/[-_]/g, ' ')
-    .replace(/\b\w/g, c => c.toUpperCase());
+  const title = path
+    .parse(filename)
+    .name.replace(/[-_]/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const caption = exif.camera ? `Photo taken with ${exif.camera}` : '';
 
-  // Prepare photo data
-  const photoData = {
-    id,
+  const photo = {
+    id: String(id),
+    ...gsiKeys(date, String(id)),
     title,
-    date,
-    excerpt: exif.camera ? `Photo taken with ${exif.camera}` : 'A new photo',
-    category,
+    caption,
+    publishedAt: date,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+    featured: !!featured,
+    draft: false,
     tags: [category.toLowerCase()],
-    photoFilename: `photo${ext}`,
-    featured,
+    enrichmentStatus: 'pending',
+    folderName: dirName,
+    coverImageKey: `images/posts/${dirName}/${photoFilename}`,
+    originalKey: `images/originals/posts/${dirName}/${photoFilename}`,
+    category,
     exif,
+    latitude: null,
+    longitude: null,
+    publicLatitude: null,
+    publicLongitude: null,
   };
 
   if (dryRun) {
-    console.log(`   📁 Would create: ${dirName}`);
-    console.log(`   🔢 Photo ID: ${id} → URL: /posts/${id}`);
+    console.log(`   📁 Would stage: ${dirName}/${photoFilename}`);
+    console.log(`   🔢 Photo ID: ${id} → URL: /photos/${id}`);
     console.log(`   📝 Title: ${title}`);
     if (featured) console.log(`   ⭐ Featured on homepage`);
     console.log(`   📅 Post date: ${date}`);
     if (exif.dateTaken) console.log(`   📸 Captured: ${exif.dateTaken}`);
     if (exif.camera) console.log(`   📷 Camera: ${exif.camera}`);
-    if (exif.lens) console.log(`   🔍 Lens: ${exif.lens}`);
-    if (exif.aperture || exif.shutterSpeed || exif.iso) {
-      const settings = [exif.aperture, exif.shutterSpeed, `ISO ${exif.iso}`]
-        .filter(Boolean)
-        .join(' • ');
-      console.log(`   ⚙️  Settings: ${settings}`);
-    }
     return { created: true, dryRun: true };
   }
 
-  // Create directory
   fs.mkdirSync(postDir, { recursive: true });
-
-  // Copy photo
-  const photoDestPath = path.join(postDir, photoData.photoFilename);
+  const photoDestPath = path.join(postDir, photoFilename);
   fs.copyFileSync(photoPath, photoDestPath);
 
-  // Create index.md
-  const indexPath = path.join(postDir, 'index.md');
-  const content = generateFrontmatter(photoData);
-  fs.writeFileSync(indexPath, content);
+  await ddb.send(new PutCommand({ TableName: TABLE, Item: photo }));
 
-  console.log(`   ✅ Created: ${dirName}`);
-  console.log(`   🔢 Photo ID: ${id} → URL: /posts/${id}`);
+  console.log(`   ✅ DynamoDB upsert + staged image: ${dirName}`);
+  console.log(`   🔢 Photo ID: ${id} → URL: /photos/${id}`);
   console.log(`   📅 Post date: ${date}`);
   if (exif.dateTaken) console.log(`   📸 Captured: ${exif.dateTaken}`);
-  console.log(`   📷 Photo: ${photoData.photoFilename}`);
-  console.log(`   📝 Post: index.md`);
+  console.log(`   📷 Photo: ${photoFilename} (no index.md)`);
 
-  return {
-    created: true,
-    dirName,
-    postDir,
-    indexPath,
-    photoPath: photoDestPath,
-  };
+  return { created: true, dirName, id };
 }
 
-/**
- * Main execution
- */
 async function main() {
-  console.log('📸 Import Photos with EXIF Extraction\n');
+  console.log('📸 Import Photos → DynamoDB\n');
 
   const options = parseArgs();
 
   console.log(`📁 Source: ${options.sourcePath}`);
-  console.log(`📂 Target: ${POSTS_DIR}`);
+  console.log(`🗄️  Table: ${TABLE} (${REGION})`);
   console.log(`🏷️  Category: ${options.category}`);
   if (options.dryRun) {
-    console.log('🔍 Mode: DRY RUN (no files will be created)');
+    console.log('🔍 Mode: DRY RUN');
   }
 
-  // Get image files
   let imageFiles;
   try {
     imageFiles = getImageFiles(options.sourcePath);
@@ -436,25 +281,20 @@ async function main() {
 
   console.log(`\n📊 Found ${imageFiles.length} image(s)\n`);
 
-  // Ensure posts directory exists
   if (!fs.existsSync(POSTS_DIR) && !options.dryRun) {
     fs.mkdirSync(POSTS_DIR, { recursive: true });
   }
 
-  // Import each photo
-  const results = {
-    created: 0,
-    skipped: 0,
-    errors: 0,
-  };
-
-  // For dry-run: pre-compute what IDs would be assigned without touching the counter
-  let dryRunNextId = maxPostIdFromFrontmatter();
+  const results = { created: 0, skipped: 0, errors: 0 };
+  let dryRunNextId = Date.now() % 100000;
 
   for (const photoPath of imageFiles) {
     try {
       dryRunNextId++;
-      const result = await importPhoto(photoPath, { ...options, previewId: dryRunNextId });
+      const result = await importPhoto(photoPath, {
+        ...options,
+        previewId: dryRunNextId,
+      });
       if (result.created) results.created++;
       if (result.skipped) results.skipped++;
     } catch (error) {
@@ -463,30 +303,26 @@ async function main() {
     }
   }
 
-  // Summary
   console.log('\n' + '─'.repeat(50));
   console.log('\n📊 Import Summary:');
   console.log(`   ✅ Created: ${results.created}`);
-  if (results.skipped > 0) {
-    console.log(`   ⏭️  Skipped: ${results.skipped}`);
-  }
-  if (results.errors > 0) {
-    console.log(`   ❌ Errors: ${results.errors}`);
-  }
+  if (results.skipped > 0) console.log(`   ⏭️  Skipped: ${results.skipped}`);
+  if (results.errors > 0) console.log(`   ❌ Errors: ${results.errors}`);
 
   if (options.dryRun) {
-    console.log('\n💡 This was a dry run. Remove --dry-run to create the posts.');
+    console.log('\n💡 This was a dry run. Remove --dry-run to import.');
   } else if (results.created > 0) {
     console.log('\n💡 Next steps:');
-    console.log('   1. Review and edit the generated posts');
-    console.log('   2. Run: blog images:optimize');
-    console.log('   3. Run: blog images:sync --profile www');
+    console.log('   1. Run: blog images:optimize');
+    console.log('   2. Run: blog images:sync --profile www');
+    console.log('   3. Photos appear at /photos/<id> via the API (no site rebuild required for metadata)');
   }
 
   console.log('');
+  if (results.errors) process.exit(1);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('❌ Fatal error:', err);
   process.exit(1);
 });

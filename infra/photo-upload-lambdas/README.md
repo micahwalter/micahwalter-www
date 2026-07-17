@@ -3,7 +3,8 @@
 Backend for the web-based photo upload feature (`/upload`) and the photo
 metadata API. Uploads are processed into the images CDN and **photo metadata is
 stored in DynamoDB** (`micahwalter-photos`). The process Lambda does **not**
-commit markdown to GitHub.
+commit markdown to GitHub. An async **enricher** adds GPS/public geo, city/country,
+and Bedrock vision tags.
 
 ## Flow
 
@@ -18,18 +19,26 @@ commit markdown to GitHub.
                                  EXIF → resize 400/800/1200 WebP+JPEG
                                  → images bucket
                                  → ticket id → DynamoDB (enrichmentStatus=pending)
-                                 → EventBridge PhotoPendingEnrichment (best-effort)
-                                 → (U2 enricher consumes later)
+                                 → EventBridge PhotoPendingEnrichment
+                                     │
+                                     ▼
+                               enrich.handler (photo-bus rule)
+                                 original → GPS + fuzz public coords
+                                 → AWS Location city/country
+                                 → Bedrock tags from photo-1200.*
+                                 → DynamoDB update (enrichmentStatus=complete)
 ```
 
 Public / owner HTTP:
 
 | Method | Path | Auth |
 |--------|------|------|
-| GET | `/photos` | none (list; `limit`, `cursor`) |
+| GET | `/photos` (use trailing slash on custom domain: `/photos/`) | none |
 | GET | `/photos/featured` | none |
 | GET | `/photos/{id}` | none |
-| PATCH | `/photos/{id}` | HMAC token (body `token` or `Authorization: Bearer`) |
+| PATCH | `/photos/{id}` | HMAC token |
+
+DTO includes `city`, `country`, `publicLatitude`/`publicLongitude`, `tags`, `enrichmentStatus` (never precise GPS).
 
 ## Functions (one zip)
 
@@ -39,6 +48,7 @@ Public / owner HTTP:
 | `src/init.handler` | `POST /photos/upload-url` | presigned PUT + metadata |
 | `src/photos-api.handler` | GET/PATCH photo routes | DynamoDB read/write API |
 | `src/process.handler` | S3 `uploads/incoming/*` | optimize + DynamoDB + EventBridge |
+| `src/enrich.handler` | EventBridge `PhotoPendingEnrichment` | GPS + Location + Bedrock |
 
 ## Secret
 
@@ -52,13 +62,17 @@ Public / owner HTTP:
 }
 ```
 
-`githubToken` is no longer used by process (safe to remove from the secret when convenient).
+## Infra extras
 
-## Infra extras (U1)
+- DynamoDB `micahwalter-photos` + GSI1 + PITR
+- EventBridge bus `photo-bus` + rule `photo-pending-enrichment` + **archive** (14 days)
+- Place Index `micahwalter-photos-place-index` (Esri)
+- SQS `photo-upload-process-dlq` (process OnFailure only — enricher uses archive replay)
 
-- DynamoDB table `micahwalter-photos` + GSI1 (`PHOTO` / `{publishedAt}#{id}`), PITR on
-- EventBridge bus `photo-bus` (enrichment handoff for U2)
-- SQS `photo-upload-process-dlq` (process async OnFailure)
+## Prerequisites (ops)
+
+1. Redeploy `micahwalter-www-github-actions` after CI IAM changes (Place Index / EventBridge rule+archive).
+2. Enable Bedrock model access for `us.anthropic.claude-sonnet-4-6` in **us-east-1**.
 
 ## Build
 
@@ -67,4 +81,4 @@ make build   # → dist/photo-upload.zip (bundles linux/arm64 sharp)
 ```
 
 Deploys via `.github/workflows/photo-upload-deploy.yml` on push to `main` when
-paths under `infra/photo-upload*` change. See repo `CLAUDE.md` (“Photo Upload”).
+paths under `infra/photo-upload*` change.

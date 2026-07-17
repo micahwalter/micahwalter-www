@@ -32,6 +32,8 @@ function toPublicPhoto(photo) {
     },
     publicLatitude: photo.publicLatitude ?? null,
     publicLongitude: photo.publicLongitude ?? null,
+    city: photo.city ?? null,
+    country: photo.country ?? null,
   };
 }
 

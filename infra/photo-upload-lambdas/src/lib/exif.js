@@ -7,6 +7,86 @@
 const ExifReader = require('exifreader');
 const sharp = require('sharp');
 
+function dmsToDecimal(dms, ref) {
+  if (!dms) return null;
+  let degrees;
+  if (typeof dms === 'number') {
+    degrees = dms;
+  } else if (Array.isArray(dms)) {
+    const [d, m, s] = dms.map((x) => {
+      if (typeof x === 'number') return x;
+      if (Array.isArray(x) && x.length === 2) return x[0] / x[1];
+      return Number(x);
+    });
+    degrees = d + (m || 0) / 60 + (s || 0) / 3600;
+  } else if (typeof dms === 'string') {
+    const n = parseFloat(dms);
+    if (Number.isNaN(n)) return null;
+    degrees = n;
+  } else {
+    return null;
+  }
+  const r = String(ref || '').toUpperCase();
+  if (r === 'S' || r === 'W') degrees = -Math.abs(degrees);
+  return degrees;
+}
+
+/**
+ * Extract precise GPS from ExifReader tags.
+ */
+function extractGpsFromTags(tags) {
+  try {
+    const latTag = tags.GPSLatitude;
+    const lonTag = tags.GPSLongitude;
+    if (!latTag || !lonTag) return { latitude: null, longitude: null };
+
+    let latitude;
+    let longitude;
+
+    if (latTag.description != null && !Number.isNaN(parseFloat(latTag.description))) {
+      latitude = parseFloat(latTag.description);
+      const latRef = tags.GPSLatitudeRef?.value?.[0] || tags.GPSLatitudeRef?.description;
+      if (String(latRef).toUpperCase().startsWith('S') && latitude > 0) latitude = -latitude;
+    } else {
+      latitude = dmsToDecimal(
+        latTag.value,
+        tags.GPSLatitudeRef?.value?.[0] || tags.GPSLatitudeRef?.description,
+      );
+    }
+
+    if (lonTag.description != null && !Number.isNaN(parseFloat(lonTag.description))) {
+      longitude = parseFloat(lonTag.description);
+      const lonRef = tags.GPSLongitudeRef?.value?.[0] || tags.GPSLongitudeRef?.description;
+      if (String(lonRef).toUpperCase().startsWith('W') && longitude > 0) longitude = -longitude;
+    } else {
+      longitude = dmsToDecimal(
+        lonTag.value,
+        tags.GPSLongitudeRef?.value?.[0] || tags.GPSLongitudeRef?.description,
+      );
+    }
+
+    if (latitude == null || longitude == null || Number.isNaN(latitude) || Number.isNaN(longitude)) {
+      return { latitude: null, longitude: null };
+    }
+    if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+      return { latitude: null, longitude: null };
+    }
+    return { latitude, longitude };
+  } catch {
+    return { latitude: null, longitude: null };
+  }
+}
+
+async function extractGps(buffer) {
+  try {
+    const tags = ExifReader.load(buffer);
+    return extractGpsFromTags(tags);
+  } catch (err) {
+    console.warn('Could not read GPS EXIF:', err.message);
+    return { latitude: null, longitude: null };
+  }
+}
+
 async function extractExif(buffer) {
   let exif = {};
   try {
@@ -72,4 +152,4 @@ async function extractExif(buffer) {
   return exif;
 }
 
-module.exports = { extractExif };
+module.exports = { extractExif, extractGps, extractGpsFromTags, dmsToDecimal };

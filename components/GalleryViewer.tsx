@@ -149,7 +149,7 @@ export default function GalleryViewer({ photos }: Props) {
                   )}
                 </div>
                 <Link
-                  href={`/posts/${photo.slug}`}
+                  href={`/photos/${photo.id || photo.slug}`}
                   className="flex-shrink-0 text-xs text-gray border border-gray/30 rounded px-2 py-1 no-underline hover:border-gray hover:bg-gray/10 transition-colors whitespace-nowrap"
                 >
                   View →

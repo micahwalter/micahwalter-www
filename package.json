@@ -38,7 +38,10 @@
   },
   "devDependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1004.0",
+    "@aws-sdk/client-dynamodb": "^3.1089.0",
+    "@aws-sdk/client-s3": "^3.1089.0",
     "@aws-sdk/credential-providers": "^3.1004.0",
+    "@aws-sdk/lib-dynamodb": "^3.1089.0",
     "@types/node": "^22.19.11",
     "@types/react": "^19",
     "@types/react-dom": "^19",

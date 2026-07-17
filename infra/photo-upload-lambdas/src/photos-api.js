@@ -1,12 +1,10 @@
 /**
- * HTTP API for photos — GET list/featured/{id}, PATCH {id}.
+ * HTTP API for photos + galleries.
  * Routed by API Gateway routeKey on a single Lambda.
  *
  * Custom domain mapping key is `photos`, so public URLs are:
- *   GET  https://api.micahwalter.com/photos
- *   GET  https://api.micahwalter.com/photos/featured
- *   GET  https://api.micahwalter.com/photos/{id}
- *   PATCH https://api.micahwalter.com/photos/{id}
+ *   GET/PATCH https://api.micahwalter.com/photos/...
+ *   GET/POST/PATCH https://api.micahwalter.com/photos/galleries...
  * RouteKeys below are relative to that mapping (not prefixed with /photos).
  */
 
@@ -19,6 +17,14 @@ const {
   getFeaturedPhoto,
 } = require('./lib/photos-db');
 const { toPublicPhoto } = require('./lib/photo-dto');
+const {
+  getGallery,
+  listGalleries,
+  putGallery,
+  updateGallery,
+  buildNewGallery,
+  toPublicGallery,
+} = require('./lib/galleries-db');
 
 function json(statusCode, body) {
   return {
@@ -38,7 +44,6 @@ function extractToken(event, body) {
 
 function requestPath(event) {
   const raw = event.rawPath || event.requestContext?.http?.path || '';
-  // Custom domain mapping key `photos` may leave path as /photos, /, or "".
   return raw.replace(/^\/photos(?=\/|$)/, '') || '/';
 }
 
@@ -47,12 +52,154 @@ function isListRoute(routeKey, method, path) {
   return method === 'GET' && (path === '/' || path === '');
 }
 
+function isGalleriesList(routeKey, method, path) {
+  if (routeKey === 'GET /galleries' || routeKey === 'GET /photos/galleries') return true;
+  return method === 'GET' && (path === '/galleries' || path === '/galleries/');
+}
+
+function isGalleryItem(routeKey, method, path) {
+  if (
+    routeKey === 'GET /galleries/{slug}' ||
+    routeKey === 'GET /photos/galleries/{slug}' ||
+    routeKey === 'PATCH /galleries/{slug}' ||
+    routeKey === 'PATCH /photos/galleries/{slug}'
+  ) {
+    return true;
+  }
+  return (method === 'GET' || method === 'PATCH') && /^\/galleries\/[^/]+$/.test(path);
+}
+
+function isGalleryCreate(routeKey, method, path) {
+  if (routeKey === 'POST /galleries' || routeKey === 'POST /photos/galleries') return true;
+  return method === 'POST' && (path === '/galleries' || path === '/galleries/');
+}
+
+function gallerySlugFrom(event, path) {
+  return event.pathParameters?.slug || path.replace(/^\/galleries\//, '').replace(/\/$/, '');
+}
+
+async function requireAuth(event, body) {
+  const secret = await getSecret();
+  const token = extractToken(event, body);
+  if (!verify(secret.hmac, token)) {
+    const err = new Error('Session expired or invalid');
+    err.statusCode = 401;
+    throw err;
+  }
+  return token;
+}
+
 exports.handler = async (event) => {
   const routeKey = event.routeKey || '';
   const method = event.requestContext?.http?.method || event.requestContext?.httpMethod || 'GET';
   const path = requestPath(event);
 
   try {
+    // --- Galleries (must run before GET /{id}) ---
+    if (isGalleriesList(routeKey, method, path)) {
+      const qs = event.queryStringParameters || {};
+      let includeDrafts = false;
+      if (qs.all === '1' || qs.all === 'true') {
+        try {
+          await requireAuth(event, {});
+          includeDrafts = true;
+        } catch {
+          return json(401, { message: 'Session expired or invalid' });
+        }
+      }
+      const items = await listGalleries({ includeDrafts });
+      return json(200, { items: items.map(toPublicGallery) });
+    }
+
+    if (isGalleryCreate(routeKey, method, path)) {
+      let body = {};
+      try {
+        body = JSON.parse(event.body || '{}');
+      } catch {
+        return json(400, { message: 'Invalid request body' });
+      }
+      try {
+        await requireAuth(event, body);
+      } catch (err) {
+        return json(401, { message: err.message });
+      }
+      try {
+        const gallery = buildNewGallery(body);
+        await putGallery(gallery, { overwrite: false });
+        return json(201, toPublicGallery(gallery));
+      } catch (err) {
+        if (err.name === 'ConditionalCheckFailedException') {
+          return json(409, { message: 'Gallery slug already exists' });
+        }
+        if (err.statusCode === 400) return json(400, { message: err.message });
+        throw err;
+      }
+    }
+
+    if (isGalleryItem(routeKey, method, path)) {
+      const slug = gallerySlugFrom(event, path);
+      if (!slug) return json(400, { message: 'Missing slug' });
+
+      if (method === 'GET') {
+        const gallery = await getGallery(slug);
+        if (!gallery) return json(404, { message: 'Not found' });
+        // Public: hide drafts unless Authorization present and valid
+        if (gallery.draft) {
+          try {
+            await requireAuth(event, {});
+          } catch {
+            return json(404, { message: 'Not found' });
+          }
+        }
+        return json(200, toPublicGallery(gallery));
+      }
+
+      if (method === 'PATCH') {
+        let body = {};
+        try {
+          body = JSON.parse(event.body || '{}');
+        } catch {
+          return json(400, { message: 'Invalid request body' });
+        }
+        try {
+          await requireAuth(event, body);
+        } catch (err) {
+          return json(401, { message: err.message });
+        }
+        const patch = {};
+        if (body.title !== undefined) patch.title = String(body.title).trim();
+        if (body.description !== undefined) patch.description = String(body.description);
+        if (body.coverPhotoId !== undefined) {
+          patch.coverPhotoId =
+            body.coverPhotoId === null || body.coverPhotoId === ''
+              ? null
+              : String(body.coverPhotoId);
+        }
+        if (body.publishedAt !== undefined) patch.publishedAt = String(body.publishedAt);
+        if (body.photoIds !== undefined) {
+          if (!Array.isArray(body.photoIds)) {
+            return json(400, { message: 'photoIds must be an array' });
+          }
+          patch.photoIds = body.photoIds;
+        }
+        if (body.draft !== undefined) patch.draft = !!body.draft;
+        if (body.content !== undefined) patch.content = String(body.content);
+        if (patch.title === '') return json(400, { message: 'title cannot be empty' });
+
+        try {
+          const updated = await updateGallery(slug, patch);
+          return json(200, toPublicGallery(updated));
+        } catch (err) {
+          if (err.name === 'ConditionalCheckFailedException') {
+            return json(404, { message: 'Not found' });
+          }
+          if (err.statusCode === 400) return json(400, { message: err.message });
+          throw err;
+        }
+      }
+    }
+
+    // --- Photos ---
     if (isListRoute(routeKey, method, path)) {
       const qs = event.queryStringParameters || {};
       const limit = qs.limit;
@@ -73,7 +220,7 @@ exports.handler = async (event) => {
 
     if (routeKey === 'GET /{id}' || routeKey === 'GET /photos/{id}' || (method === 'GET' && /^\/[^/]+$/.test(path))) {
       const id = event.pathParameters?.id || path.slice(1);
-      if (!id || id === 'featured') return json(404, { message: 'Not found' });
+      if (!id || id === 'featured' || id === 'galleries') return json(404, { message: 'Not found' });
       const photo = await getPhoto(id);
       if (!photo || photo.draft) return json(404, { message: 'Not found' });
       return json(200, toPublicPhoto(photo));
@@ -90,10 +237,10 @@ exports.handler = async (event) => {
         return json(400, { message: 'Invalid request body' });
       }
 
-      const secret = await getSecret();
-      const token = extractToken(event, body);
-      if (!verify(secret.hmac, token)) {
-        return json(401, { message: 'Session expired or invalid' });
+      try {
+        await requireAuth(event, body);
+      } catch (err) {
+        return json(401, { message: err.message });
       }
 
       const patch = {};

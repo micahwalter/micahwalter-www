@@ -14,8 +14,9 @@ const { nowIso, gsiKeys } = require('./photo-defaults');
 
 const TABLE = process.env.PHOTOS_TABLE;
 const GSI1 = 'GSI1';
+const DDB_REGION = process.env.DYNAMODB_REGION || process.env.AWS_REGION;
 
-const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
+const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: DDB_REGION }), {
   marshallOptions: { removeUndefinedValues: true },
 });
 
@@ -38,6 +39,15 @@ async function putPhoto(photo) {
     TableName: TABLE,
     Item: photo,
     ConditionExpression: 'attribute_not_exists(id)',
+  }));
+  return photo;
+}
+
+/** Idempotent upsert for migration / CLI (overwrites by id). */
+async function upsertPhoto(photo) {
+  await ddb.send(new PutCommand({
+    TableName: TABLE,
+    Item: photo,
   }));
   return photo;
 }
@@ -77,6 +87,49 @@ async function updatePhoto(id, patch) {
     Key: { id: String(id) },
     UpdateExpression: `SET ${parts.join(', ')}`,
     ExpressionAttributeNames: Object.keys(names).length ? names : undefined,
+    ExpressionAttributeValues: values,
+    ConditionExpression: 'attribute_exists(id)',
+    ReturnValues: 'ALL_NEW',
+  }));
+  return res.Attributes;
+}
+
+/**
+ * Enrichment worker update — geo, place, tags, status.
+ */
+async function updatePhotoEnrichment(id, fields) {
+  const allowed = [
+    'latitude',
+    'longitude',
+    'publicLatitude',
+    'publicLongitude',
+    'city',
+    'country',
+    'tags',
+    'enrichmentStatus',
+  ];
+  const names = {};
+  const values = { ':u': nowIso() };
+  const parts = ['updatedAt = :u'];
+
+  for (const key of allowed) {
+    if (fields[key] === undefined) continue;
+    const nk = `#${key}`;
+    const vk = `:${key}`;
+    names[nk] = key;
+    values[vk] = fields[key];
+    parts.push(`${nk} = ${vk}`);
+  }
+
+  if (parts.length === 1) {
+    throw Object.assign(new Error('No enrichment fields'), { statusCode: 400 });
+  }
+
+  const res = await ddb.send(new UpdateCommand({
+    TableName: TABLE,
+    Key: { id: String(id) },
+    UpdateExpression: `SET ${parts.join(', ')}`,
+    ExpressionAttributeNames: names,
     ExpressionAttributeValues: values,
     ConditionExpression: 'attribute_exists(id)',
     ReturnValues: 'ALL_NEW',
@@ -133,8 +186,10 @@ async function getFeaturedPhoto() {
 
 module.exports = {
   putPhoto,
+  upsertPhoto,
   getPhoto,
   updatePhoto,
+  updatePhotoEnrichment,
   listPhotos,
   getFeaturedPhoto,
   encodeCursor,

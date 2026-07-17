@@ -28,7 +28,7 @@ const commands = {
     ]
   },
   'photos:import': {
-    description: 'Import photos with EXIF extraction',
+    description: 'Import photos into DynamoDB (stages image for S3 sync; no index.md)',
     script: 'scripts/import-photos.js',
     examples: [
       'blog photos:import ~/Desktop/photos',
@@ -38,12 +38,12 @@ const commands = {
     ]
   },
   'photos:tag': {
-    description: 'AI-powered photo tagging with Claude Vision (via AWS Bedrock)',
+    description: 'AI-tag DynamoDB photos via Bedrock Vision',
     script: 'scripts/tag-photos.js',
     examples: [
-      'blog photos:tag 2026-02-16-sunset-park --profile www',
-      'blog photos:tag --all --profile www',
-      'blog photos:tag --all --auto-approve --profile www'
+      'blog photos:tag 157 --profile www',
+      'blog photos:tag --all --auto-approve --profile www',
+      'blog photos:tag 2026-02-16-sunset-park --profile www'
     ]
   },
   'photos:update-exif': {

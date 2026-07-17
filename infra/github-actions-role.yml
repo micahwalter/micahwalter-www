@@ -558,6 +558,8 @@ Resources:
             Resource:
               - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-photos'
               - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-photos/index/*'
+              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-galleries'
+              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-galleries/index/*'
           - Effect: Allow
             Action:
               - events:CreateEventBus
@@ -566,8 +568,36 @@ Resources:
               - events:TagResource
               - events:UntagResource
               - events:ListTagsForResource
+              - events:PutRule
+              - events:DeleteRule
+              - events:DescribeRule
+              - events:EnableRule
+              - events:DisableRule
+              - events:PutTargets
+              - events:RemoveTargets
+              - events:ListTargetsByRule
+              - events:CreateArchive
+              - events:DeleteArchive
+              - events:DescribeArchive
+              - events:UpdateArchive
+              - events:ListArchives
             Resource:
               - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:event-bus/photo-bus'
+              - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:rule/photo-bus/*'
+              - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:archive/photo-bus-archive'
+              - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:rule/photo-feed-publisher-hourly'
+          - Effect: Allow
+            Action:
+              - geo:CreatePlaceIndex
+              - geo:DeletePlaceIndex
+              - geo:DescribePlaceIndex
+              - geo:UpdatePlaceIndex
+              - geo:TagResource
+              - geo:UntagResource
+              - geo:ListTagsForResource
+            Resource:
+              - !Sub 'arn:aws:geo:us-east-1:${AWS::AccountId}:place-index/micahwalter-photos-place-index'
+              - !Sub 'arn:aws:geo:us-east-1:${AWS::AccountId}:place-index/*'
           - Effect: Allow
             Action:
               - sqs:CreateQueue
@@ -593,8 +623,11 @@ Resources:
               - secretsmanager:RestoreSecret
               - secretsmanager:TagResource
               - secretsmanager:UntagResource
+              - secretsmanager:ReplicateSecretToRegions
+              - secretsmanager:RemoveRegionsFromReplication
             Resource:
               - !Sub 'arn:aws:secretsmanager:us-east-1:${AWS::AccountId}:secret:photo-upload-secrets*'
+              - !Sub 'arn:aws:secretsmanager:us-east-2:${AWS::AccountId}:secret:photo-upload-secrets*'
           - Effect: Allow
             Action:
               - cloudwatch:PutMetricAlarm
@@ -605,6 +638,62 @@ Resources:
               - cloudwatch:ListTagsForResource
             Resource:
               - !Sub 'arn:aws:cloudwatch:us-east-1:${AWS::AccountId}:alarm:photo-upload-*'
+          # U7 secondary photo-upload stack (us-east-2) — tickets-style failover
+          - Effect: Allow
+            Action:
+              - cloudformation:DescribeStacks
+              - cloudformation:DescribeStackEvents
+              - cloudformation:CreateChangeSet
+              - cloudformation:ExecuteChangeSet
+              - cloudformation:DescribeChangeSet
+              - cloudformation:DeleteChangeSet
+              - cloudformation:GetTemplate
+              - cloudformation:GetTemplateSummary
+            Resource:
+              - !Sub 'arn:aws:cloudformation:us-east-2:${AWS::AccountId}:stack/micahwalter-photo-upload-secondary/*'
+          - Effect: Allow
+            Action:
+              - lambda:CreateFunction
+              - lambda:DeleteFunction
+              - lambda:GetFunction
+              - lambda:GetFunctionConfiguration
+              - lambda:UpdateFunctionCode
+              - lambda:UpdateFunctionConfiguration
+              - lambda:AddPermission
+              - lambda:RemovePermission
+              - lambda:TagResource
+              - lambda:UntagResource
+              - lambda:ListTags
+            Resource:
+              - !Sub 'arn:aws:lambda:us-east-2:${AWS::AccountId}:function:photo-upload-*'
+          - Effect: Allow
+            Action:
+              - iam:PassRole
+              - iam:CreateRole
+              - iam:DeleteRole
+              - iam:GetRole
+              - iam:UpdateRole
+              - iam:TagRole
+              - iam:UntagRole
+              - iam:PutRolePolicy
+              - iam:DeleteRolePolicy
+              - iam:GetRolePolicy
+              - iam:ListRolePolicies
+              - iam:AttachRolePolicy
+              - iam:DetachRolePolicy
+              - iam:ListAttachedRolePolicies
+            Resource:
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/photo-upload-*-fn-role-secondary'
+          - Effect: Allow
+            Action:
+              - cloudwatch:PutMetricAlarm
+              - cloudwatch:DeleteAlarms
+              - cloudwatch:DescribeAlarms
+              - cloudwatch:TagResource
+              - cloudwatch:UntagResource
+              - cloudwatch:ListTagsForResource
+            Resource:
+              - !Sub 'arn:aws:cloudwatch:us-east-2:${AWS::AccountId}:alarm:photo-upload-*'
 
   TicketsDeployPolicy:
     Type: AWS::IAM::ManagedPolicy
