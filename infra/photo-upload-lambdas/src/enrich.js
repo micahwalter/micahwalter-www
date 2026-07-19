@@ -42,27 +42,36 @@ async function loadFirstExisting(keys) {
   return null;
 }
 
-function parsePhotoId(event) {
-  if (event?.detail?.photoId) return String(event.detail.photoId);
+function parseDetail(event) {
+  if (event?.detail && typeof event.detail === 'object') return event.detail;
   if (typeof event?.detail === 'string') {
     try {
-      const d = JSON.parse(event.detail);
-      if (d.photoId) return String(d.photoId);
+      return JSON.parse(event.detail);
     } catch {
-      /* ignore */
+      return {};
     }
   }
+  return {};
+}
+
+function parsePhotoId(event) {
+  const detail = parseDetail(event);
+  if (detail.photoId) return String(detail.photoId);
   return null;
 }
 
-async function enrichPhoto(photoId) {
+function parseForce(event) {
+  return parseDetail(event).force === true;
+}
+
+async function enrichPhoto(photoId, { force = false } = {}) {
   const photo = await getPhoto(photoId);
   if (!photo) {
     console.warn(`enrich: photo ${photoId} not found`);
     return { ok: false, reason: 'not_found' };
   }
 
-  if (photo.enrichmentStatus === 'complete') {
+  if (photo.enrichmentStatus === 'complete' && !force) {
     console.log(`enrich: photo ${photoId} already complete — no-op`);
     return { ok: true, skipped: true };
   }
@@ -136,7 +145,10 @@ async function enrichPhoto(photoId) {
     console.error(`enrich Bedrock step failed for ${photoId}:`, err.message);
   }
 
-  const tags = mergeTags(photo.tags || [], geoTags, aiTags);
+  // Force re-enrich rebuilds tags from defaults + new geo/AI so bad place tags
+  // (e.g. wrong-hemisphere geocode) do not stick forever via merge-only updates.
+  const baseTags = force ? ['photography'] : (photo.tags || []);
+  const tags = mergeTags(baseTags, geoTags, aiTags);
 
   const fields = {
     tags,
@@ -149,8 +161,8 @@ async function enrichPhoto(photoId) {
     fields.publicLatitude = publicLatitude;
     fields.publicLongitude = publicLongitude;
   }
-  if (city != null) fields.city = city;
-  if (country != null) fields.country = country;
+  if (force || city != null) fields.city = city;
+  if (force || country != null) fields.country = country;
 
   try {
     await updatePhotoEnrichment(photoId, fields);
@@ -189,7 +201,7 @@ exports.handler = async (event) => {
       console.warn('enrich: missing photoId', JSON.stringify(ev)?.slice(0, 200));
       continue;
     }
-    await enrichPhoto(photoId);
+    await enrichPhoto(photoId, { force: parseForce(ev) });
   }
 
   return { ok: true };
@@ -197,3 +209,4 @@ exports.handler = async (event) => {
 
 exports.enrichPhoto = enrichPhoto;
 exports.parsePhotoId = parsePhotoId;
+exports.parseForce = parseForce;
