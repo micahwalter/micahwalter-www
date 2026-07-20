@@ -1,11 +1,11 @@
 ---
-# TODO: allocate id via ticket server (blog post:new or POST /tickets/next) before publishing
+# TODO: backfill id from the ticket server (POST /tickets/next); optional for blog posts
 title: "Photos without the deploy"
 publishedAt: "2026-07-20"
 excerpt: "Uploading a photo from my phone worked, but publishing it still meant a full static rebuild. Moving photo metadata to DynamoDB and serving it from an API turned a four minute wait into a few seconds, and taught me a couple of lessons about EXIF data along the way."
 category: "AWS"
 tags: ["photography", "dynamodb", "lambda", "aidlc", "bedrock", "aws-location", "eventbridge", "cursor", "aws"]
-draft: true
+draft: false
 ---
 
 A couple of weeks ago I wrote about [uploading photos to this blog from my phone](/posts/uploading-photos-from-my-phone). That project gave me a passcode gated form at `/upload` and a small serverless pipeline that could take a photo from my camera roll to the site without opening my laptop, and I have been using it constantly ever since. But every upload still ended the same way, with the processing function committing a markdown file to git so GitHub Actions could rebuild about a thousand static pages, sync them to S3, and invalidate CloudFront. The images themselves were on the CDN within seconds of the upload finishing. Everything after that, usually another three or four minutes, was the site rebuilding itself so it could publish about twenty lines of YAML.
