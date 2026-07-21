@@ -1240,3 +1240,11 @@
 **Context**: CONSTRUCTION — code ready for review
 
 ---
+
+## Publish — PR opened (#121)
+**Timestamp**: 2026-07-21T00:44:00Z
+**User Input**: "yes please open the PR"
+**AI Response**: Committed c114c18 on cursor/blog-post-id-allocation-ad83, pushed, opened draft PR #123 (Closes #121). Post-merge: redeploy GHA IAM role, tickets stacks, then workflow_dispatch backfill for live post.
+**Context**: CONSTRUCTION — PR opened for review
+
+---
