@@ -38,6 +38,12 @@ User: "Let's work on #68"
   → GitHub issue updated/closed on merge
 ```
 
+### Blog / email post `id` allocation (#121)
+
+Agents writing blog or email posts under `content/posts/` do **not** need `TICKETS_PASSCODE` in the environment. Add the post file without an `id` (or leave it blank); open a PR. The `allocate-post-ids.yml` workflow calls IAM-authenticated `POST /tickets/allocate` and commits `id: N` onto the PR branch. Photos continue to allocate inside `photo-upload-process`. To backfill a live post that is missing an id, run that workflow with `workflow_dispatch`.
+
+Local `blog post:new` may still use passcode auth + `/tickets/next` when you are at a configured desk.
+
 ### aidlc-docs vs GitHub — Division of Labor
 
 ```mermaid

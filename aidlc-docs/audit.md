@@ -1156,3 +1156,87 @@
 **Context**: OPERATIONS — placeholder handoff; engagement complete
 
 ---
+
+## Workspace Detection — Issue #121
+**Timestamp**: 2026-07-20T17:37:21Z
+**User Input**: "ok, lets begin working on this with option 3 and 2 as described above"
+**AI Response**: Started new AI-DLC engagement for #121 (Option 2 machine allocate + Option 3 PR bot). Previous photo UX polish engagement was Complete. Brownfield workspace; reverse engineering skipped (artifacts exist). Branch cursor/blog-post-id-allocation-ad83. Created issue-121-requirement-verification-questions.md and halted for answers.
+**Context**: INCEPTION — Workspace Detection complete → Requirements Analysis (awaiting answers)
+
+---
+
+## Requirements Analysis — Answers Received (#121)
+**Timestamp**: 2026-07-20T17:41:00Z
+**User Input**: "done"
+**AI Response**: Read issue-121-requirement-verification-questions.md. Answers: Q1=A early allocate on new post file; Q2=A push commit to PR branch; Q3=A new IAM-authenticated tickets API allocate route; Q4=A GHA OIDC only; Q5=A ticket-server-secrets; Q6=A backfill live post; Q7=B blog+email; Security=B off; Resiliency=B off; PBT=C off. No contradictions. Generated issue-121-requirements.md. Presenting approval gate; User Stories proposed skip (tooling).
+**Approval Prompt**: Review requirements; Request Changes / Add User Stories / Approve & Continue to Workflow Planning
+**Context**: INCEPTION — Requirements Analysis approval gate
+
+---
+
+## Requirements Analysis — Approved (#121)
+**Timestamp**: 2026-07-20T17:43:00Z
+**User Input**: "approve"
+**AI Response**: Requirements approved. User Stories skipped (CI/publishing tooling; user did not request Add User Stories). Proceeding to Workflow Planning.
+**Context**: INCEPTION — Requirements Analysis complete → Workflow Planning
+
+---
+
+## Workflow Planning — Plan Ready (#121)
+**Timestamp**: 2026-07-20T17:44:00Z
+**User Input**: "(continuation after requirements approve)"
+**AI Response**: Created issue-121-execution-plan.md. Recommend EXECUTE Application Design + Units Generation; per-unit FD/NFR/Infra; always Code Gen + Build and Test. Skip RE/User Stories. Proposed units: U1 tickets machine allocate, U2 PR bot+IAM, U3 docs+backfill.
+**Approval Prompt**: Review execution plan; Request Changes / Add Skipped Stages / Approve & Continue to Application Design
+**Context**: INCEPTION — Workflow Planning approval gate
+
+---
+
+## Workflow Planning — Approved (#121)
+**Timestamp**: 2026-07-20T17:44:30Z
+**User Input**: "approved"
+**AI Response**: Execution plan approved. Proceeding to Application Design — creating design plan with clarifying questions (gate before artifacts).
+**Context**: INCEPTION — Workflow Planning complete → Application Design planning
+
+---
+
+## Application Design — Questions (#121)
+**Timestamp**: 2026-07-20T17:45:30Z
+**User Input**: "(after workflow plan approval)"
+**AI Response**: Created issue-121-application-design-plan.md with 7 design questions (IAM auth shape, Lambda vs extend next, route path, secondary region, multi-file commits, GITHUB_TOKEN vs PAT, required check). Halted for answers before generating design artifacts.
+**Context**: INCEPTION — Application Design gate (awaiting answers)
+
+---
+
+## Application Design — Artifacts Ready (#121)
+**Timestamp**: 2026-07-20T18:34:00Z
+**User Input**: "sounds good"
+**AI Response**: Applied recommended answers A/A/A/A/A/A/B to issue-121-application-design-plan.md. Generated issue-121-components.md, component-methods.md, services.md, component-dependency.md, application-design.md under aidlc-docs/inception/application-design/. Presenting approval gate before Units Generation.
+**Approval Prompt**: Review application design; Request Changes / Approve & Continue to Units Generation
+**Context**: INCEPTION — Application Design approval gate
+
+---
+
+## Application Design — Approved (#121)
+**Timestamp**: 2026-07-20T19:56:00Z
+**User Input**: "approved"
+**AI Response**: Application design approved. Proceeding to Units Generation.
+**Context**: INCEPTION — Application Design complete → Units Generation
+
+---
+
+## Units Generation — Planning Questions (#121)
+**Timestamp**: 2026-07-20T19:57:00Z
+**User Input**: "(after application design approval)"
+**AI Response**: Created issue-121-unit-of-work-plan.md with proposed U1/U2/U3 split and 4 clarification questions (plus recommendations A/A/A/B). Halted for answers and plan approval before generating unit artifacts.
+**Approval Prompt**: Unit of work plan complete. Review aidlc-docs/inception/plans/issue-121-unit-of-work-plan.md. Ready to proceed to generation?
+**Context**: INCEPTION — Units Generation Part 1 gate
+
+---
+
+## Units + Construction — Lightweight path (#121)
+**Timestamp**: 2026-07-20T20:00:00Z
+**User Input**: "i agree"
+**AI Response**: Skipped full Units Generation / per-unit design gates. Wrote thin unit map docs. Implemented U1 tickets-allocate (Go+CFN primary/secondary), U2 allocate-post-ids workflow + SigV4 script + GitHubActionsTicketsAllocate IAM policy, U3 docs. make build OK. Backfill deferred to workflow_dispatch after deploy. Presenting for user review before commit/PR per git-review gate.
+**Context**: CONSTRUCTION — code ready for review
+
+---

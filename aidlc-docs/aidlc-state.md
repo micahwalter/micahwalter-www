@@ -2,10 +2,10 @@
 
 ## Project Information
 - **Project Type**: Brownfield
-- **Start Date**: 2026-07-17T14:56:46Z
-- **Current Stage**: OPERATIONS — Complete (placeholder handoff)
-- **Engagement Status**: Complete — photo UX polish shipped (PR #115)
-- **Production sign-off**: 2026-07-17 (user: merged, deployed, looks good)
+- **Start Date**: 2026-07-20T17:37:21Z
+- **Current Stage**: CONSTRUCTION — Code complete; awaiting review / Build and Test notes
+- **Engagement Status**: In progress — [#121](https://github.com/micahwalter/micahwalter-www/issues/121)
+- **Branch**: `cursor/blog-post-id-allocation-ad83`
 
 ## Extension Configuration
 | Extension | Enabled | Decided At |
@@ -18,20 +18,17 @@
 
 ### 🔵 INCEPTION PHASE
 - [x] Workspace Detection
-- [x] Reverse Engineering (skipped)
+- [x] Reverse Engineering — SKIP
 - [x] Requirements Analysis (approved)
-- [x] User Stories (approved)
-- [x] Workflow Planning (approved)
-- [x] Application Design — SKIP
-- [x] Units Generation — SKIP
+- [x] User Stories — SKIP
+- [x] Workflow Planning (approved; later lightened)
+- [x] Application Design (approved)
+- [x] Units Generation — lightweight (U1/U2/U3 map only)
 
 ### 🟢 CONSTRUCTION PHASE
-- [x] Functional Design — SKIP
-- [x] NFR Requirements — SKIP
-- [x] NFR Design — SKIP
-- [x] Infrastructure Design — SKIP
-- [x] Code Generation (PR #115)
-- [x] Build and Test (approved → Operations)
+- [x] Functional / NFR / Infra Design — SKIP (user agreed code-first)
+- [x] Code Generation — U1–U3 implemented
+- [ ] Build and Test — local Go build done; AWS deploy + backfill pending after merge
 
 ### 🟡 OPERATIONS PHASE
-- [x] Operations — PLACEHOLDER (handoff documented)
+- [ ] Operations — PLACEHOLDER (deploy order in construction summary)

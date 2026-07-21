@@ -11,7 +11,7 @@ ARTIFACTS_PREFIX := tickets/lambda
 STACK_NAME           := micahwalter-tickets
 STACK_NAME_SECONDARY := micahwalter-tickets-secondary
 
-FUNCTIONS := auth next
+FUNCTIONS := auth next allocate
 
 DIST := dist
 
