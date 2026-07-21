@@ -1,5 +1,5 @@
 ---
-# TODO: backfill id from the ticket server (POST /tickets/next); optional for blog posts
+id: 173
 title: "Photos without the deploy"
 publishedAt: "2026-07-20"
 excerpt: "Uploading a photo from my phone worked, but publishing it still meant a full static rebuild. Moving photo metadata to DynamoDB and serving it from an API turned a four minute wait into a few seconds, and taught me a couple of lessons about EXIF data along the way."
