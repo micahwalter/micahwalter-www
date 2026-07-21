@@ -1,0 +1,118 @@
+name: Allocate post IDs on PR
+
+# Option 3 from #121: when a PR adds blog/email posts without frontmatter id,
+# call IAM-authenticated POST /tickets/allocate and commit id(s) to the PR branch.
+# Advisory check (not required for merge). Same-repo PRs only.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'content/posts/**/index.md'
+  workflow_dispatch:
+    inputs:
+      files:
+        description: 'Space-separated content/posts paths to backfill (optional)'
+        required: false
+        default: 'content/posts/2026-07-20-photos-without-the-deploy/index.md'
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+
+env:
+  AWS_REGION: us-east-1
+  TICKETS_ALLOCATE_URL: https://api.micahwalter.com/tickets/allocate
+
+jobs:
+  allocate:
+    name: Allocate missing post ids
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Checkout PR head
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Checkout default branch
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          npm ci --ignore-scripts
+          npm install --no-save \
+            @aws-sdk/signature-v4@3 \
+            @smithy/protocol-http@4 \
+            @aws-sdk/credential-provider-node@3 \
+            @aws-crypto/sha256-js@5
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Collect added post files (PR)
+        id: files
+        if: github.event_name == 'pull_request'
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          ADDED=$(git diff --diff-filter=A --name-only "$BASE_SHA"...HEAD -- 'content/posts/*/index.md' || true)
+          echo "Added posts:"
+          echo "$ADDED"
+          {
+            echo "list<<EOF"
+            echo "$ADDED"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Allocate and patch (PR)
+        if: github.event_name == 'pull_request'
+        run: |
+          mapfile -t FILES <<< "${{ steps.files.outputs.list }}"
+          # Trim empty
+          FILES=("${FILES[@]//$'\r'/}")
+          FILTERED=()
+          for f in "${FILES[@]}"; do
+            [[ -n "$f" ]] && FILTERED+=("$f")
+          done
+          if [[ ${#FILTERED[@]} -eq 0 ]]; then
+            echo "No newly added content/posts/*/index.md files."
+            exit 0
+          fi
+          node scripts/ci/allocate-missing-post-ids.js --files "${FILTERED[@]}"
+
+      - name: Allocate and patch (workflow_dispatch backfill)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          node scripts/ci/allocate-missing-post-ids.js --backfill ${{ inputs.files }}
+
+      - name: Commit and push id updates
+        run: |
+          if git diff --quiet -- content/posts; then
+            echo "No frontmatter changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add content/posts
+          git commit -m "chore: allocate post id(s) via tickets/allocate"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git push origin "HEAD:${{ github.head_ref }}"
+          else
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi

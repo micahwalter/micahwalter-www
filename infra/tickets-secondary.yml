@@ -64,6 +64,7 @@ Resources:
     DependsOn:
       - AuthRoute
       - NextRoute
+      - AllocateRoute
     Properties:
       ApiId: !Ref TicketsApi
       StageName: $default
@@ -75,6 +76,9 @@ Resources:
         'POST /auth':
           ThrottlingBurstLimit: 3
           ThrottlingRateLimit: 1
+        'POST /allocate':
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
 
   TicketsApiMapping:
     Type: AWS::ApiGatewayV2::ApiMapping
@@ -174,6 +178,49 @@ Resources:
         - { Key: Region, Value: secondary }
         - { Key: ManagedBy, Value: CloudFormation }
 
+  AllocateFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: tickets-allocate-fn-role-secondary
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: AllocateFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: dynamodb:UpdateItem
+                Resource: !Sub arn:aws:dynamodb:${PrimaryRegion}:${AWS::AccountId}:table/${PostTicketsTableName}
+
+  AllocateFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: tickets-allocate
+      Runtime: provided.al2023
+      Architectures: [arm64]
+      Handler: bootstrap
+      Role: !GetAtt AllocateFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/allocate.zip
+      Timeout: 5
+      MemorySize: 128
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref PostTicketsTableName
+          DYNAMODB_REGION: !Ref PrimaryRegion
+      Tags:
+        - { Key: Project, Value: micahwalter-tickets }
+        - { Key: Region, Value: secondary }
+        - { Key: ManagedBy, Value: CloudFormation }
+
   AuthIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
@@ -190,6 +237,14 @@ Resources:
       IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${NextFn.Arn}/invocations
       PayloadFormatVersion: '2.0'
 
+  AllocateIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref TicketsApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AllocateFn.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
   AuthRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -203,6 +258,14 @@ Resources:
       ApiId: !Ref TicketsApi
       RouteKey: POST /next
       Target: !Sub integrations/${NextIntegration}
+
+  AllocateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref TicketsApi
+      RouteKey: POST /allocate
+      AuthorizationType: AWS_IAM
+      Target: !Sub integrations/${AllocateIntegration}
 
   AuthFnPermission:
     Type: AWS::Lambda::Permission
@@ -219,6 +282,14 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TicketsApi}/*/*/next
+
+  AllocateFnPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AllocateFn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TicketsApi}/*/*/allocate
 
   AuthFnErrorAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -247,6 +318,23 @@ Resources:
       Dimensions:
         - Name: FunctionName
           Value: !Ref NextFn
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  AllocateFnErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: tickets-allocate-fn-errors-secondary
+      AlarmDescription: tickets-allocate Lambda error rate is elevated (secondary region)
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref AllocateFn
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1

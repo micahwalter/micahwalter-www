@@ -111,20 +111,21 @@ draft: false                 # Optional: true hides in production
 
 ### Post IDs (Ticket Server)
 
-All posts (blog, photo, email) share a single sequential integer `id` allocated by the **ticket server** at `https://api.micahwalter.com/tickets`:
+All posts (blog, photo, and email) share a single sequential integer `id` allocated from DynamoDB (`post_tickets`, us-east-1 only) via the ticket server at `https://api.micahwalter.com/tickets`:
 
-- `POST /tickets/auth` — passcode → HMAC session token
-- `POST /tickets/next` — Bearer token → `{ "id": N }`
+- `POST /tickets/auth` — passcode → HMAC session token (human / CLI)
+- `POST /tickets/next` — Bearer token → `{ "id": N }` (human / CLI)
+- `POST /tickets/allocate` — IAM SigV4 → `{ "id": N }` (GitHub Actions / machine callers; no passcode)
 
-Counter state lives in DynamoDB (`post_tickets`, us-east-1 only). Blog CLI commands call the API; photo-upload Lambda calls the same API over HTTPS.
+Blog CLI commands use auth+next. Photo-upload process still uses the passcode over HTTPS (Secrets Manager). PR automation uses allocate: `.github/workflows/allocate-post-ids.yml` detects new blog/email `content/posts/**/index.md` files missing `id` and commits the allocated value to the PR branch.
 
-- **Blog posts** (`blog post:new`): `id` in frontmatter; URL slug remains title-based
-- **Photo posts** (`blog photos:import`, web upload): `id` is the URL slug (e.g. `/posts/42`)
+- **Blog posts** (`blog post:new` or a PR adding `index.md`): `id` in frontmatter; URL slug remains title-based
+- **Photo posts**: `id` is the URL slug (e.g. `/posts/42` historically; now `/photos/{id}`)
 - **Email posts**: `id` is the newsletter `emailId`
 
-**CLI auth:** first use prompts for passcode → saved in `~/.config/blog/credentials.json`. Override with `TICKETS_PASSCODE`. API URL override: `TICKETS_API_URL`.
+**CLI auth:** first use prompts for passcode → saved in `~/.config/blog/credentials.json`. Override with `TICKETS_PASSCODE`. API URL override: `TICKETS_API_URL`. Agents and cloud VMs can skip CLI auth for blog/email drafts and rely on the PR allocate workflow.
 
-**Seed after migration:** `node scripts/seed-post-counter.js --apply` (dry-run by default; requires manual `YES` confirmation).
+**Backfill:** `workflow_dispatch` on `allocate-post-ids.yml` can patch existing posts (e.g. the live post that shipped without an id).
 
 Infrastructure: `infra/ticket-lambdas/` (Go), `infra/tickets.yml`, `infra/tickets-secondary.yml`.
 
