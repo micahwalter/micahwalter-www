@@ -53,6 +53,11 @@ Parameters:
     Default: micahwalter-exposures
     Description: DynamoDB table for Exposure newsletter archive issues
 
+  ExposureCounterTableName:
+    Type: String
+    Default: micahwalter-exposure-counter
+    Description: DynamoDB table for Exposure issue counter and daily run locks
+
   WebsiteBucketName:
     Type: String
     Default: micahwalter-www-website
@@ -910,6 +915,124 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ExposuresApi}/*/*/*
 
+  # --- Exposure Sunday orchestrator (U3) ---
+
+  ExposureCounterTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref ExposureCounterTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: id, AttributeType: S }
+      KeySchema:
+        - { AttributeName: id, KeyType: HASH }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - { Key: Project, Value: micahwalter-photo-upload }
+        - { Key: ManagedBy, Value: CloudFormation }
+
+  ExposureOrchestratorFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: photo-upload-exposure-orchestrator-fn-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ExposureOrchestratorFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:Query
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                Resource:
+                  - !GetAtt PhotosTable.Arn
+                  - !Sub ${PhotosTable.Arn}/index/*
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                Resource:
+                  - !GetAtt ExposuresTable.Arn
+                  - !Sub ${ExposuresTable.Arn}/index/*
+              - Effect: Allow
+                Action:
+                  - dynamodb:UpdateItem
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                Resource: !GetAtt ExposureCounterTable.Arn
+              - Effect: Allow
+                Action: events:PutEvents
+                Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${NewsletterEventBusName}
+              - Effect: Allow
+                Action: ses:SendEmail
+                Resource: '*'
+
+  ExposureOrchestratorFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: photo-upload-exposure-orchestrator
+      Runtime: nodejs20.x
+      Architectures: [arm64]
+      Handler: src/exposure-orchestrator.handler
+      Role: !GetAtt ExposureOrchestratorFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/photo-upload.zip
+      Timeout: 60
+      MemorySize: 256
+      Environment:
+        Variables:
+          PHOTOS_TABLE: !Ref PhotosTable
+          EXPOSURES_TABLE: !Ref ExposuresTable
+          EXPOSURE_COUNTER_TABLE: !Ref ExposureCounterTable
+          SITE_URL: !Ref SiteUrl
+          ADMIN_EMAIL: !Ref AdminEmail
+          SES_FROM_ADDRESS: !Ref AdminEmail
+          NEWSLETTER_EVENT_BUS_NAME: !Ref NewsletterEventBusName
+
+  ExposureSchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: photo-upload-exposure-scheduler-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: scheduler.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeExposureOrchestrator
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt ExposureOrchestratorFn.Arn
+
+  ExposureSundaySchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: exposure-sunday-send
+      Description: Weekly Exposure newsletter — Sunday 09:00 America/New_York
+      State: ENABLED
+      FlexibleTimeWindow:
+        Mode: 'OFF'
+      ScheduleExpression: cron(0 9 ? * SUN *)
+      ScheduleExpressionTimezone: America/New_York
+      Target:
+        Arn: !GetAtt ExposureOrchestratorFn.Arn
+        RoleArn: !GetAtt ExposureSchedulerRole.Arn
+
 Outputs:
 
   ApiEndpoint:
@@ -931,6 +1054,14 @@ Outputs:
   ExposuresApiEndpoint:
     Description: Prefer https://api.micahwalter.com/exposures
     Value: !Sub https://${ExposuresApi}.execute-api.${AWS::Region}.amazonaws.com
+
+  ExposureOrchestratorFnName:
+    Description: Sunday Exposure send orchestrator Lambda
+    Value: !Ref ExposureOrchestratorFn
+
+  ExposureCounterTableName:
+    Description: Exposure issue counter + daily locks
+    Value: !Ref ExposureCounterTable
 
   PhotoEventBusName:
     Description: EventBridge bus for PhotoPendingEnrichment (U2 consumer)

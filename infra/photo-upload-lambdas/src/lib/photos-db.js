@@ -184,6 +184,67 @@ async function getFeaturedPhoto() {
   return items.find((p) => p.featured === true) || items[0];
 }
 
+/**
+ * Public photos eligible for Exposure and not yet sent.
+ * Paginates the newest-first GSI (personal-scale catalog).
+ */
+async function listExposureCandidates({ maxItems = 100 } = {}) {
+  const out = [];
+  let ExclusiveStartKey;
+  const cap = Math.min(Math.max(Number(maxItems) || 100, 1), 200);
+
+  do {
+    const res = await ddb.send(
+      new QueryCommand({
+        TableName: TABLE,
+        IndexName: GSI1,
+        KeyConditionExpression: 'gsi1pk = :pk',
+        ExpressionAttributeValues: {
+          ':pk': 'PHOTO',
+          ':false': false,
+          ':true': true,
+        },
+        FilterExpression:
+          'draft = :false AND exposureEligible = :true AND attribute_not_exists(exposureSentAt)',
+        ScanIndexForward: false,
+        Limit: 50,
+        ExclusiveStartKey,
+      }),
+    );
+    for (const item of res.Items || []) {
+      out.push(item);
+      if (out.length >= cap) {
+        return out;
+      }
+    }
+    ExclusiveStartKey = res.LastEvaluatedKey;
+  } while (ExclusiveStartKey);
+
+  return out;
+}
+
+/**
+ * Stamp a photo as sent in a production Exposure. Fails if already stamped.
+ */
+async function stampExposureSent(id, { sentAt, issueNumber }) {
+  const res = await ddb.send(
+    new UpdateCommand({
+      TableName: TABLE,
+      Key: { id: String(id) },
+      UpdateExpression:
+        'SET exposureSentAt = :s, exposureIssueNumber = :n, updatedAt = :u',
+      ExpressionAttributeValues: {
+        ':s': sentAt,
+        ':n': Number(issueNumber),
+        ':u': nowIso(),
+      },
+      ConditionExpression: 'attribute_exists(id) AND attribute_not_exists(exposureSentAt)',
+      ReturnValues: 'ALL_NEW',
+    }),
+  );
+  return res.Attributes;
+}
+
 module.exports = {
   putPhoto,
   upsertPhoto,
@@ -192,6 +253,8 @@ module.exports = {
   updatePhotoEnrichment,
   listPhotos,
   getFeaturedPhoto,
+  listExposureCandidates,
+  stampExposureSent,
   encodeCursor,
   decodeCursor,
   gsiKeys,
