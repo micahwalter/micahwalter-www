@@ -10,6 +10,7 @@ import {
   photoCoverFilename,
   photoIdString,
   updatePhoto,
+  sendExposureTest,
   PhotoApiError,
   type PublicPhoto,
 } from "@/lib/photos-api";
@@ -39,12 +40,17 @@ export default function PhotoEditPanel({
   const [caption, setCaption] = useState("");
   const [tagsText, setTagsText] = useState("");
   const [featured, setFeatured] = useState(false);
+  const [exposureEligible, setExposureEligible] = useState(false);
+  const [exposureSentAt, setExposureSentAt] = useState<string | null>(null);
+  const [exposureIssueNumber, setExposureIssueNumber] = useState<number | null>(null);
   const [preview, setPreview] = useState<PublicPhoto | null>(null);
 
   const [formLoading, setFormLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [formError, setFormError] = useState("");
   const [saveOk, setSaveOk] = useState(false);
+  const [testOk, setTestOk] = useState("");
 
   const loadList = useCallback(async (append = false, nextCursor?: string | null) => {
     if (!append) setListLoading(true);
@@ -72,6 +78,7 @@ export default function PhotoEditPanel({
       setFormLoading(true);
       setFormError("");
       setSaveOk(false);
+      setTestOk("");
       setSelectedId(id);
       try {
         const photo = await getPhoto(id);
@@ -80,6 +87,11 @@ export default function PhotoEditPanel({
         setCaption(photo.caption || "");
         setTagsText((photo.tags || []).join(", "));
         setFeatured(!!photo.featured);
+        setExposureEligible(!!photo.exposureEligible);
+        setExposureSentAt(photo.exposureSentAt || null);
+        setExposureIssueNumber(
+          photo.exposureIssueNumber != null ? Number(photo.exposureIssueNumber) : null,
+        );
       } catch (err) {
         setPreview(null);
         if (err instanceof PhotoApiError && err.status === 404) {
@@ -120,6 +132,7 @@ export default function PhotoEditPanel({
           caption,
           tags: parseTagsInput(tagsText),
           featured,
+          exposureEligible,
         },
         token,
       );
@@ -128,6 +141,11 @@ export default function PhotoEditPanel({
       setCaption(updated.caption || "");
       setTagsText((updated.tags || []).join(", "));
       setFeatured(!!updated.featured);
+      setExposureEligible(!!updated.exposureEligible);
+      setExposureSentAt(updated.exposureSentAt || null);
+      setExposureIssueNumber(
+        updated.exposureIssueNumber != null ? Number(updated.exposureIssueNumber) : null,
+      );
       setSaveOk(true);
       setItems((prev) =>
         prev.map((p) => (photoIdString(p) === photoIdString(updated) ? updated : p)),
@@ -144,6 +162,29 @@ export default function PhotoEditPanel({
       }
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleExposureTest() {
+    if (!selectedId || testing || saving) return;
+    setTesting(true);
+    setFormError("");
+    setTestOk("");
+    try {
+      const result = await sendExposureTest(selectedId, token);
+      setTestOk(result.message || "Test Exposure queued to AdminEmail.");
+    } catch (err) {
+      if (err instanceof PhotoApiError && err.status === 401) {
+        clearAdminToken();
+        onSessionExpired();
+        setFormError(err.message);
+      } else if (err instanceof PhotoApiError) {
+        setFormError(err.message);
+      } else {
+        setFormError("Could not send test Exposure.");
+      }
+    } finally {
+      setTesting(false);
     }
   }
 
@@ -286,11 +327,32 @@ export default function PhotoEditPanel({
               type="checkbox"
               checked={featured}
               onChange={(e) => setFeatured(e.target.checked)}
-              disabled={formLoading || saving}
+              disabled={formLoading || saving || testing}
               className="h-4 w-4"
             />
             Feature on homepage
           </label>
+
+          <label className="flex items-center gap-3 text-charcoal cursor-pointer" style={labelStyle}>
+            <input
+              type="checkbox"
+              checked={exposureEligible}
+              onChange={(e) => setExposureEligible(e.target.checked)}
+              disabled={formLoading || saving || testing}
+              className="h-4 w-4"
+            />
+            Eligible for Exposure
+          </label>
+
+          {(exposureSentAt || exposureIssueNumber != null) && (
+            <p className="text-sm text-gray" style={labelStyle}>
+              Sent as Exposure
+              {exposureIssueNumber != null ? ` #${exposureIssueNumber}` : ""}
+              {exposureSentAt
+                ? ` · ${format(new Date(exposureSentAt), "MMM d, yyyy")}`
+                : ""}
+            </p>
+          )}
 
           {formError && (
             <p className="text-sm text-red-700" style={labelStyle}>
@@ -302,15 +364,31 @@ export default function PhotoEditPanel({
               Saved. Public pages will show the update on next load (no site deploy).
             </p>
           )}
+          {testOk && (
+            <p className="text-sm text-charcoal" style={labelStyle}>
+              {testOk}
+            </p>
+          )}
 
-          <button
-            type="submit"
-            disabled={formLoading || saving || !selectedId}
-            className="bg-charcoal text-cream px-8 py-3 text-sm tracking-wide hover:bg-charcoal/80 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-            style={labelStyle}
-          >
-            {saving ? "Saving…" : "Save changes"}
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="submit"
+              disabled={formLoading || saving || testing || !selectedId}
+              className="bg-charcoal text-cream px-8 py-3 text-sm tracking-wide hover:bg-charcoal/80 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+              style={labelStyle}
+            >
+              {saving ? "Saving…" : "Save changes"}
+            </button>
+            <button
+              type="button"
+              onClick={handleExposureTest}
+              disabled={formLoading || saving || testing || !selectedId || !preview}
+              className="border border-charcoal text-charcoal px-8 py-3 text-sm tracking-wide hover:bg-charcoal/5 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+              style={labelStyle}
+            >
+              {testing ? "Sending test…" : "Send test Exposure"}
+            </button>
+          </div>
         </form>
       )}
     </div>

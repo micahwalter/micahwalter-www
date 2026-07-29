@@ -13,6 +13,10 @@ function toPublicPhoto(photo) {
     createdAt: photo.createdAt,
     updatedAt: photo.updatedAt,
     featured: !!photo.featured,
+    exposureEligible: !!photo.exposureEligible,
+    exposureSentAt: photo.exposureSentAt || null,
+    exposureIssueNumber:
+      photo.exposureIssueNumber != null ? Number(photo.exposureIssueNumber) : null,
     tags: photo.tags || [],
     enrichmentStatus: photo.enrichmentStatus,
     folderName: photo.folderName,

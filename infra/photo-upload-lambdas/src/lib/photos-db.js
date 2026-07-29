@@ -64,7 +64,7 @@ async function getPhoto(id) {
  * Partial update for owner PATCH. Rebuilds GSI keys if publishedAt changes (not allowed in U1).
  */
 async function updatePhoto(id, patch) {
-  const allowed = ['title', 'caption', 'tags', 'featured', 'draft'];
+  const allowed = ['title', 'caption', 'tags', 'featured', 'draft', 'exposureEligible'];
   const names = {};
   const values = { ':u': nowIso() };
   const parts = ['updatedAt = :u'];

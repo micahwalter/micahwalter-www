@@ -53,6 +53,18 @@ Parameters:
     Default: micahwalter-www-website
     Description: Primary website bucket for scheduled photo feed/sitemap artifacts
 
+  AdminEmail:
+    Type: String
+    Default: micah@micahwalter.com
+    Description: >
+      Owner address for Exposure test sends and (U3) empty-pool notify.
+      Keep in sync with newsletter stack AdminEmail.
+
+  NewsletterEventBusName:
+    Type: String
+    Default: newsletter-bus
+    Description: EventBridge bus that routes NewsletterSendRequested to dispatch
+
 Resources:
 
   UploadsBucket:
@@ -191,6 +203,7 @@ Resources:
       - PhotosFeaturedRoute
       - PhotosGetRoute
       - PhotosPatchRoute
+      - PhotosExposureTestRoute
     Properties:
       ApiId: !Ref PhotoApi
       StageName: $default
@@ -334,6 +347,9 @@ Resources:
                   - dynamodb:Scan
                 Resource:
                   - !GetAtt GalleriesTable.Arn
+              - Effect: Allow
+                Action: events:PutEvents
+                Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${NewsletterEventBusName}
 
   AuthFn:
     Type: AWS::Lambda::Function
@@ -420,6 +436,9 @@ Resources:
           SECRET_ARN: !Ref PhotoUploadSecret
           PHOTOS_TABLE: !Ref PhotosTable
           GALLERIES_TABLE: !Ref GalleriesTable
+          SITE_URL: !Ref SiteUrl
+          ADMIN_EMAIL: !Ref AdminEmail
+          NEWSLETTER_EVENT_BUS_NAME: !Ref NewsletterEventBusName
 
   PhotosPlaceIndex:
     Type: AWS::Location::PlaceIndex
@@ -622,6 +641,13 @@ Resources:
     Properties:
       ApiId: !Ref PhotoApi
       RouteKey: PATCH /{id}
+      Target: !Sub integrations/${PhotosApiIntegration}
+
+  PhotosExposureTestRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PhotoApi
+      RouteKey: POST /{id}/exposure-test
       Target: !Sub integrations/${PhotosApiIntegration}
 
   AuthFnPermission:

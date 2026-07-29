@@ -17,6 +17,8 @@ const {
   getFeaturedPhoto,
 } = require('./lib/photos-db');
 const { toPublicPhoto } = require('./lib/photo-dto');
+const { buildExposureEmail } = require('./lib/exposure-email');
+const { emitNewsletterSendRequested } = require('./lib/newsletter-events');
 const {
   getGallery,
   listGalleries,
@@ -76,6 +78,22 @@ function isGalleryCreate(routeKey, method, path) {
 
 function gallerySlugFrom(event, path) {
   return event.pathParameters?.slug || path.replace(/^\/galleries\//, '').replace(/\/$/, '');
+}
+
+function isExposureTest(routeKey, method, path) {
+  if (
+    routeKey === 'POST /{id}/exposure-test' ||
+    routeKey === 'POST /photos/{id}/exposure-test'
+  ) {
+    return true;
+  }
+  return method === 'POST' && /^\/[^/]+\/exposure-test\/?$/.test(path);
+}
+
+function photoIdFromExposureTestPath(event, path) {
+  if (event.pathParameters?.id) return event.pathParameters.id;
+  const m = path.match(/^\/([^/]+)\/exposure-test\/?$/);
+  return m ? m[1] : '';
 }
 
 async function requireAuth(event, body) {
@@ -205,6 +223,58 @@ exports.handler = async (event) => {
     }
 
     // --- Photos ---
+    if (isExposureTest(routeKey, method, path)) {
+      const id = photoIdFromExposureTestPath(event, path);
+      if (!id || id === 'featured' || id === 'galleries') {
+        return json(404, { message: 'Not found' });
+      }
+
+      let body = {};
+      try {
+        body = JSON.parse(event.body || '{}');
+      } catch {
+        return json(400, { message: 'Invalid request body' });
+      }
+
+      try {
+        await requireAuth(event, body);
+      } catch (err) {
+        return json(401, { message: err.message });
+      }
+
+      const adminEmail = (process.env.ADMIN_EMAIL || '').trim();
+      if (!adminEmail) {
+        return json(500, { message: 'ADMIN_EMAIL is not configured' });
+      }
+
+      const photo = await getPhoto(id);
+      if (!photo) return json(404, { message: 'Not found' });
+      if (photo.draft) {
+        return json(400, { message: 'Cannot send Exposure test for a draft photo' });
+      }
+
+      const built = buildExposureEmail(photo, { isTest: true });
+      await emitNewsletterSendRequested({
+        emailId: 0,
+        slug: built.slug,
+        title: built.subject,
+        htmlBody: built.htmlBody,
+        textBody: built.textBody,
+        viewInBrowserUrl: built.viewInBrowserUrl,
+        testEmail: adminEmail,
+      });
+
+      console.log(
+        JSON.stringify({
+          msg: 'exposure-test-queued',
+          photoId: String(photo.id),
+          adminEmailDomain: adminEmail.includes('@') ? adminEmail.split('@')[1] : 'unknown',
+        }),
+      );
+
+      return json(200, { ok: true, message: 'Test Exposure queued' });
+    }
+
     if (isListRoute(routeKey, method, path)) {
       const qs = event.queryStringParameters || {};
       const limit = qs.limit;
@@ -261,6 +331,7 @@ exports.handler = async (event) => {
       }
       if (body.featured !== undefined) patch.featured = !!body.featured;
       if (body.draft !== undefined) patch.draft = !!body.draft;
+      if (body.exposureEligible !== undefined) patch.exposureEligible = !!body.exposureEligible;
 
       try {
         const updated = await updatePhoto(id, patch);
