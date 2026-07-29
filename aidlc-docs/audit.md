@@ -1652,3 +1652,11 @@
 **Context**: CONSTRUCTION — U1 approved → commit → U2
 
 ---
+
+## Issue #127 — U2 Implemented + Commit Pending
+**Timestamp**: 2026-07-29T12:15:00Z
+**User Input**: "Continue. Please make a commit here as well"
+**AI Response**: Committed U1 as 87c73d2. Implemented U2 exposures table/API/site. Committing U2 next. Presenting U2 completion gate → U3.
+**Context**: CONSTRUCTION — U2 complete
+
+---
