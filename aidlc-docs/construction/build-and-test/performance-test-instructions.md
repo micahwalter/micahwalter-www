@@ -1,42 +1,27 @@
-# Performance Test Instructions — Issues #103 / #104
+# Performance Test Instructions — Issue #127
 
-## Purpose
+## Applicability
 
-Personal / low-traffic site. NFRs are **best-effort** (no hard SLO). Light smoke only.
+**N/A for formal load testing** in this engagement. Exposure is a weekly single-send + low-traffic personal archive.
 
-## Soft goals (from U1–U7 NFR)
+## Informal expectations
 
-| Surface | Soft goal |
-|---------|-----------|
-| Photo list/detail API | Interactive within a couple seconds warm |
-| Gallery membership resolve | Modest parallel GETs (3–5) |
-| Feed publisher | Completes in minutes for full catalog |
-| Migrator | ~44 photos in minutes |
+| Surface | Expectation |
+|---------|-------------|
+| `GET /exposures/` | Personal traffic; API Gateway throttles already set on stack |
+| Sunday orchestrator | One invocation/week; timeout 60s sufficient for small photo catalog |
+| Newsletter dispatch | Existing bulk SES path (unchanged capacity assumptions) |
 
-## Optional smoke
+## Optional smoke under light concurrency
 
 ```bash
-# Time public list (requires network)
-curl -s -o /dev/null -w "%{http_code} %{time_total}\n" \
-  "https://api.micahwalter.com/photos?limit=12"
-
-curl -s -o /dev/null -w "%{http_code} %{time_total}\n" \
-  "https://api.micahwalter.com/photos/featured"
+# Parallel list (low N)
+for i in $(seq 1 5); do
+  curl -sS -o /dev/null -w "%{http_code}\n" 'https://api.micahwalter.com/exposures/' &
+done
+wait
 ```
 
-## Load / stress
+**Expected**: HTTP 200s; no 5xx under tiny parallel load.
 
-**Not required** for this engagement (personal traffic; no Resiliency extension).
-
-If desired later: k6 script against `GET /photos` with low VUs (1–5) for 1–2 minutes; watch DynamoDB throttles (on-demand should absorb).
-
-## Pass criteria
-
-- No sustained 5xx on smoke curls  
-- Feed publisher finishes without timeout (60s Lambda)  
-- No requirement to meet p95 latency targets  
-
-## N/A
-
-- Formal JMeter plans  
-- Concurrent-user capacity certification  
+No JMeter/k6 suite is required for #127 acceptance.

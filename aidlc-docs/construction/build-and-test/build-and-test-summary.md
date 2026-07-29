@@ -1,59 +1,43 @@
-# Build and Test Summary — Issues #103 / #104 (Photo Cutover)
+# Build and Test Summary — Issue #127 Exposure
 
-**Date:** 2026-07-17  
-**Branch:** `cursor/u2-enrichment-functional-design-be02`  
-**PR:** [#110](https://github.com/micahwalter/micahwalter-www/pull/110)  
-**Units:** U1–U7 complete through Code Generation  
+## Units covered
 
-## Build Status
+| Unit | Delivered |
+|------|-----------|
+| U1 | Eligibility + edit UI + AdminEmail test send |
+| U2 | Exposures table + public API + `/exposures` site |
+| U3 | Counter, Sunday Scheduler, orchestrator, empty-pool notify |
 
-| Build | Command | Status |
-|-------|---------|--------|
-| Static site | `NEXT_PUBLIC_PHOTO_API_URL=… npm run build` | **Success** (verified during U6/U7 CG) |
-| Photo-upload zip | `cd infra/photo-upload-lambdas && make build` | Ready (CI / local) |
+## Local validation (this environment)
 
-**Artifacts:**
-- `/out` static export  
-- `infra/photo-upload-lambdas/dist/photo-upload.zip` (on build)  
-- Prebuild: `public/posts.json`, `public/feed.xml`, `public/sitemap.xml`  
+| Check | Result |
+|-------|--------|
+| `npx tsc --noEmit` | Pass |
+| `node --check` on new Lambda entrypoints | Pass |
+| `npm install` in `infra/photo-upload-lambdas` (incl. SES SDK) | Pass |
+| `npm run build` (includes `/exposures`) | Pass |
+| Full AWS deploy / live SES / subscriber send | **Pending** (needs `www` SSO + stack deploy) |
 
-## Test Execution Summary
+## Instruction index
 
-| Category | Status | Notes |
-|----------|--------|-------|
-| Unit tests | **N/A** | No test runner; PBT extension off |
-| Integration tests | **Pending deploy** | Scenarios in `integration-test-instructions.md` |
-| Performance tests | **N/A / soft smoke** | Best-effort NFRs; optional curl timing |
-| Contract tests | **N/A** | Manual API checks in integration doc |
-| Security tests | **N/A** | Security extension disabled; HMAC negative checks in integration |
-| E2E | **Pending deploy** | Upload → browse → edit → galleries → migrate → feeds |
+- [build-instructions.md](./build-instructions.md)  
+- [unit-test-instructions.md](./unit-test-instructions.md)  
+- [integration-test-instructions.md](./integration-test-instructions.md)  
+- [performance-test-instructions.md](./performance-test-instructions.md)  
 
-## Local verification completed
+## Acceptance checklist (from requirements)
 
-- [x] Site production build with photo API URL  
-- [x] `migrate-photos.js` dry-run (~44 photos)  
-- [x] `cleanup-photo-content.js` dry-run  
-- [x] U6 galleries build routes (`/galleries`, `/galleries/_placeholder`)  
-- [ ] Live migrate `--apply`  
-- [ ] Feed publisher invoke  
-- [ ] Secondary stack smoke  
-- [ ] Content cleanup `--apply`  
+- [ ] Mark `exposureEligible` from edit UI  
+- [ ] Sunday 09:00 America/New_York schedule exists  
+- [ ] Random eligible unsent send to newsletter subscribers  
+- [ ] Subject `Exposure #N · {title}` with dedicated counter  
+- [ ] Stamp after production send; not after test  
+- [ ] Test → AdminEmail only  
+- [ ] Empty pool → AdminEmail  
+- [ ] `/exposures` + `/exposures/[n]`  
+- [ ] Email links to `/photos/{id}`  
+- [ ] Docs for schedule / AdminEmail / UX  
 
-## Overall Status
+## Branch
 
-- **Build:** Success  
-- **Automated tests:** N/A  
-- **Ready for Operations / cutover deploy:** Yes (follow runbook)
-
-## Instruction files
-
-- `build-instructions.md`  
-- `unit-test-instructions.md`  
-- `integration-test-instructions.md`  
-- `performance-test-instructions.md`  
-- `build-and-test-summary.md` (this file)  
-
-## Ops pointer
-
-Full ordered deploy + migrate + cleanup:  
-`aidlc-docs/construction/u7-cutover/code/cutover-runbook.md`
+`cursor/exposure-newsletter-6caf` — commits U1 `87c73d2`, U2 `5a08629`, U3 `65a1e74` (+ this Build and Test docs commit).

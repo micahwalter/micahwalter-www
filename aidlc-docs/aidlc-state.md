@@ -3,7 +3,7 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-07-28T13:28:13Z
-- **Current Stage**: CONSTRUCTION — U3 code complete (awaiting approval / Build and Test)
+- **Current Stage**: CONSTRUCTION — Build and Test (awaiting approval)
 - **Engagement Status**: In progress — [#127](https://github.com/micahwalter/micahwalter-www/issues/127)
 - **Branch**: `cursor/exposure-newsletter-6caf`
 
@@ -14,27 +14,22 @@
 | Resiliency Baseline | No | Requirements Analysis |
 | Property-Based Testing | No | Requirements Analysis |
 
-## Execution Plan Summary
-- **Units**: U1 → U2 → U3 (all implemented locally)
-- **Construction depth**: Lightweight design + Code Generation per unit
-- **Deploy**: photo-upload stack + site still required
-
 ## Stage Progress
 
 ### 🔵 INCEPTION PHASE
-- [x] All inception stages for #127 (US skipped)
+- [x] Complete for #127 (User Stories skipped)
 
 ### 🟢 CONSTRUCTION PHASE
-- [x] U1 lightweight design + Code Generation (committed)
-- [x] U2 lightweight design + Code Generation (committed)
-- [x] U3 lightweight design + Code Generation (this commit)
-- [ ] Build and Test
+- [x] U1 Code Generation
+- [x] U2 Code Generation
+- [x] U3 Code Generation
+- [x] Build and Test instructions + local `tsc` / `npm run build` (awaiting approval)
 
 ### 🟡 OPERATIONS PHASE
 - [ ] Operations — PLACEHOLDER
 
 ## Current Status
 - **Lifecycle Phase**: CONSTRUCTION
-- **Current Stage**: U3 Code Generation Complete
-- **Next Stage**: Build and Test (after U3 approval)
-- **Status**: Ready for U3 review
+- **Current Stage**: Build and Test Complete
+- **Next Stage**: Operations placeholder / done after approval
+- **Status**: Ready for Build and Test review

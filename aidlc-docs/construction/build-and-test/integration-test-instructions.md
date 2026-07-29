@@ -1,110 +1,71 @@
-# Integration Test Instructions — Issues #103 / #104 (U1–U7)
+# Integration Test Instructions — Issue #127 Exposure
 
-## Purpose
-
-Verify units work together against live (or staging) AWS + static site.
+Manual end-to-end checks after photo-upload stack + site deploy.
 
 ## Prerequisites
 
-- Primary `micahwalter-photo-upload` deployed (photos + galleries + enrich + feed publisher)
-- `NEXT_PUBLIC_PHOTO_API_URL` baked into site build
-- Operator AWS profile `www` + photo upload passcode
-- Optional: secondary stack deployed for failover checks
+- Stack `micahwalter-photo-upload` updated with U1–U3 resources  
+- Newsletter stack healthy (`newsletter-bus` + dispatch)  
+- Site with `/upload` and `/exposures`  
+- `NEXT_PUBLIC_PHOTO_API_URL` pointing at live photos API  
+- SSO: `aws sso login --profile www`
 
-## Scenario matrix
-
-### S1 — Upload → DynamoDB → browse (U1/U3/U4)
+## Scenario 1 — Eligibility + test send (U1)
 
 1. Open `/upload`, unlock with passcode  
-2. Upload 1–2 JPEG/PNG with captions  
-3. Wait for process Lambda  
-4. `GET /photos/featured` and `GET /photos?limit=12` include new ids  
-5. Homepage hero / `/photos` show new photos **without** waiting for site deploy  
+2. Edit a **non-draft** photo → enable **Eligible for Exposure** → Save  
+3. Click **Send test Exposure**  
+4. Confirm inbox at `AdminEmail` receives test mail (subject `Test · Exposure · …`)  
+5. Confirm DynamoDB photo has **no** `exposureSentAt` after test  
 
-**Expected:** Photos live via API; no new photo `index.md` commit.
+**Expected**: Single-recipient test via newsletter dispatch; no subscriber blast; no stamp.
 
-### S2 — Enrichment (U2)
-
-1. After upload, wait for enricher (or check CloudWatch `photo-upload-enrich`)  
-2. `GET /photos/{id}` shows tags and/or fuzzed map when GPS present  
-3. Soft-fail: photo still public if Bedrock unavailable  
-
-### S3 — Edit hub (U5)
-
-1. With token in sessionStorage, open `/upload?edit=<id>` or Edit from detail  
-2. PATCH title/caption/tags/featured  
-3. Public detail reflects changes immediately  
-
-### S4 — Galleries (U6)
-
-1. Hub → Galleries: create gallery, set membership  
-2. `GET /photos/galleries` and `GET /photos/galleries/{slug}`  
-3. Public `/galleries` and `/galleries/{slug}` render tiles → `/photos/{id}`  
-4. `node scripts/migrate-galleries.js --apply` (once) for markdown galleries  
-
-### S5 — Cutover migrate (U7)
+## Scenario 2 — Archive API empty (U2)
 
 ```bash
-node scripts/migrate-photos.js          # dry-run
-node scripts/migrate-photos.js --apply  # write
-# optional: --gps
+curl -sS 'https://api.micahwalter.com/exposures/' | jq .
 ```
 
-1. Spot-check migrated ids via API  
-2. `/posts/<digits>` → 301 `/photos/<id>`  
-3. Search includes migrated photos  
+**Expected**: `{ "items": [], "cursor": null, ... }` (or existing items if already sent).
 
-### S6 — Feeds (U7)
+Open `/exposures` — empty state or list renders without error.
 
-1. Invoke `photo-upload-feed-publisher` or wait ≤1h  
-2. `https://www.micahwalter.com/photos-feed.xml` lists `/photos/{id}`  
-3. `sitemap-photos.xml` present  
-4. Blog `feed.xml` still from prebuild  
+## Scenario 3 — Orchestrator with inventory (U3)
 
-### S7 — CLI (U7)
+1. Ensure ≥1 public photo with `exposureEligible: true` and no `exposureSentAt`  
+2. **Note**: invoke consumes the NY calendar-day lock  
 
 ```bash
-blog photos:import ./fixture --dry-run
-blog photos:tag <id> --dry-run --profile www
+AWS_PROFILE=www aws lambda invoke \
+  --function-name photo-upload-exposure-orchestrator \
+  --cli-binary-format raw-payload \
+  --payload '{}' \
+  /tmp/exposure-out.json
+cat /tmp/exposure-out.json
 ```
 
-**Expected:** Import path documents DynamoDB SoT; tag reads/writes DB (apply only when intentional).
+3. Confirm response has `issueNumber` + `photoId`  
+4. `GET /exposures/{n}` and site `/exposures/{n}` show the photo  
+5. Photo record has `exposureSentAt` + `exposureIssueNumber`  
+6. Subscribers receive campaign (or check dispatch CloudWatch / SES)  
 
-### S8 — Secondary API (U7 / US-016)
+**Expected**: One Exposure issue; subject `Exposure #N · {title}`; view-in-browser URL `/exposures/N`.
 
-1. Confirm us-east-2 stack + ApiMapping `photos`  
-2. Call secondary execute-api URL or failover path for `GET /photos/`  
-3. Reads hit primary DynamoDB  
+## Scenario 4 — Empty pool notify
 
-### S9 — Cleanup (U7, destructive)
+1. Clear eligibility or ensure no unsent eligible photos  
+2. Delete daily lock item `LOCK#YYYY-MM-DD` (America/New_York date) from counter table if retesting same day  
+3. Invoke orchestrator  
 
-Only after S5 verify:
+**Expected**: `{ empty: true }`; AdminEmail receives “no eligible photos” mail; no new Exposure row.
 
-```bash
-node scripts/cleanup-photo-content.js --apply --galleries
-npm run build
-```
+## Scenario 5 — Idempotent same-day skip
 
-**Expected:** Build green; blog/email remain; photo/gallery markdown gone.
+1. Invoke orchestrator twice the same NY day  
 
-## Auth negative checks
+**Expected**: Second call `{ skipped: "already-ran" }`; no second issue.
 
-| Call | Expected |
-|------|----------|
-| PATCH `/photos/{id}` without Bearer | 401 |
-| POST `/photos/galleries` without Bearer | 401 |
-| GET public list/detail | 200, no precise GPS |
+## Cleanup
 
-## Cleanup after tests
-
-- Leave migrated production data  
-- Delete only intentional test uploads via future delete (none in U6/U7) or leave as draft  
-- Do not re-run cleanup against prod without verify  
-
-## Logs
-
-| Component | Where |
-|-----------|-------|
-| process / enrich / photos-api / feed-publisher | CloudWatch Log Groups `/aws/lambda/photo-upload-*` |
-| Site deploy | GitHub Actions `deploy.yml` |
-| Secondary | us-east-2 Lambda log groups |
+- Prefer not deleting production Exposure rows  
+- To retest lock: remove `LOCK#…` from `micahwalter-exposure-counter` only in intentional test windows
