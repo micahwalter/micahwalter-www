@@ -1701,3 +1701,11 @@
 **Context**: CONSTRUCTION — GHA readiness for Exposure
 
 ---
+
+## Issue #127 — Push and open PR approved
+**Timestamp**: 2026-07-29T13:27:30Z
+**User Input**: "Yes"
+**AI Response**: Pushing cursor/exposure-newsletter-6caf and opening draft PR against main for Exposure (#127).
+**Context**: Publish — push + create PR
+
+---
