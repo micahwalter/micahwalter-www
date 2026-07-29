@@ -543,6 +543,8 @@ Resources:
               - iam:ListAttachedRolePolicies
             Resource:
               - !Sub 'arn:aws:iam::${AWS::AccountId}:role/photo-upload-*-fn-role'
+              # EventBridge Scheduler invoke role for Exposure Sunday send (not *-fn-role)
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/photo-upload-exposure-scheduler-role'
           - Effect: Allow
             Action:
               - dynamodb:CreateTable
@@ -560,6 +562,10 @@ Resources:
               - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-photos/index/*'
               - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-galleries'
               - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-galleries/index/*'
+              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-exposures'
+              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-exposures/index/*'
+              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-exposure-counter'
+              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-exposure-counter/index/*'
           - Effect: Allow
             Action:
               - events:CreateEventBus
@@ -586,6 +592,31 @@ Resources:
               - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:rule/photo-bus/*'
               - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:archive/photo-bus-archive'
               - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:rule/photo-feed-publisher-hourly'
+          # Exposure Sunday send — EventBridge Scheduler (AWS::Scheduler::Schedule)
+          - Effect: Allow
+            Action:
+              - scheduler:CreateSchedule
+              - scheduler:UpdateSchedule
+              - scheduler:DeleteSchedule
+              - scheduler:GetSchedule
+              - scheduler:ListSchedules
+              - scheduler:CreateScheduleGroup
+              - scheduler:DeleteScheduleGroup
+              - scheduler:GetScheduleGroup
+              - scheduler:ListScheduleGroups
+              - scheduler:TagResource
+              - scheduler:UntagResource
+              - scheduler:ListTagsForResource
+            Resource:
+              - !Sub 'arn:aws:scheduler:us-east-1:${AWS::AccountId}:schedule/*/*'
+              - !Sub 'arn:aws:scheduler:us-east-1:${AWS::AccountId}:schedule-group/*'
+          - Effect: Allow
+            Action:
+              - iam:CreateServiceLinkedRole
+            Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/scheduler.amazonaws.com/AWSServiceRoleForScheduler'
+            Condition:
+              StringEquals:
+                iam:AWSServiceName: scheduler.amazonaws.com
           - Effect: Allow
             Action:
               - geo:CreatePlaceIndex

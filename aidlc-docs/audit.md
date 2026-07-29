@@ -1693,3 +1693,11 @@
 **Context**: CONSTRUCTION — Build and Test complete → approval gate
 
 ---
+
+## Issue #127 — Deploy via existing GitHub Actions?
+**Timestamp**: 2026-07-29T13:26:34Z
+**User Input**: "Can this all be deployed via the existing GitHub actions?"
+**AI Response**: Analyzed deploy.yml + photo-upload-deploy.yml + GitHubActionsDeployPhotoUpload. Site: yes (existing NEXT_PUBLIC_PHOTO_API_URL). Photo-upload: almost — fixed gaps (code-only Lambda list missing exposures-api + exposure-orchestrator; IAM missing exposures/counter DynamoDB, scheduler:*, PassRole for scheduler role). Documented one-time manual redeploy of micahwalter-www-github-actions before first CI CFN deploy. Newsletter stack unchanged.
+**Context**: CONSTRUCTION — GHA readiness for Exposure
+
+---

@@ -17,6 +17,8 @@
 | `npm install` in `infra/photo-upload-lambdas` (incl. SES SDK) | Pass |
 | `npm run build` (includes `/exposures`) | Pass |
 | Full AWS deploy / live SES / subscriber send | **Pending** (needs `www` SSO + stack deploy) |
+| GitHub Actions site deploy (`deploy.yml`) | Ready — no new secrets |
+| GitHub Actions photo-upload CFN | Ready after one-time IAM stack redeploy (`github-actions-role.yml`) |
 
 ## Instruction index
 

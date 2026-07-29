@@ -80,7 +80,7 @@ jobs:
       - name: Update function code only (no template change)
         if: steps.changed.outputs.template_changed == 'false'
         run: |
-          for fn in auth init process photos-api enrich feed-publisher; do
+          for fn in auth init process photos-api enrich feed-publisher exposures-api exposure-orchestrator; do
             echo "  updating photo-upload-${fn}..."
             aws lambda update-function-code \
               --function-name photo-upload-${fn} \

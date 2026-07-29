@@ -57,11 +57,35 @@ AWS_PROFILE=www aws cloudformation deploy \
     AdminEmail=micah@micahwalter.com
 ```
 
-Or rely on `.github/workflows/photo-upload-deploy.yml` after merge to `main`.
+Or rely on `.github/workflows/photo-upload-deploy.yml` after merge to `main` (see **GitHub Actions** below).
 
 ### 5. Site deploy
 
-Push/merge so `deploy.yml` builds with `NEXT_PUBLIC_PHOTO_API_URL` set. Optionally set `NEXT_PUBLIC_EXPOSURES_API_URL=https://api.micahwalter.com/exposures`.
+Push/merge so `deploy.yml` builds with `NEXT_PUBLIC_PHOTO_API_URL` set. Optionally set `NEXT_PUBLIC_EXPOSURES_API_URL=https://api.micahwalter.com/exposures`. No new site secret is required — the exposures client derives `…/exposures` from `NEXT_PUBLIC_PHOTO_API_URL`.
+
+### GitHub Actions (preferred path)
+
+| Workflow | Covers |
+|----------|--------|
+| `deploy.yml` | Site (`/exposures`, edit UI) |
+| `photo-upload-deploy.yml` | Lambda zip + `micahwalter-photo-upload` CFN (tables, APIs, orchestrator, Sunday schedule) |
+| Newsletter workflows | Unchanged — Exposure reuses `newsletter-bus` |
+
+**One-time before the first Exposure CFN deploy via CI:** redeploy the IAM stack so `GitHubActionsDeployPhotoUpload` includes exposures/counter DynamoDB, Scheduler, and PassRole for `photo-upload-exposure-scheduler-role`:
+
+```bash
+AWS_PROFILE=www aws cloudformation deploy \
+  --stack-name micahwalter-www-github-actions \
+  --template-file infra/github-actions-role.yml \
+  --region us-east-1 \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides \
+    HostedZoneId=<hosted-zone-id> \
+    WebsiteBucketName=<website-bucket> \
+    CloudFrontDistributionId=<distribution-id>
+```
+
+CI cannot grant itself these permissions. After that, merge to `main` (or `workflow_dispatch` photo-upload) deploys the rest.
 
 ## Verify build success
 
