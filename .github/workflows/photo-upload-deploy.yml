@@ -77,8 +77,11 @@ jobs:
               LambdaArtifactsBucket=${{ env.ARTIFACTS_BUCKET }} \
               LambdaArtifactsKeyPrefix=${{ env.ARTIFACTS_PREFIX }}
 
-      - name: Update function code only (no template change)
-        if: steps.changed.outputs.template_changed == 'false'
+      # Always refresh function code from the zip we just uploaded.
+      # CloudFormation will not redeploy Lambda code when the S3 key is unchanged,
+      # so a template-only deploy previously left functions on stale packages
+      # (e.g. Exposure routes existed but photos-api still ran pre-Exposure code).
+      - name: Update Lambda function code
         run: |
           for fn in auth init process photos-api enrich feed-publisher exposures-api exposure-orchestrator; do
             echo "  updating photo-upload-${fn}..."
