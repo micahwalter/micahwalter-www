@@ -24,6 +24,12 @@ export type PublicPhoto = {
   createdAt?: string;
   updatedAt?: string;
   featured?: boolean;
+  /** Eligible for weekly Exposure newsletter (owner-set). */
+  exposureEligible?: boolean;
+  /** ISO timestamp when included in a production Exposure send (U3). */
+  exposureSentAt?: string | null;
+  /** Exposure issue number when sent (U3). */
+  exposureIssueNumber?: number | null;
   tags?: string[];
   enrichmentStatus?: string;
   folderName: string;
@@ -270,6 +276,7 @@ export type PhotoUpdatePatch = {
   caption?: string;
   tags?: string[];
   featured?: boolean;
+  exposureEligible?: boolean;
 };
 
 export async function updatePhoto(
@@ -298,6 +305,38 @@ export async function updatePhoto(
   }
 
   return res.json() as Promise<PublicPhoto>;
+}
+
+/** Queue a test Exposure email to AdminEmail (does not stamp or blast subscribers). */
+export async function sendExposureTest(
+  id: string | number,
+  token: string,
+): Promise<{ ok: boolean; message?: string }> {
+  const res = await fetch(`${getPhotoApiBase()}/${id}/exposure-test`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ token }),
+  });
+
+  if (!res.ok) {
+    let message = "Could not send test Exposure.";
+    if (res.status === 401) {
+      message = "Your session expired. Please enter the passcode again.";
+    } else if (res.status === 400) {
+      try {
+        const data = (await res.json()) as { message?: string };
+        if (data.message) message = data.message;
+      } catch {
+        /* keep default */
+      }
+    }
+    throw new PhotoApiError(message, res.status);
+  }
+
+  return res.json() as Promise<{ ok: boolean; message?: string }>;
 }
 
 /** Parse comma-separated tags into a trimmed string array. */

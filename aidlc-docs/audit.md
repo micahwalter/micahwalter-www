@@ -1248,3 +1248,464 @@
 **Context**: CONSTRUCTION — PR opened for review
 
 ---
+
+## Issue #127 — Open Questions Clarification
+**Timestamp**: 2026-07-28T13:21:37Z
+**User Input**: "Let’s answer the open questions together"
+**AI Response**: Started clarification for #127 (prior engagement #121 remains documented in aidlc-state). Created aidlc-docs/inception/requirements/issue-127-open-questions.md with Q1–Q5 covering subscriber list, selection rule, site link, archive, and empty-pool automation. Awaiting user answers in the question file before updating the GitHub issue.
+**Context**: Requirements clarification for #127 — waiting on answers
+
+---
+
+## Issue #127 — Interactive Q&A Request
+**Timestamp**: 2026-07-28T13:22:30Z
+**User Input**: "Please do this interactively with the chat"
+**AI Response**: Agreed to walk through issue-127 open questions interactively in chat (user override of file-only Q&A). Will record answers into issue-127-open-questions.md as each is answered. Starting with Question 1 (subscriber audience).
+**Context**: Requirements clarification for #127 — interactive mode
+
+---
+
+## Issue #127 — Q1 Answer
+**Timestamp**: 2026-07-28T13:22:50Z
+**User Input**: "A"
+**AI Response**: Recorded Q1 = A (same subscriber list as long-form newsletter). Proceeding to Q2 (selection rule).
+**Context**: Requirements clarification for #127 — interactive Q1
+
+---
+
+## Issue #127 — Q2 Answer
+**Timestamp**: 2026-07-28T13:23:20Z
+**User Input**: "C"
+**AI Response**: Recorded Q2 = C (random among eligible unsent). Proceeding to Q3 (site link).
+**Context**: Requirements clarification for #127 — interactive Q2
+
+---
+
+## Issue #127 — Q3 Answer
+**Timestamp**: 2026-07-28T13:24:10Z
+**User Input**: "A"
+**AI Response**: Recorded Q3 = A (photo/title links to /photos/{id}). Proceeding to Q4 (archive).
+**Context**: Requirements clarification for #127 — interactive Q3
+
+---
+
+## Issue #127 — Q4 Answer
+**Timestamp**: 2026-07-28T13:25:10Z
+**User Input**: "B"
+**AI Response**: Recorded Q4 = B (lightweight archive entry per send). Proceeding to Q5 (empty-pool automation).
+**Context**: Requirements clarification for #127 — interactive Q4
+
+---
+
+## Issue #127 — Q5 Answer + Issue Updated
+**Timestamp**: 2026-07-28T13:26:20Z
+**User Input**: "B"
+**AI Response**: Recorded Q5 = B (no-op and notify on empty pool). Updated GitHub issue #127 with Decisions table reflecting Q1–Q5 answers; marked open questions resolved.
+**Context**: Requirements clarification for #127 — interactive Q&A complete
+
+---
+
+## Issue #127 — Decisions Captured in Docs
+**Timestamp**: 2026-07-28T13:27:30Z
+**User Input**: "As long as we capture in the aidlc docs it’s fine"
+**AI Response**: Confirmed GitHub issue body need not be updated. Wrote aidlc-docs/inception/requirements/issue-127-decisions.md summarizing Q1–Q5 decisions and design implications. aidlc-docs is source of truth for #127 decisions.
+**Context**: Requirements clarification for #127 — decisions documented
+
+---
+
+## Workspace Detection — Issue #127
+**Timestamp**: 2026-07-28T13:28:13Z
+**User Input**: "Yes"
+**AI Response**: Started AI-DLC for #127. Workspace: brownfield Next.js blog + newsletter/photo/ticket AWS stacks. Reverse engineering artifacts exist (site-wide 2026-06-24, photo-subsystem 2026-07-16); SKIP full RE rerun. Updated aidlc-state.md for #127 engagement. Prior decisions loaded from issue-127-decisions.md. Created issue-127-requirement-verification-questions.md (Q1–Q7 product + Q8–Q10 extension opt-ins). Proceeding to interactive clarifying questions.
+**Context**: INCEPTION — Workspace Detection complete → Requirements Analysis (questions gate)
+
+---
+
+## Issue #127 — Constraint: No CLI / EventBridge only
+**Timestamp**: 2026-07-28T13:28:55Z
+**User Input**: "I don’t want to use the CLi for this. Should be all automated using eventbribg"
+**AI Response**: Recorded constraint: no CLI send path; fully EventBridge-automated. Updated issue-127-decisions.md and revised Q3 options to remove CLI-centric paths. Re-asked Q1 (archive shape) since it was unanswered.
+**Context**: Requirements clarification for #127 — interactive Q1 (interrupted by constraint)
+
+---
+
+## Issue #127 — Q1 Partial + Naming
+**Timestamp**: 2026-07-28T13:30:20Z
+**User Input**: "B but let’s not call it Photosnack.. maybe something around photo micro blog.. please help me come up with something"
+**AI Response**: Recorded Q1 direction = B (dedicated type + routes). Declined Photosnack naming. Presented Q1b naming options: Frames, Exposure, One Photo, Daily/Weekly, Postcard, Micro, Other. Awaiting name choice before finalizing Q1 answer.
+**Context**: Requirements clarification for #127 — interactive Q1 naming
+
+---
+
+## Issue #127 — Q1 Answer (Exposure)
+**Timestamp**: 2026-07-28T13:30:45Z
+**User Input**: "B"
+**AI Response**: Recorded Q1 = dedicated type+routes named **Exposure** (Q1b = B). Updated decisions + verification questions. Proceeding to Q2 (brief explanation text source).
+**Context**: Requirements clarification for #127 — interactive Q1 complete
+
+---
+
+## Issue #127 — Q2 Answer
+**Timestamp**: 2026-07-28T13:31:30Z
+**User Input**: "D"
+**AI Response**: Recorded Q2 = D (title + optional caption). Proceeding to Q3 (v1 scope / EventBridge).
+**Context**: Requirements clarification for #127 — interactive Q2
+
+---
+
+## Issue #127 — Q3 Answer
+**Timestamp**: 2026-07-28T13:32:20Z
+**User Input**: "A"
+**AI Response**: Recorded Q3 = A (full EventBridge automated loop in v1). Proceeding to Q4 (eligibility UI surfaces).
+**Context**: Requirements clarification for #127 — interactive Q3
+
+---
+
+## Issue #127 — Test Email Requirement
+**Timestamp**: 2026-07-28T13:32:50Z
+**User Input**: "All me a way to send myself a test email"
+**AI Response**: Interpreted as “Also allow me a way to send myself a test email.” Added requirement: owner test send without burning eligibility or blasting subscribers. Inserted Q3b for trigger mechanism (UI button / API / EventBridge test event). Q4 still pending.
+**Context**: Requirements clarification for #127 — new test-send requirement
+
+---
+
+## Issue #127 — Q3b Answer
+**Timestamp**: 2026-07-28T13:33:20Z
+**User Input**: "A"
+**AI Response**: Recorded Q3b = A (edit UI test button → owner address). Proceeding to Q4 (eligibility surfaces).
+**Context**: Requirements clarification for #127 — interactive Q3b
+
+---
+
+## Issue #127 — Q4 Answer
+**Timestamp**: 2026-07-28T13:33:40Z
+**User Input**: "A"
+**AI Response**: Recorded Q4 = A (edit UI only for eligibility). Proceeding to Q5 (sent tracking persistence).
+**Context**: Requirements clarification for #127 — interactive Q4
+
+---
+
+## Issue #127 — Q5 Answer
+**Timestamp**: 2026-07-28T13:34:20Z
+**User Input**: "A"
+**AI Response**: Recorded Q5 = A (sent fields on photo record). Proceeding to Q6 (empty-pool notify channel).
+**Context**: Requirements clarification for #127 — interactive Q5
+
+---
+
+## Issue #127 — Q6 Answer
+**Timestamp**: 2026-07-28T13:37:20Z
+**User Input**: "A"
+**AI Response**: Recorded Q6 = A (empty-pool notify via SES to owner address). Proceeding to Q7 (subject line).
+**Context**: Requirements clarification for #127 — interactive Q6
+
+---
+
+## Issue #127 — Q7 Partial Answer
+**Timestamp**: 2026-07-28T13:38:20Z
+**User Input**: "B / but I also want to include an issue number.."
+**AI Response**: Recorded Q7 direction = B (branded prefix + title) plus issue number. Added Q7b (subject pattern) and Q7c (what the number is — Exposure counter vs ticket id vs photo id).
+**Context**: Requirements clarification for #127 — interactive Q7 follow-up
+
+---
+
+## Issue #127 — Q7b Answer
+**Timestamp**: 2026-07-28T13:38:40Z
+**User Input**: "A"
+**AI Response**: Recorded Q7b = A (subject: Exposure #N · Title). Proceeding to Q7c (what the issue number is).
+**Context**: Requirements clarification for #127 — interactive Q7b
+
+---
+
+## Issue #127 — Q7c Answer
+**Timestamp**: 2026-07-28T13:38:55Z
+**User Input**: "A"
+**AI Response**: Recorded Q7c = A (dedicated Exposure counter for issue numbers). Proceeding to extension opt-ins Q8–Q10.
+**Context**: Requirements clarification for #127 — interactive Q7 complete
+
+---
+
+## Issue #127 — Q8 Answer
+**Timestamp**: 2026-07-28T13:39:10Z
+**User Input**: "B"
+**AI Response**: Recorded Q8 = B (skip Security Baseline). Proceeding to Q9 (Resiliency).
+**Context**: Requirements clarification for #127 — interactive Q8
+
+---
+
+## Issue #127 — Q9 Answer
+**Timestamp**: 2026-07-28T13:39:40Z
+**User Input**: "B"
+**AI Response**: Recorded Q9 = B (skip Resiliency Baseline). Proceeding to Q10 (PBT).
+**Context**: Requirements clarification for #127 — interactive Q9
+
+---
+
+## Issue #127 — Q10 Answer + Follow-ups
+**Timestamp**: 2026-07-28T13:40:20Z
+**User Input**: "C"
+**AI Response**: Recorded Q10 = C (skip PBT). Extension config: all No. Ambiguity check found 3 remaining items (schedule time/tz, Exposure archive storage, owner email config) — added follow-up Q11–Q13 before writing requirements.md.
+**Context**: Requirements clarification for #127 — follow-up questions
+
+---
+
+## Issue #127 — Q11 Answer
+**Timestamp**: 2026-07-28T13:42:20Z
+**User Input**: "A"
+**AI Response**: Recorded Q11 = A (Sunday 09:00 America/New_York). Proceeding to Q12 (Exposure archive storage).
+**Context**: Requirements clarification for #127 — interactive Q11
+
+---
+
+## Issue #127 — Q12 Answer
+**Timestamp**: 2026-07-28T13:43:20Z
+**User Input**: "A"
+**AI Response**: Recorded Q12 = A (Exposure archive via DynamoDB + API). Proceeding to Q13 (owner email config).
+**Context**: Requirements clarification for #127 — interactive Q12
+
+---
+
+## Issue #127 — Q13 Clarification Request
+**Timestamp**: 2026-07-28T13:45:20Z
+**User Input**: " A, but not sure please clarify.. how do we already do this for the newsletter?"
+**AI Response**: Explained existing newsletter patterns: test address is CLI-supplied per send (EventBridge testEmail), not stored; SenderEmail is a CFN parameter; Secrets Manager holds HMAC keys only. Refined Q13 options in light of that. Awaiting revised answer.
+**Context**: Requirements clarification for #127 — Q13 clarification
+
+---
+
+## Issue #127 — Q13 Answer + Requirements Document
+**Timestamp**: 2026-07-28T13:47:30Z
+**User Input**: "A"
+**AI Response**: Recorded Q13 = A (reuse newsletter AdminEmail). Wrote issue-127-requirements.md and requirements.md. Presented Requirements Analysis Complete gate; next stage if approved: User Stories (recommended) then Workflow Planning. Extensions remain disabled.
+**Approval Prompt**: Requirements Analysis Complete — review aidlc-docs/inception/requirements/requirements.md (also issue-127-requirements.md). Await Approve & Continue / Request Changes / Add User Stories guidance per template.
+**Context**: INCEPTION — Requirements Analysis complete → approval gate
+
+---
+
+## Issue #127 — Requirements Approved; User Stories Skip
+**Timestamp**: 2026-07-28T13:48:12Z
+**User Input**: "Approve. We can probably skip user stories for this one"
+**AI Response**: Requirements approved. User Stories marked SKIP per user. Proceeding to Workflow Planning for #127 Exposure feature.
+**Context**: INCEPTION — Requirements Analysis approved → Workflow Planning
+
+---
+
+## Issue #127 — Workflow Planning Complete
+**Timestamp**: 2026-07-28T13:48:45Z
+**User Input**: "(continuing after requirements approval + skip user stories)"
+**AI Response**: Created issue-127-execution-plan.md (and execution-plan.md). Recommend EXECUTE Application Design + Units Generation + per-unit construction design stages + Code Generation + Build and Test. SKIP User Stories. Preview units U1 eligibility/test, U2 exposures API/site, U3 EventBridge send. Awaiting plan approval.
+**Approval Prompt**: Workflow Planning Complete — review aidlc-docs/inception/plans/execution-plan.md. Request Changes / Add Skipped Stages / Approve & Continue to Application Design.
+**Context**: INCEPTION — Workflow Planning → approval gate
+
+---
+
+## Issue #127 — Workflow Plan Approved
+**Timestamp**: 2026-07-28T13:49:30Z
+**User Input**: "Approve and continue"
+**AI Response**: Workflow plan approved. Proceeding to Application Design for #127 Exposure.
+**Context**: INCEPTION — Workflow Planning approved → Application Design
+
+---
+
+## Issue #127 — Application Design Plan + Questions
+**Timestamp**: 2026-07-28T13:49:30Z
+**AI Response**: Created issue-127-application-design-plan.md with Q1–Q6 (stack placement, orchestrator home, dispatch integration, counter, API path, site slug). Interactive Q&A in chat.
+**Context**: INCEPTION — Application Design Part 1 (questions gate)
+
+---
+
+## Issue #127 — App Design Q1
+**Timestamp**: 2026-07-28T13:50:20Z
+**User Input**: "A"
+**AI Response**: Recorded Q1 = A (Exposure API+table in photo-upload stack). Proceeding to Q2 (orchestrator Lambda home).
+**Context**: INCEPTION — Application Design Q1
+
+---
+
+## Issue #127 — App Design Q2
+**Timestamp**: 2026-07-28T13:51:10Z
+**User Input**: "B"
+**AI Response**: Recorded Q2 = B (orchestrator in photo-upload package). Proceeding to Q3 (dispatch integration).
+**Context**: INCEPTION — Application Design Q2
+
+---
+
+## Issue #127 — App Design Q3
+**Timestamp**: 2026-07-28T13:52:20Z
+**User Input**: "A"
+**AI Response**: Recorded Q3 = A (emit NewsletterSendRequested onto newsletter-bus). Proceeding to Q4 (Exposure counter storage).
+**Context**: INCEPTION — Application Design Q3
+
+---
+
+## Issue #127 — App Design Q4
+**Timestamp**: 2026-07-28T20:12:30Z
+**User Input**: "A"
+**AI Response**: Recorded Q4 = A (dedicated DynamoDB counter in photo stack). Proceeding to Q5 (public API base path).
+**Context**: INCEPTION — Application Design Q4
+
+---
+
+## Issue #127 — App Design Q5
+**Timestamp**: 2026-07-28T20:26:20Z
+**User Input**: "A"
+**AI Response**: Recorded Q5 = A (api.micahwalter.com/exposures). Proceeding to Q6 (site route slug).
+**Context**: INCEPTION — Application Design Q5
+
+---
+
+## Issue #127 — App Design Q6 + Artifacts
+**Timestamp**: 2026-07-29T06:59:32Z
+**User Input**: "A"
+**AI Response**: Recorded Q6 = A (/exposures routes). Generated issue-127 application design artifacts (components, methods, services, dependencies, consolidated). Synced canonical application-design/*.md. Presented Application Design Complete approval gate → next Units Generation.
+**Approval Prompt**: Application Design Complete — review aidlc-docs/inception/application-design/. Request Changes / Approve & Continue to Units Generation.
+**Context**: INCEPTION — Application Design complete → approval gate
+
+---
+
+## Issue #127 — Application Design Approved
+**Timestamp**: 2026-07-29T07:00:40Z
+**User Input**: "Proceed"
+**AI Response**: Application design approved. Proceeding to Units Generation for #127.
+**Context**: INCEPTION — Application Design approved → Units Generation
+
+---
+
+## Issue #127 — Units Generation Part 1 Questions
+**Timestamp**: 2026-07-29T07:01:00Z
+**AI Response**: Created issue-127-unit-of-work-plan.md with proposed U1/U2/U3 and Q1–Q4 (split, counter ownership, AdminEmail wiring, construction design depth). Interactive Q&A.
+**Context**: INCEPTION — Units Generation Part 1 (questions gate)
+
+---
+
+## Issue #127 — Units Q1
+**Timestamp**: 2026-07-29T07:02:20Z
+**User Input**: "A"
+**AI Response**: Recorded Q1 = A (three-unit split U1→U2→U3). Proceeding to Q2 (counter ownership).
+**Context**: INCEPTION — Units Generation Q1
+
+---
+
+## Issue #127 — Units Q2
+**Timestamp**: 2026-07-29T07:02:40Z
+**User Input**: "B"
+**AI Response**: Recorded Q2 = B (U3 owns counter create + allocate). Proceeding to Q3 (AdminEmail wiring).
+**Context**: INCEPTION — Units Generation Q2
+
+---
+
+## Issue #127 — Units Q3
+**Timestamp**: 2026-07-29T07:03:20Z
+**User Input**: "A"
+**AI Response**: Recorded Q3 = A (AdminEmail as CFN param on photo-upload stack). Proceeding to Q4 (construction design depth).
+**Context**: INCEPTION — Units Generation Q3
+
+---
+
+## Issue #127 — Units Q4 + Plan Approval Gate
+**Timestamp**: 2026-07-29T07:03:50Z
+**User Input**: "B"
+**AI Response**: Recorded Q4 = B (lightweight combined design per unit). Unit of work plan complete. Awaiting approval to proceed to Part 2 generation.
+**Approval Prompt**: Unit of work plan complete. Review aidlc-docs/inception/plans/unit-of-work-plan.md. Ready to proceed to generation?
+**Context**: INCEPTION — Units Generation Part 1 approval gate
+
+---
+
+## Issue #127 — Units Generation Part 2 Complete
+**Timestamp**: 2026-07-29T07:04:30Z
+**User Input**: "Proceed"
+**AI Response**: Generated issue-127-unit-of-work.md, dependency, and FR story-map. Synced canonical unit-of-work*.md. Amended execution plan for lightweight construction. Presented Units Generation Complete → CONSTRUCTION U1 if approved.
+**Approval Prompt**: Units Generation Complete — review aidlc-docs/inception/application-design/issue-127-unit-of-work*.md. Request Changes / Approve & Continue to CONSTRUCTION PHASE (U1).
+**Context**: INCEPTION — Units Generation complete → approval gate
+
+---
+
+## Issue #127 — Units Approved; U1 Construction Start
+**Timestamp**: 2026-07-29T07:05:30Z
+**User Input**: "Approved"
+**AI Response**: Units Generation approved. Created branch cursor/exposure-newsletter-6caf. Starting CONSTRUCTION U1: lightweight design + code generation plan.
+**Context**: CONSTRUCTION — U1 begin
+
+---
+
+## Issue #127 — U1 Design + Code Plan
+**Timestamp**: 2026-07-29T07:05:46Z
+**AI Response**: Wrote U1 lightweight-design.md and u1-eligibility-test-code-generation-plan.md (9 steps). Branch cursor/exposure-newsletter-6caf. Awaiting approval to execute U1 code generation.
+**Approval Prompt**: U1 code generation plan ready. Review aidlc-docs/construction/plans/u1-eligibility-test-code-generation-plan.md. Approve to generate U1 code?
+**Context**: CONSTRUCTION — U1 Code Generation Part 1 gate
+
+---
+
+## Issue #127 — U1 Code Generation Complete
+**Timestamp**: 2026-07-29T07:08:00Z
+**User Input**: "Approved"
+**AI Response**: Executed U1 code plan: exposure fields, PATCH + POST /{id}/exposure-test, AdminEmail/bus CFN+IAM, photos-api client, PhotoEditPanel eligibility + test button, helpers exposure-email + newsletter-events. Syntax/tsc checks passed. Presenting U1 completion gate.
+**Approval Prompt**: U1 code generation complete. Request Changes or Continue to U2.
+**Context**: CONSTRUCTION — U1 complete → approval gate
+
+---
+
+## Issue #127 — U1 Approved; Continue U2 + Commit
+**Timestamp**: 2026-07-29T12:11:20Z
+**User Input**: "Continue. Please make a commit here as well"
+**AI Response**: U1 approved. Committing U1 + aidlc docs on cursor/exposure-newsletter-6caf, then starting U2 construction.
+**Context**: CONSTRUCTION — U1 approved → commit → U2
+
+---
+
+## Issue #127 — U2 Implemented + Commit Pending
+**Timestamp**: 2026-07-29T12:15:00Z
+**User Input**: "Continue. Please make a commit here as well"
+**AI Response**: Committed U1 as 87c73d2. Implemented U2 exposures table/API/site. Committing U2 next. Presenting U2 completion gate → U3.
+**Context**: CONSTRUCTION — U2 complete
+
+---
+
+## Issue #127 — Continue U3
+**Timestamp**: 2026-07-29T13:15:20Z
+**User Input**: "Let’s commit and continue"
+**AI Response**: Starting U3 (counter + Sunday orchestrator + production send). Will commit when U3 code is ready.
+**Context**: CONSTRUCTION — U3 begin
+
+---
+
+## Issue #127 — U3 Implemented
+**Timestamp**: 2026-07-29T13:16:30Z
+**User Input**: "Let’s commit and continue"
+**AI Response**: Implemented U3 orchestrator, counter, Sunday Scheduler, candidate query, stamp, empty-pool SES. Committing U3. Next gate: Build and Test after approval.
+**Context**: CONSTRUCTION — U3 complete → commit
+
+---
+
+## Issue #127 — Continue Build and Test
+**Timestamp**: 2026-07-29T13:21:20Z
+**User Input**: "Let’s commit and continue"
+**AI Response**: Working tree clean after U3. Proceeding to Build and Test stage — generate build/test instruction docs.
+**Context**: CONSTRUCTION — Build and Test begin
+
+---
+
+## Issue #127 — Build and Test Complete
+**Timestamp**: 2026-07-29T13:23:30Z
+**User Input**: "Let’s commit and continue"
+**AI Response**: Working tree was clean (U3 already committed). Wrote build-and-test instruction set. Local tsc + npm run build passed (routes /exposures present). Committing docs. Awaiting approval to close Construction / proceed to Operations placeholder.
+**Approval Prompt**: Build and test instructions complete. Ready to proceed to Operations stage?
+**Context**: CONSTRUCTION — Build and Test complete → approval gate
+
+---
+
+## Issue #127 — Deploy via existing GitHub Actions?
+**Timestamp**: 2026-07-29T13:26:34Z
+**User Input**: "Can this all be deployed via the existing GitHub actions?"
+**AI Response**: Analyzed deploy.yml + photo-upload-deploy.yml + GitHubActionsDeployPhotoUpload. Site: yes (existing NEXT_PUBLIC_PHOTO_API_URL). Photo-upload: almost — fixed gaps (code-only Lambda list missing exposures-api + exposure-orchestrator; IAM missing exposures/counter DynamoDB, scheduler:*, PassRole for scheduler role). Documented one-time manual redeploy of micahwalter-www-github-actions before first CI CFN deploy. Newsletter stack unchanged.
+**Context**: CONSTRUCTION — GHA readiness for Exposure
+
+---
+
+## Issue #127 — Push and open PR approved
+**Timestamp**: 2026-07-29T13:27:30Z
+**User Input**: "Yes"
+**AI Response**: Pushing cursor/exposure-newsletter-6caf and opening draft PR against main for Exposure (#127).
+**Context**: Publish — push + create PR
+
+---

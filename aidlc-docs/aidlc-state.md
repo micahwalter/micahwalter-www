@@ -2,10 +2,10 @@
 
 ## Project Information
 - **Project Type**: Brownfield
-- **Start Date**: 2026-07-20T17:37:21Z
-- **Current Stage**: CONSTRUCTION — Code complete; awaiting review / Build and Test notes
-- **Engagement Status**: In progress — [#121](https://github.com/micahwalter/micahwalter-www/issues/121)
-- **Branch**: `cursor/blog-post-id-allocation-ad83`
+- **Start Date**: 2026-07-28T13:28:13Z
+- **Current Stage**: CONSTRUCTION — Build and Test (awaiting approval)
+- **Engagement Status**: In progress — [#127](https://github.com/micahwalter/micahwalter-www/issues/127)
+- **Branch**: `cursor/exposure-newsletter-6caf`
 
 ## Extension Configuration
 | Extension | Enabled | Decided At |
@@ -17,18 +17,19 @@
 ## Stage Progress
 
 ### 🔵 INCEPTION PHASE
-- [x] Workspace Detection
-- [x] Reverse Engineering — SKIP
-- [x] Requirements Analysis (approved)
-- [x] User Stories — SKIP
-- [x] Workflow Planning (approved; later lightened)
-- [x] Application Design (approved)
-- [x] Units Generation — lightweight (U1/U2/U3 map only)
+- [x] Complete for #127 (User Stories skipped)
 
 ### 🟢 CONSTRUCTION PHASE
-- [x] Functional / NFR / Infra Design — SKIP (user agreed code-first)
-- [x] Code Generation — U1–U3 implemented
-- [ ] Build and Test — local Go build done; AWS deploy + backfill pending after merge
+- [x] U1 Code Generation
+- [x] U2 Code Generation
+- [x] U3 Code Generation
+- [x] Build and Test instructions + local `tsc` / `npm run build` (awaiting approval)
 
 ### 🟡 OPERATIONS PHASE
-- [ ] Operations — PLACEHOLDER (deploy order in construction summary)
+- [ ] Operations — PLACEHOLDER
+
+## Current Status
+- **Lifecycle Phase**: CONSTRUCTION
+- **Current Stage**: Build and Test Complete
+- **Next Stage**: Operations placeholder / done after approval
+- **Status**: Ready for Build and Test review

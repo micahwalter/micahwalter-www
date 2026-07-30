@@ -1,79 +1,105 @@
-# Build Instructions — Issues #103 / #104 (Photo Cutover U1–U7)
+# Build Instructions — Issue #127 Exposure
 
 ## Prerequisites
 
-| Item | Value |
-|------|-------|
-| Node | 20+ |
-| Package manager | npm |
-| AWS CLI | v2 (for Lambda zip deploy / migrate apply) |
-| Go | Not required for photo-upload Node Lambdas |
-| Env | `NEXT_PUBLIC_PHOTO_API_URL=https://api.micahwalter.com/photos` for site builds that exercise photo islands |
+- Node.js 20+
+- npm
+- AWS CLI v2 + SSO profile `www` (for Lambda zip upload / stack deploy)
+- `make` (photo-upload Lambda package)
 
-## Dependencies
+## Environment
+
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_PHOTO_API_URL` | e.g. `https://api.micahwalter.com/photos` (also derives `/exposures`) |
+| `NEXT_PUBLIC_EXPOSURES_API_URL` | Optional override for exposures API |
+| AWS profile `www` | Deploy photo-upload stack |
+
+## Build steps
+
+### 1. Site dependencies
 
 ```bash
+cd /workspace   # or repo root
 npm install
-cd infra/photo-upload-lambdas && npm install && cd ../..
 ```
 
-## Build site (static export)
+### 2. Typecheck / production build (site)
 
 ```bash
-export NEXT_PUBLIC_PHOTO_API_URL=https://api.micahwalter.com/photos
+npx tsc --noEmit -p .
 npm run build
 ```
 
-**Success:** Next.js compiles, static pages export under `/out`, exit 0.  
-**Artifacts:** `/out/**`, plus prebuild `public/posts.json`, `public/feed.xml`, `public/sitemap.xml`.  
-**Note:** `public/mastodon.json` may refresh during prebuild — do not commit.
+- **Expected**: Next.js static export succeeds (`out/`)
+- **Note**: `prebuild` may fetch Mastodon; failure is non-fatal
 
-## Build photo-upload Lambda zip
+### 3. Photo-upload Lambda zip
 
 ```bash
 cd infra/photo-upload-lambdas
 make build
-# → dist/photo-upload.zip
+# → dist/photo-upload.zip (linux/arm64 sharp)
 ```
 
-Shared zip for: auth, init, process, photos-api, enrich, feed-publisher (and secondary auth/photos-api).
-
-## Configure environment (local)
+### 4. Upload artifact + deploy stack
 
 ```bash
-# .env.local (site)
-NEXT_PUBLIC_PHOTO_API_URL=https://api.micahwalter.com/photos
+AWS_PROFILE=www aws s3 cp dist/photo-upload.zip \
+  s3://micahwalter-newsletter-artifacts/photo-upload/lambda/photo-upload.zip
 
-# Migrators / CLI (operator machine)
-export AWS_PROFILE=www
-export AWS_REGION=us-east-1
-export PHOTOS_TABLE=micahwalter-photos
-export GALLERIES_TABLE=micahwalter-galleries
-# Optional: PHOTO_UPLOAD_PASSCODE / tickets credentials for CLI
+AWS_PROFILE=www aws cloudformation deploy \
+  --stack-name micahwalter-photo-upload \
+  --template-file infra/photo-upload.yml \
+  --region us-east-1 \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides \
+    AdminEmail=micah@micahwalter.com
 ```
+
+Or rely on `.github/workflows/photo-upload-deploy.yml` after merge to `main` (see **GitHub Actions** below).
+
+### 5. Site deploy
+
+Push/merge so `deploy.yml` builds with `NEXT_PUBLIC_PHOTO_API_URL` set. Optionally set `NEXT_PUBLIC_EXPOSURES_API_URL=https://api.micahwalter.com/exposures`. No new site secret is required — the exposures client derives `…/exposures` from `NEXT_PUBLIC_PHOTO_API_URL`.
+
+### GitHub Actions (preferred path)
+
+| Workflow | Covers |
+|----------|--------|
+| `deploy.yml` | Site (`/exposures`, edit UI) |
+| `photo-upload-deploy.yml` | Lambda zip + `micahwalter-photo-upload` CFN (tables, APIs, orchestrator, Sunday schedule) |
+| Newsletter workflows | Unchanged — Exposure reuses `newsletter-bus` |
+
+**One-time before the first Exposure CFN deploy via CI:** redeploy the IAM stack so `GitHubActionsDeployPhotoUpload` includes exposures/counter DynamoDB, Scheduler, and PassRole for `photo-upload-exposure-scheduler-role`:
+
+```bash
+AWS_PROFILE=www aws cloudformation deploy \
+  --stack-name micahwalter-www-github-actions \
+  --template-file infra/github-actions-role.yml \
+  --region us-east-1 \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides \
+    HostedZoneId=<hosted-zone-id> \
+    WebsiteBucketName=<website-bucket> \
+    CloudFrontDistributionId=<distribution-id>
+```
+
+CI cannot grant itself these permissions. After that, merge to `main` (or `workflow_dispatch` photo-upload) deploys the rest.
 
 ## Verify build success
 
 - [ ] `npm run build` exit 0
-- [ ] `infra/photo-upload-lambdas/dist/photo-upload.zip` exists after `make build`
-- [ ] No TypeScript errors in photo/gallery client components
+- [ ] `dist/photo-upload.zip` exists after `make build`
+- [ ] CFN deploy COMPLETE (ExposuresTable, ExposuresApi mapping, ExposureOrchestratorFn, ExposureSundaySchedule)
+- [ ] `GET https://api.micahwalter.com/exposures/` returns JSON
+- [ ] `GET https://api.micahwalter.com/photos/` still works
 
 ## Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Build fails on empty `generateStaticParams` | Ensure placeholder routes (`/photos/0`, `/galleries/_placeholder`) exist |
-| Module not found `@aws-sdk/client-dynamodb` | `npm install` at repo root (cutover scripts) |
-| Sharp native binary issues in Lambda zip | Use `make build` (forces linux/arm64 sharp) |
-| Mastodon fetch warning | Non-blocking; existing `mastodon.json` kept |
-
-## Deploy builds (CI)
-
-| Workflow | What |
-|----------|------|
-| `deploy.yml` | Site → S3 + CloudFront |
-| `photo-upload-deploy.yml` | Primary us-east-1 stack / function code |
-| `photo-upload-secondary-deploy.yml` | Secondary us-east-2 |
-| Infra stacks | `infra.yml`, `github-actions-role.yml` as needed |
-
-See also: `aidlc-docs/construction/u7-cutover/code/cutover-runbook.md`
+| Issue | Fix |
+|-------|-----|
+| ApiMapping `exposures` conflict | Ensure key unused on `api.micahwalter.com` domain |
+| SES empty-pool / From denied | Verify `AdminEmail` identity in SES |
+| Scheduler invoke denied | Check `ExposureSchedulerRole` → Lambda invoke |
+| sharp wrong arch | Always `make build` (forces linux/arm64) |

@@ -48,10 +48,32 @@ Parameters:
     Default: micahwalter-galleries
     Description: DynamoDB table for gallery definitions
 
+  ExposuresTableName:
+    Type: String
+    Default: micahwalter-exposures
+    Description: DynamoDB table for Exposure newsletter archive issues
+
+  ExposureCounterTableName:
+    Type: String
+    Default: micahwalter-exposure-counter
+    Description: DynamoDB table for Exposure issue counter and daily run locks
+
   WebsiteBucketName:
     Type: String
     Default: micahwalter-www-website
     Description: Primary website bucket for scheduled photo feed/sitemap artifacts
+
+  AdminEmail:
+    Type: String
+    Default: micah@micahwalter.com
+    Description: >
+      Owner address for Exposure test sends and (U3) empty-pool notify.
+      Keep in sync with newsletter stack AdminEmail.
+
+  NewsletterEventBusName:
+    Type: String
+    Default: newsletter-bus
+    Description: EventBridge bus that routes NewsletterSendRequested to dispatch
 
 Resources:
 
@@ -148,6 +170,29 @@ Resources:
         - { Key: Project, Value: micahwalter-photo-upload }
         - { Key: ManagedBy, Value: CloudFormation }
 
+  ExposuresTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref ExposuresTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: issueNumber, AttributeType: S }
+        - { AttributeName: gsi1pk, AttributeType: S }
+        - { AttributeName: gsi1sk, AttributeType: S }
+      KeySchema:
+        - { AttributeName: issueNumber, KeyType: HASH }
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - { AttributeName: gsi1pk, KeyType: HASH }
+            - { AttributeName: gsi1sk, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - { Key: Project, Value: micahwalter-photo-upload }
+        - { Key: ManagedBy, Value: CloudFormation }
+
   PhotoEventBus:
     Type: AWS::Events::EventBus
     Properties:
@@ -191,6 +236,7 @@ Resources:
       - PhotosFeaturedRoute
       - PhotosGetRoute
       - PhotosPatchRoute
+      - PhotosExposureTestRoute
     Properties:
       ApiId: !Ref PhotoApi
       StageName: $default
@@ -334,6 +380,9 @@ Resources:
                   - dynamodb:Scan
                 Resource:
                   - !GetAtt GalleriesTable.Arn
+              - Effect: Allow
+                Action: events:PutEvents
+                Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${NewsletterEventBusName}
 
   AuthFn:
     Type: AWS::Lambda::Function
@@ -420,6 +469,9 @@ Resources:
           SECRET_ARN: !Ref PhotoUploadSecret
           PHOTOS_TABLE: !Ref PhotosTable
           GALLERIES_TABLE: !Ref GalleriesTable
+          SITE_URL: !Ref SiteUrl
+          ADMIN_EMAIL: !Ref AdminEmail
+          NEWSLETTER_EVENT_BUS_NAME: !Ref NewsletterEventBusName
 
   PhotosPlaceIndex:
     Type: AWS::Location::PlaceIndex
@@ -624,6 +676,13 @@ Resources:
       RouteKey: PATCH /{id}
       Target: !Sub integrations/${PhotosApiIntegration}
 
+  PhotosExposureTestRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PhotoApi
+      RouteKey: POST /{id}/exposure-test
+      Target: !Sub integrations/${PhotosApiIntegration}
+
   AuthFnPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -744,6 +803,236 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt FeedPublisherSchedule.Arn
 
+  # --- Exposure archive public API (api.micahwalter.com/exposures) ---
+
+  ExposuresApiFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: photo-upload-exposures-api-fn-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ExposuresApiFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                  - dynamodb:PutItem
+                Resource:
+                  - !GetAtt ExposuresTable.Arn
+                  - !Sub ${ExposuresTable.Arn}/index/*
+
+  ExposuresApiFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: photo-upload-exposures-api
+      Runtime: nodejs20.x
+      Architectures: [arm64]
+      Handler: src/exposures-api.handler
+      Role: !GetAtt ExposuresApiFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/photo-upload.zip
+      Timeout: 10
+      MemorySize: 256
+      Environment:
+        Variables:
+          EXPOSURES_TABLE: !Ref ExposuresTable
+
+  ExposuresApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: photo-upload-exposures-api
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref SiteUrl
+          - http://localhost:3000
+        AllowMethods: [GET, OPTIONS]
+        AllowHeaders: [Content-Type]
+        MaxAge: 300
+      Tags:
+        Project: micahwalter-photo-upload
+        ManagedBy: CloudFormation
+
+  ExposuresApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ExposuresApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ExposuresApiFn.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
+  ExposuresListRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ExposuresApi
+      RouteKey: GET /
+      Target: !Sub integrations/${ExposuresApiIntegration}
+
+  ExposuresGetRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ExposuresApi
+      RouteKey: GET /{n}
+      Target: !Sub integrations/${ExposuresApiIntegration}
+
+  ExposuresApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    DependsOn:
+      - ExposuresListRoute
+      - ExposuresGetRoute
+    Properties:
+      ApiId: !Ref ExposuresApi
+      StageName: $default
+      AutoDeploy: true
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 20
+        ThrottlingRateLimit: 10
+
+  ExposuresApiMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Properties:
+      ApiId: !Ref ExposuresApi
+      DomainName: !Ref ApiDomainName
+      Stage: !Ref ExposuresApiStage
+      ApiMappingKey: exposures
+
+  ExposuresApiFnPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ExposuresApiFn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ExposuresApi}/*/*/*
+
+  # --- Exposure Sunday orchestrator (U3) ---
+
+  ExposureCounterTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref ExposureCounterTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: id, AttributeType: S }
+      KeySchema:
+        - { AttributeName: id, KeyType: HASH }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - { Key: Project, Value: micahwalter-photo-upload }
+        - { Key: ManagedBy, Value: CloudFormation }
+
+  ExposureOrchestratorFnRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: photo-upload-exposure-orchestrator-fn-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ExposureOrchestratorFnPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:Query
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                Resource:
+                  - !GetAtt PhotosTable.Arn
+                  - !Sub ${PhotosTable.Arn}/index/*
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                Resource:
+                  - !GetAtt ExposuresTable.Arn
+                  - !Sub ${ExposuresTable.Arn}/index/*
+              - Effect: Allow
+                Action:
+                  - dynamodb:UpdateItem
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                Resource: !GetAtt ExposureCounterTable.Arn
+              - Effect: Allow
+                Action: events:PutEvents
+                Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${NewsletterEventBusName}
+              - Effect: Allow
+                Action: ses:SendEmail
+                Resource: '*'
+
+  ExposureOrchestratorFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: photo-upload-exposure-orchestrator
+      Runtime: nodejs20.x
+      Architectures: [arm64]
+      Handler: src/exposure-orchestrator.handler
+      Role: !GetAtt ExposureOrchestratorFnRole.Arn
+      Code:
+        S3Bucket: !Ref LambdaArtifactsBucket
+        S3Key: !Sub ${LambdaArtifactsKeyPrefix}/photo-upload.zip
+      Timeout: 60
+      MemorySize: 256
+      Environment:
+        Variables:
+          PHOTOS_TABLE: !Ref PhotosTable
+          EXPOSURES_TABLE: !Ref ExposuresTable
+          EXPOSURE_COUNTER_TABLE: !Ref ExposureCounterTable
+          SITE_URL: !Ref SiteUrl
+          ADMIN_EMAIL: !Ref AdminEmail
+          SES_FROM_ADDRESS: !Ref AdminEmail
+          NEWSLETTER_EVENT_BUS_NAME: !Ref NewsletterEventBusName
+
+  ExposureSchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: photo-upload-exposure-scheduler-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: scheduler.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeExposureOrchestrator
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt ExposureOrchestratorFn.Arn
+
+  ExposureSundaySchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: exposure-sunday-send
+      Description: Weekly Exposure newsletter — Sunday 09:00 America/New_York
+      State: ENABLED
+      FlexibleTimeWindow:
+        Mode: 'OFF'
+      ScheduleExpression: cron(0 9 ? * SUN *)
+      ScheduleExpressionTimezone: America/New_York
+      Target:
+        Arn: !GetAtt ExposureOrchestratorFn.Arn
+        RoleArn: !GetAtt ExposureSchedulerRole.Arn
+
 Outputs:
 
   ApiEndpoint:
@@ -757,6 +1046,22 @@ Outputs:
   PhotosTableName:
     Description: DynamoDB table for photo metadata
     Value: !Ref PhotosTable
+
+  ExposuresTableName:
+    Description: DynamoDB table for Exposure archive issues
+    Value: !Ref ExposuresTable
+
+  ExposuresApiEndpoint:
+    Description: Prefer https://api.micahwalter.com/exposures
+    Value: !Sub https://${ExposuresApi}.execute-api.${AWS::Region}.amazonaws.com
+
+  ExposureOrchestratorFnName:
+    Description: Sunday Exposure send orchestrator Lambda
+    Value: !Ref ExposureOrchestratorFn
+
+  ExposureCounterTableName:
+    Description: Exposure issue counter + daily locks
+    Value: !Ref ExposureCounterTable
 
   PhotoEventBusName:
     Description: EventBridge bus for PhotoPendingEnrichment (U2 consumer)

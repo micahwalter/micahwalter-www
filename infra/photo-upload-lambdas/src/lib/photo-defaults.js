@@ -67,6 +67,9 @@ function buildNewPhoto({
     longitude: null,
     publicLatitude: null,
     publicLongitude: null,
+    exposureEligible: false,
+    exposureSentAt: null,
+    exposureIssueNumber: null,
   };
 }
 
