@@ -71,7 +71,7 @@ Push/merge so `deploy.yml` builds with `NEXT_PUBLIC_PHOTO_API_URL` set. Optional
 | `photo-upload-deploy.yml` | Lambda zip + `micahwalter-photo-upload` CFN (tables, APIs, orchestrator, Sunday schedule) |
 | Newsletter workflows | Unchanged — Exposure reuses `newsletter-bus` |
 
-**One-time before the first Exposure CFN deploy via CI:** redeploy the IAM stack so `GitHubActionsDeployPhotoUpload` includes exposures/counter DynamoDB, Scheduler, and PassRole for `photo-upload-exposure-scheduler-role`:
+**One-time before the first Exposure CFN deploy via CI:** redeploy the IAM stack so it attaches `GitHubActionsDeployExposure` (separate managed policy — adding these statements to `GitHubActionsDeployPhotoUpload` exceeds the 6,144-byte IAM policy size quota):
 
 ```bash
 AWS_PROFILE=www aws cloudformation deploy \

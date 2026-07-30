@@ -543,8 +543,6 @@ Resources:
               - iam:ListAttachedRolePolicies
             Resource:
               - !Sub 'arn:aws:iam::${AWS::AccountId}:role/photo-upload-*-fn-role'
-              # EventBridge Scheduler invoke role for Exposure Sunday send (not *-fn-role)
-              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/photo-upload-exposure-scheduler-role'
           - Effect: Allow
             Action:
               - dynamodb:CreateTable
@@ -562,10 +560,6 @@ Resources:
               - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-photos/index/*'
               - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-galleries'
               - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-galleries/index/*'
-              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-exposures'
-              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-exposures/index/*'
-              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-exposure-counter'
-              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-exposure-counter/index/*'
           - Effect: Allow
             Action:
               - events:CreateEventBus
@@ -592,31 +586,6 @@ Resources:
               - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:rule/photo-bus/*'
               - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:archive/photo-bus-archive'
               - !Sub 'arn:aws:events:us-east-1:${AWS::AccountId}:rule/photo-feed-publisher-hourly'
-          # Exposure Sunday send — EventBridge Scheduler (AWS::Scheduler::Schedule)
-          - Effect: Allow
-            Action:
-              - scheduler:CreateSchedule
-              - scheduler:UpdateSchedule
-              - scheduler:DeleteSchedule
-              - scheduler:GetSchedule
-              - scheduler:ListSchedules
-              - scheduler:CreateScheduleGroup
-              - scheduler:DeleteScheduleGroup
-              - scheduler:GetScheduleGroup
-              - scheduler:ListScheduleGroups
-              - scheduler:TagResource
-              - scheduler:UntagResource
-              - scheduler:ListTagsForResource
-            Resource:
-              - !Sub 'arn:aws:scheduler:us-east-1:${AWS::AccountId}:schedule/*/*'
-              - !Sub 'arn:aws:scheduler:us-east-1:${AWS::AccountId}:schedule-group/*'
-          - Effect: Allow
-            Action:
-              - iam:CreateServiceLinkedRole
-            Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/scheduler.amazonaws.com/AWSServiceRoleForScheduler'
-            Condition:
-              StringEquals:
-                iam:AWSServiceName: scheduler.amazonaws.com
           - Effect: Allow
             Action:
               - geo:CreatePlaceIndex
@@ -725,6 +694,77 @@ Resources:
               - cloudwatch:ListTagsForResource
             Resource:
               - !Sub 'arn:aws:cloudwatch:us-east-2:${AWS::AccountId}:alarm:photo-upload-*'
+
+  # Exposure (#127) — separate managed policy so GitHubActionsDeployPhotoUpload
+  # stays under the 6,144-byte IAM managed-policy size quota.
+  ExposureDeployPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: GitHubActionsDeployExposure
+      Roles:
+        - !Ref GitHubActionsRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - iam:PassRole
+              - iam:CreateRole
+              - iam:DeleteRole
+              - iam:GetRole
+              - iam:UpdateRole
+              - iam:TagRole
+              - iam:UntagRole
+              - iam:PutRolePolicy
+              - iam:DeleteRolePolicy
+              - iam:GetRolePolicy
+              - iam:ListRolePolicies
+              - iam:AttachRolePolicy
+              - iam:DetachRolePolicy
+              - iam:ListAttachedRolePolicies
+            Resource:
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/photo-upload-exposure-scheduler-role'
+          - Effect: Allow
+            Action:
+              - dynamodb:CreateTable
+              - dynamodb:DeleteTable
+              - dynamodb:DescribeTable
+              - dynamodb:UpdateTable
+              - dynamodb:TagResource
+              - dynamodb:UntagResource
+              - dynamodb:ListTagsOfResource
+              - dynamodb:DescribeContinuousBackups
+              - dynamodb:UpdateContinuousBackups
+              - dynamodb:DescribeTimeToLive
+            Resource:
+              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-exposures'
+              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-exposures/index/*'
+              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-exposure-counter'
+              - !Sub 'arn:aws:dynamodb:us-east-1:${AWS::AccountId}:table/micahwalter-exposure-counter/index/*'
+          - Effect: Allow
+            Action:
+              - scheduler:CreateSchedule
+              - scheduler:UpdateSchedule
+              - scheduler:DeleteSchedule
+              - scheduler:GetSchedule
+              - scheduler:ListSchedules
+              - scheduler:CreateScheduleGroup
+              - scheduler:DeleteScheduleGroup
+              - scheduler:GetScheduleGroup
+              - scheduler:ListScheduleGroups
+              - scheduler:TagResource
+              - scheduler:UntagResource
+              - scheduler:ListTagsForResource
+            Resource:
+              - !Sub 'arn:aws:scheduler:us-east-1:${AWS::AccountId}:schedule/*/*'
+              - !Sub 'arn:aws:scheduler:us-east-1:${AWS::AccountId}:schedule-group/*'
+          - Effect: Allow
+            Action:
+              - iam:CreateServiceLinkedRole
+            Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/scheduler.amazonaws.com/AWSServiceRoleForScheduler'
+            Condition:
+              StringEquals:
+                iam:AWSServiceName: scheduler.amazonaws.com
 
   TicketsDeployPolicy:
     Type: AWS::IAM::ManagedPolicy
