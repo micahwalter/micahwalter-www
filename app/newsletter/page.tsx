@@ -4,7 +4,7 @@ import SubscribeForm from "./SubscribeForm";
 export const metadata: Metadata = {
   title: "Newsletter",
   description:
-    "Occasional writing on AI, cloud infrastructure, and creativity. Subscribe to get new posts by email.",
+    "Occasional writing on AI, cloud infrastructure, and creativity — plus a photograph most Sundays.",
 };
 
 export default function NewsletterPage() {
@@ -14,8 +14,8 @@ export default function NewsletterPage() {
         Newsletter
       </h1>
       <p className="text-gray text-lg leading-relaxed mb-10">
-        Occasional writing on AI, cloud infrastructure, and creativity.
-        No noise — just the posts. Unsubscribe any time.
+        Occasional writing on AI, cloud infrastructure, and creativity — plus a
+        photograph most Sundays. No noise. Unsubscribe any time.
       </p>
       <SubscribeForm />
     </div>
