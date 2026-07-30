@@ -336,6 +336,13 @@ Resources:
             return request;
           }
 
+          // Static-export shell for Exposure issues: /exposures/<digits> → 0.html
+          var exposureShell = rewriteExposureDetailShell(uri);
+          if (exposureShell) {
+            request.uri = exposureShell;
+            return request;
+          }
+
           if (uri === '/' || uri === '') {
             request.uri = '/index.html';
           } else {
@@ -404,6 +411,21 @@ Resources:
           return null;
         }
 
+        function rewriteExposureDetailShell(uri) {
+          var path = uri;
+          if (path.charAt(0) === '/') {
+            path = path.slice(1);
+          }
+          if (path.endsWith('/')) {
+            path = path.slice(0, -1);
+          }
+          var parts = path.split('/');
+          if (parts.length === 2 && parts[0] === 'exposures' && isAllDigits(parts[1])) {
+            return '/exposures/0.html';
+          }
+          return null;
+        }
+
         function isValidMonth(month) {
           if (month.length !== 2) return false;
           var n = parseInt(month, 10);
@@ -435,7 +457,7 @@ Resources:
 
         function isReservedSegment(seg) {
           var reserved = {
-            'about': 1, 'colophon': 1, 'emails': 1, 'galleries': 1,
+            'about': 1, 'colophon': 1, 'emails': 1, 'exposures': 1, 'galleries': 1,
             'micro': 1, 'newsletter': 1, 'photos': 1, 'posts': 1,
             'sketches': 1, 'upload': 1, 'tags': 1, 'topics': 1, 'page': 1
           };
