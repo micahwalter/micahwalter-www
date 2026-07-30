@@ -20,6 +20,7 @@ type UploadItem = {
   title: string;
   caption: string;
   featured: boolean;
+  exposureEligible: boolean;
   status: ItemStatus;
   progress: number | null;
   errorMessage: string | null;
@@ -91,6 +92,7 @@ export default function UploadForm({ token, onSessionExpired }: UploadFormProps)
         title: titleFromFilename(file.name),
         caption: "",
         featured: false,
+        exposureEligible: false,
         status: "pending",
         progress: null,
         errorMessage: null,
@@ -158,6 +160,7 @@ export default function UploadForm({ token, onSessionExpired }: UploadFormProps)
           title: item.title.trim(),
           caption: item.caption,
           featured: item.featured,
+          exposureEligible: item.exposureEligible,
         });
         await putToPresignedUrl(url, headers, item.file, (percent) => {
           updateItem(item.localId, { progress: percent });
@@ -287,6 +290,19 @@ export default function UploadForm({ token, onSessionExpired }: UploadFormProps)
                       className="h-4 w-4"
                     />
                     Feature on homepage
+                  </label>
+
+                  <label className="flex items-center gap-3 text-charcoal cursor-pointer" style={labelStyle}>
+                    <input
+                      type="checkbox"
+                      checked={item.exposureEligible}
+                      onChange={(e) =>
+                        updateItem(item.localId, { exposureEligible: e.target.checked })
+                      }
+                      disabled={item.status === "uploading" || item.status === "done"}
+                      className="h-4 w-4"
+                    />
+                    Eligible for Exposure
                   </label>
 
                   <p className="text-sm" style={labelStyle}>

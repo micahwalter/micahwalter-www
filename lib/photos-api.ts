@@ -90,6 +90,7 @@ export type UploadUrlInput = {
   title?: string;
   caption?: string;
   featured?: boolean;
+  exposureEligible?: boolean;
 };
 
 export type UploadUrlResult = {
@@ -109,6 +110,7 @@ export async function getUploadUrl(input: UploadUrlInput): Promise<UploadUrlResu
       title: input.title ?? "",
       caption: input.caption ?? "",
       featured: !!input.featured,
+      exposureEligible: !!input.exposureEligible,
     }),
   });
 

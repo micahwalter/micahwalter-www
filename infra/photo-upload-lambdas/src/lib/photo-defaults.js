@@ -35,6 +35,7 @@ function buildNewPhoto({
   title,
   caption,
   featured,
+  exposureEligible = false,
   folderName,
   coverImageKey,
   originalKey,
@@ -67,7 +68,7 @@ function buildNewPhoto({
     longitude: null,
     publicLatitude: null,
     publicLongitude: null,
-    exposureEligible: false,
+    exposureEligible: !!exposureEligible,
     exposureSentAt: null,
     exposureIssueNumber: null,
   };
