@@ -72,6 +72,7 @@ async function processObject(bucket, key) {
     ? Buffer.from(metadata.caption, 'base64').toString('utf8')
     : '';
   const featured = metadata.featured === 'true';
+  const exposureEligible = metadata['exposure-eligible'] === 'true';
 
   const ext = (path.extname(origFilename) || '.jpg').toLowerCase();
   const photoFilename = `photo${ext}`;
@@ -130,6 +131,7 @@ async function processObject(bucket, key) {
     title,
     caption,
     featured,
+    exposureEligible,
     folderName: folder,
     coverImageKey: `images/posts/${folder}/${photoFilename}`,
     originalKey: `images/originals/posts/${folder}/${photoFilename}`,

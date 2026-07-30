@@ -3,7 +3,8 @@
  *
  * Validates the session token, then returns a presigned S3 PUT URL the browser
  * uses to upload the original photo directly to the uploads bucket. Title,
- * caption, and featured flag travel as object metadata for the process Lambda.
+ * caption, featured, and exposureEligible travel as object metadata for the
+ * process Lambda.
  */
 
 const crypto = require('crypto');
@@ -36,7 +37,7 @@ exports.handler = async (event) => {
     return json(400, { message: 'Invalid request body' });
   }
 
-  const { token, filename, contentType, title, caption, featured } = body;
+  const { token, filename, contentType, title, caption, featured, exposureEligible } = body;
 
   const secret = await getSecret();
   if (!verify(secret.hmac, token)) {
@@ -53,6 +54,7 @@ exports.handler = async (event) => {
     title: Buffer.from(String(title || ''), 'utf8').toString('base64'),
     caption: Buffer.from(String(caption || ''), 'utf8').toString('base64'),
     featured: featured ? 'true' : 'false',
+    'exposure-eligible': exposureEligible ? 'true' : 'false',
     'orig-filename': safeName(filename),
   };
 
@@ -69,6 +71,7 @@ exports.handler = async (event) => {
       'x-amz-meta-title',
       'x-amz-meta-caption',
       'x-amz-meta-featured',
+      'x-amz-meta-exposure-eligible',
       'x-amz-meta-orig-filename',
     ]),
     signableHeaders: new Set(['content-type']),
@@ -79,6 +82,7 @@ exports.handler = async (event) => {
     'x-amz-meta-title': metadata.title,
     'x-amz-meta-caption': metadata.caption,
     'x-amz-meta-featured': metadata.featured,
+    'x-amz-meta-exposure-eligible': metadata['exposure-eligible'],
     'x-amz-meta-orig-filename': metadata['orig-filename'],
   };
 
