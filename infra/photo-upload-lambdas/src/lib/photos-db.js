@@ -187,6 +187,10 @@ async function getFeaturedPhoto() {
 /**
  * Public photos eligible for Exposure and not yet sent.
  * Paginates the newest-first GSI (personal-scale catalog).
+ *
+ * Note: buildNewPhoto historically wrote exposureSentAt: null. DynamoDB NULL
+ * still "exists", so attribute_not_exists alone misses those rows — treat null
+ * as unsent as well.
  */
 async function listExposureCandidates({ maxItems = 100 } = {}) {
   const out = [];
@@ -203,9 +207,10 @@ async function listExposureCandidates({ maxItems = 100 } = {}) {
           ':pk': 'PHOTO',
           ':false': false,
           ':true': true,
+          ':null': null,
         },
         FilterExpression:
-          'draft = :false AND exposureEligible = :true AND attribute_not_exists(exposureSentAt)',
+          'draft = :false AND exposureEligible = :true AND (attribute_not_exists(exposureSentAt) OR exposureSentAt = :null)',
         ScanIndexForward: false,
         Limit: 50,
         ExclusiveStartKey,
@@ -237,8 +242,10 @@ async function stampExposureSent(id, { sentAt, issueNumber }) {
         ':s': sentAt,
         ':n': Number(issueNumber),
         ':u': nowIso(),
+        ':null': null,
       },
-      ConditionExpression: 'attribute_exists(id) AND attribute_not_exists(exposureSentAt)',
+      ConditionExpression:
+        'attribute_exists(id) AND (attribute_not_exists(exposureSentAt) OR exposureSentAt = :null)',
       ReturnValues: 'ALL_NEW',
     }),
   );

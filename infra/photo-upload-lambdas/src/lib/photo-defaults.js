@@ -69,8 +69,9 @@ function buildNewPhoto({
     publicLatitude: null,
     publicLongitude: null,
     exposureEligible: !!exposureEligible,
-    exposureSentAt: null,
-    exposureIssueNumber: null,
+    // Omit exposureSentAt / exposureIssueNumber until a production send stamps
+    // them. Writing null stores DynamoDB NULL, which breaks attribute_not_exists
+    // filters used by the Sunday orchestrator.
   };
 }
 
