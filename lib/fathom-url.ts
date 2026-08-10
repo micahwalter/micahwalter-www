@@ -9,6 +9,7 @@ const RESERVED_SEGMENTS = new Set([
   "about",
   "colophon",
   "emails",
+  "exposures",
   "galleries",
   "micro",
   "newsletter",
