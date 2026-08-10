@@ -20,6 +20,10 @@ export default function Footer() {
               Newsletter
             </a>
             {" · "}
+            <a href="/exposures" className="hover:text-charcoal transition-colors no-underline">
+              Exposures
+            </a>
+            {" · "}
             <a href="/emails" className="hover:text-charcoal transition-colors no-underline">
               Email Archive
             </a>
