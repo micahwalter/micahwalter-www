@@ -1,4 +1,6 @@
+import Link from "next/link";
 import ExposureDetail from "@/components/ExposureDetail";
+import ExposuresIntro from "@/components/ExposuresIntro";
 import type { Metadata } from "next";
 
 interface ExposurePageProps {
@@ -12,10 +14,23 @@ export function generateStaticParams() {
 
 export const metadata: Metadata = {
   title: "Exposure - Micah Walter",
-  description: "A photograph from the Exposure series.",
+  description:
+    "A photograph from the Exposure series — one photo and a few words, sent most Sundays.",
 };
 
 export default async function ExposureIssuePage({ params }: ExposurePageProps) {
   const { n } = await params;
-  return <ExposureDetail nHint={n} />;
+  return (
+    <div className="min-h-screen">
+      <header className="max-w-wide mx-auto px-6 pt-12 pb-6 border-b border-gray/20">
+        <p className="font-serif text-2xl text-charcoal mb-3">
+          <Link href="/exposures" className="hover:text-accent transition-colors no-underline">
+            Exposures
+          </Link>
+        </p>
+        <ExposuresIntro />
+      </header>
+      <ExposureDetail nHint={n} />
+    </div>
+  );
 }
