@@ -237,6 +237,7 @@ Resources:
       - PhotosGetRoute
       - PhotosPatchRoute
       - PhotosExposureTestRoute
+      - PhotosExposureQueueRoute
     Properties:
       ApiId: !Ref PhotoApi
       StageName: $default
@@ -681,6 +682,13 @@ Resources:
     Properties:
       ApiId: !Ref PhotoApi
       RouteKey: POST /{id}/exposure-test
+      Target: !Sub integrations/${PhotosApiIntegration}
+
+  PhotosExposureQueueRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PhotoApi
+      RouteKey: GET /exposure-queue
       Target: !Sub integrations/${PhotosApiIntegration}
 
   AuthFnPermission:

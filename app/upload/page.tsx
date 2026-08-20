@@ -14,8 +14,9 @@ export default function UploadPage() {
         Photos admin
       </h1>
       <p className="text-gray mb-8">
-        Upload new photos or edit title, caption, tags, and featured for existing
-        ones. Changes go through the photo API — no site rebuild required.
+        Upload new photos, edit metadata, manage galleries, or review the
+        Exposure pool and what has already been sent. Changes go through the
+        photo API — no site rebuild required.
       </p>
       <UploadHub />
     </main>
