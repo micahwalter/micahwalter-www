@@ -4,6 +4,7 @@
  *
  * Custom domain mapping key is `photos`, so public URLs are:
  *   GET/PATCH https://api.micahwalter.com/photos/...
+ *   GET https://api.micahwalter.com/photos/exposure-queue (owner session)
  *   GET/POST/PATCH https://api.micahwalter.com/photos/galleries...
  * RouteKeys below are relative to that mapping (not prefixed with /photos).
  */
@@ -15,8 +16,10 @@ const {
   updatePhoto,
   listPhotos,
   getFeaturedPhoto,
+  listExposureCandidates,
 } = require('./lib/photos-db');
 const { toPublicPhoto } = require('./lib/photo-dto');
+const { isExposureQueueRoute, isReservedPhotoId } = require('./lib/photo-api-routes');
 const { buildExposureEmail } = require('./lib/exposure-email');
 const { emitNewsletterSendRequested } = require('./lib/newsletter-events');
 const {
@@ -223,9 +226,22 @@ exports.handler = async (event) => {
     }
 
     // --- Photos ---
+    if (isExposureQueueRoute(routeKey, method, path)) {
+      try {
+        await requireAuth(event, {});
+      } catch (err) {
+        return json(401, { message: err.message });
+      }
+      const upcoming = await listExposureCandidates({ maxItems: 200 });
+      return json(200, {
+        upcoming: upcoming.map(toPublicPhoto),
+        count: upcoming.length,
+      });
+    }
+
     if (isExposureTest(routeKey, method, path)) {
       const id = photoIdFromExposureTestPath(event, path);
-      if (!id || id === 'featured' || id === 'galleries') {
+      if (isReservedPhotoId(id)) {
         return json(404, { message: 'Not found' });
       }
 
@@ -295,7 +311,7 @@ exports.handler = async (event) => {
 
     if (routeKey === 'GET /{id}' || routeKey === 'GET /photos/{id}' || (method === 'GET' && /^\/[^/]+$/.test(path))) {
       const id = event.pathParameters?.id || path.slice(1);
-      if (!id || id === 'featured' || id === 'galleries') return json(404, { message: 'Not found' });
+      if (isReservedPhotoId(id)) return json(404, { message: 'Not found' });
       const photo = await getPhoto(id);
       if (!photo || photo.draft) return json(404, { message: 'Not found' });
       return json(200, toPublicPhoto(photo));

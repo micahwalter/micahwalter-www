@@ -309,6 +309,33 @@ export async function updatePhoto(
   return res.json() as Promise<PublicPhoto>;
 }
 
+export type ExposureQueuePage = {
+  upcoming: PublicPhoto[];
+  count: number;
+};
+
+/** Owner-only Sunday Exposure pool (eligible, public, not yet sent). */
+export async function getExposureQueue(token: string): Promise<ExposureQueuePage> {
+  const res = await fetch(`${getPhotoApiBase()}/exposure-queue`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    throw new PhotoApiError(
+      res.status === 401
+        ? "Your session expired. Please enter the passcode again."
+        : "Could not load the Exposure queue.",
+      res.status,
+    );
+  }
+
+  const data = (await res.json()) as ExposureQueuePage;
+  return {
+    upcoming: data.upcoming || [],
+    count: data.count ?? (data.upcoming || []).length,
+  };
+}
+
 /** Queue a test Exposure email to AdminEmail (does not stamp or blast subscribers). */
 export async function sendExposureTest(
   id: string | number,

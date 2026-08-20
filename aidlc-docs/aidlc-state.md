@@ -2,34 +2,44 @@
 
 ## Project Information
 - **Project Type**: Brownfield
-- **Start Date**: 2026-07-28T13:28:13Z
-- **Current Stage**: CONSTRUCTION — Build and Test (awaiting approval)
-- **Engagement Status**: In progress — [#127](https://github.com/micahwalter/micahwalter-www/issues/127)
-- **Branch**: `cursor/exposure-newsletter-6caf`
+- **Start Date**: 2026-08-20T02:48:00Z
+- **Current Stage**: CONSTRUCTION — Code Generation / Build and Test
+- **Engagement Status**: In progress — [#141](https://github.com/micahwalter/micahwalter-www/issues/141)
+- **Branch**: `cursor/exposures-queue-admin-cb29`
+
+## Workspace State
+- **Existing Code**: Yes
+- **Reverse Engineering Needed**: No (skip; #127 Exposure artifacts + current code)
+- **Workspace Root**: `/workspace`
 
 ## Extension Configuration
 | Extension | Enabled | Decided At |
 |-----------|---------|------------|
-| Security Baseline | No | Requirements Analysis |
-| Resiliency Baseline | No | Requirements Analysis |
-| Property-Based Testing | No | Requirements Analysis |
+| Security Baseline | No | Prior engagement; carried forward |
+| Resiliency Baseline | No | Prior engagement; carried forward |
+| Property-Based Testing | No | Prior engagement; carried forward |
 
 ## Stage Progress
 
 ### 🔵 INCEPTION PHASE
-- [x] Complete for #127 (User Stories skipped)
+- [x] Workspace Detection
+- [x] Reverse Engineering — SKIP
+- [x] Requirements Analysis (`issue-141-requirements.md`)
+- [x] User Stories (minimal)
+- [x] Workflow Planning
+- [x] Application Design — SKIP (existing component boundaries)
+- [x] Units Generation — SKIP (single unit)
 
 ### 🟢 CONSTRUCTION PHASE
+- [x] Functional / NFR / Infra Design — SKIP
 - [x] U1 Code Generation
-- [x] U2 Code Generation
-- [x] U3 Code Generation
-- [x] Build and Test instructions + local `tsc` / `npm run build` (awaiting approval)
+- [ ] Build and Test
 
 ### 🟡 OPERATIONS PHASE
 - [ ] Operations — PLACEHOLDER
 
 ## Current Status
 - **Lifecycle Phase**: CONSTRUCTION
-- **Current Stage**: Build and Test Complete
-- **Next Stage**: Operations placeholder / done after approval
-- **Status**: Ready for Build and Test review
+- **Current Stage**: Build and Test
+- **Next Stage**: PR after local verification
+- **Status**: Implementing Exposure queue admin tab + GET /exposure-queue

@@ -74,6 +74,7 @@ Resources:
       - PhotosFeaturedRoute
       - PhotosGetRoute
       - PhotosPatchRoute
+      - PhotosExposureQueueRoute
     Properties:
       ApiId: !Ref PhotoApi
       StageName: $default
@@ -262,6 +263,13 @@ Resources:
     Properties:
       ApiId: !Ref PhotoApi
       RouteKey: PATCH /{id}
+      Target: !Sub integrations/${PhotosApiIntegration}
+
+  PhotosExposureQueueRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref PhotoApi
+      RouteKey: GET /exposure-queue
       Target: !Sub integrations/${PhotosApiIntegration}
 
   # Do NOT add $default — see primary photo-upload.yml note (CORS + bare-path 500s).

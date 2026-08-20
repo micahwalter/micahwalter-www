@@ -1709,3 +1709,19 @@
 **Context**: Publish — push + create PR
 
 ---
+
+## Issue #141 — Initial User Request / Workspace Detection
+**Timestamp**: 2026-08-20T02:48:00Z
+**User Input**: "Lets work on this issue https://github.com/micahwalter/micahwalter-www/issues/141"
+**AI Response**: New engagement on brownfield Next.js blog. Existing aidlc-state was for #127 (complete). Issue #141 asks for an admin view of the current Exposures queue and optionally already-sent issues. Reverse engineering skipped (Exposure subsystem from #127 is current). Extensions remain disabled. Proceeding through inception artifacts and implementation as a cloud agent (no interactive approval gates).
+**Context**: INCEPTION — Workspace Detection complete; brownfield; next = Requirements for #141
+
+---
+
+## Issue #141 — Requirements, Stories, Workflow Planning
+**Timestamp**: 2026-08-20T02:55:00Z
+**User Input**: "Lets work on this issue https://github.com/micahwalter/micahwalter-www/issues/141"
+**AI Response**: Documented FR-1 upcoming pool, FR-2 sent list, FR-3 authenticated GET /exposure-queue, FR-4 primary+secondary routes. User stories US-1/US-2/US-3. Skipped application design and units generation (single unit within photos-api + /upload). Execution plan in issue-141-execution-plan.md.
+**Context**: INCEPTION complete; CONSTRUCTION Code Generation begins
+
+---
