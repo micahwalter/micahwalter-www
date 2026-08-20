@@ -6,4 +6,4 @@
 - [x] Add API Gateway route on primary and secondary templates; primary stage `DependsOn`
 - [x] Add `getExposureQueue` in `lib/photos-api.ts`
 - [x] Add `ExposuresAdminPanel` and Exposures tab in `UploadHub`
-- [ ] Run Lambda unit tests and `npm run build`
+- [x] Run Lambda unit tests and `npm run build`

@@ -3,7 +3,7 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-08-20T02:48:00Z
-- **Current Stage**: CONSTRUCTION — Code Generation / Build and Test
+- **Current Stage**: CONSTRUCTION — Build and Test complete
 - **Engagement Status**: In progress — [#141](https://github.com/micahwalter/micahwalter-www/issues/141)
 - **Branch**: `cursor/exposures-queue-admin-cb29`
 
@@ -33,13 +33,13 @@
 ### 🟢 CONSTRUCTION PHASE
 - [x] Functional / NFR / Infra Design — SKIP
 - [x] U1 Code Generation
-- [ ] Build and Test
+- [x] Build and Test
 
 ### 🟡 OPERATIONS PHASE
 - [ ] Operations — PLACEHOLDER
 
 ## Current Status
 - **Lifecycle Phase**: CONSTRUCTION
-- **Current Stage**: Build and Test
-- **Next Stage**: PR after local verification
-- **Status**: Implementing Exposure queue admin tab + GET /exposure-queue
+- **Current Stage**: Build and Test complete
+- **Next Stage**: Review / merge PR
+- **Status**: Implementation complete; draft PR opened
