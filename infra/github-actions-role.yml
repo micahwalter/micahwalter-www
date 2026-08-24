@@ -933,6 +933,18 @@ Resources:
               - cloudfront:UpdateOriginAccessControl
               - cloudfront:DeleteOriginAccessControl
               - cloudfront:ListOriginAccessControls
+              - cloudfront:ListTagsForResource
+              - cloudfront:TagResource
+              - cloudfront:UntagResource
+            Resource: '*'
+          # CloudFormation re-reads the ACM cert when it PATCHes the distribution
+          # after a Function change. Missing DescribeCertificate is a common
+          # UPDATE_FAILED / AccessDenied during micahwalter-www deploys.
+          - Effect: Allow
+            Action:
+              - acm:DescribeCertificate
+              - acm:ListCertificates
+              - acm:ListTagsForCertificate
             Resource: '*'
           - Effect: Allow
             Action:
