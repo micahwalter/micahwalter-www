@@ -8,6 +8,7 @@ import {
   formatTootDate,
   formatTootTime,
 } from "@/lib/mastodon";
+import { withSocial } from "@/lib/seo";
 
 interface TootPageProps {
   params: Promise<{ id: string }>;
@@ -19,8 +20,6 @@ export async function generateStaticParams() {
   return toots.map((t) => ({ id: t.id }));
 }
 
-const SITE_URL = "https://www.micahwalter.com";
-
 export async function generateMetadata({ params }: TootPageProps): Promise<Metadata> {
   const { id } = await params;
   const toot = getTootById(id);
@@ -29,22 +28,14 @@ export async function generateMetadata({ params }: TootPageProps): Promise<Metad
   const description = toot.summary || toot.plainText.slice(0, 160);
   const firstImage = toot.mediaAttachments.find((m) => m.type === "image");
 
-  return {
+  return withSocial({
     title: description.slice(0, 70) + (description.length > 70 ? "…" : ""),
     description,
-    openGraph: {
-      title: `@micah@micah.social — ${formatTootDate(toot.createdAt)}`,
-      description,
-      type: "article",
-      url: `${SITE_URL}/micro/${id}`,
-      publishedTime: toot.createdAt,
-      ...(firstImage ? { images: [{ url: firstImage.url }] } : {}),
-    },
-    twitter: {
-      card: firstImage ? "summary_large_image" : "summary",
-      description,
-    },
-  };
+    path: `/micro/${id}`,
+    image: firstImage?.url,
+    type: "article",
+    publishedTime: toot.createdAt,
+  });
 }
 
 export default async function TootPage({ params }: TootPageProps) {

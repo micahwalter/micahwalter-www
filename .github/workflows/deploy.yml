@@ -101,7 +101,10 @@ jobs:
             --exclude "*" \
             --include "*.html" \
             --include "*.json" \
-            --include "*.txt"
+            --include "*.txt" \
+            --exclude "og/photos/*" \
+            --exclude "og/exposures/*" \
+            --exclude "og/galleries/*"
           SYNC_END=$(date +%s)
           echo "duration=$((SYNC_END - SYNC_START))" >> "$GITHUB_OUTPUT"
 

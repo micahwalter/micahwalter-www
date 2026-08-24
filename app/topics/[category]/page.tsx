@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getPostsByCategory, getAllCategories } from "@/lib/content";
 import PostGrid from "@/components/PostGrid";
 import type { Metadata } from "next";
+import { withSocial } from "@/lib/seo";
 
 interface CategoryPageProps {
   params: Promise<{
@@ -22,10 +23,11 @@ export async function generateMetadata({
   const { category } = await params;
   const categoryName = category.toUpperCase();
 
-  return {
+  return withSocial({
     title: `${categoryName} Posts`,
     description: `Browse all posts about ${categoryName}`,
-  };
+    path: `/topics/${category}`,
+  });
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {

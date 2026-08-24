@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
 import { getAllToots } from "@/lib/mastodon";
 import PaginatedTootList from "@/components/PaginatedTootList";
+import { withSocial } from "@/lib/seo";
 
-export const metadata: Metadata = {
+const tootsForMeta = getAllToots();
+const firstTootImage = tootsForMeta
+  .flatMap((t) => t.mediaAttachments)
+  .find((m) => m.type === "image");
+
+export const metadata: Metadata = withSocial({
   title: "Micro",
   description:
     "Short posts and thoughts from my Mastodon account @micah@micah.social, archived here on my own site.",
-};
+  path: "/micro",
+  image: firstTootImage?.url,
+});
 
 export default function MicroPage() {
   const toots = getAllToots();

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getEmailPosts } from "@/lib/content";
 import { renderMarkdown } from "@/lib/markdown";
 import type { Metadata } from "next";
+import { withSocial } from "@/lib/seo";
 
 interface EmailPageProps {
   params: Promise<{
@@ -15,8 +16,6 @@ export async function generateStaticParams() {
   return emails.map((email) => ({ slug: email.slug }));
 }
 
-const SITE_URL = "https://micahwalter.com";
-
 export async function generateMetadata({
   params,
 }: EmailPageProps): Promise<Metadata> {
@@ -28,17 +27,13 @@ export async function generateMetadata({
     return { title: "Not Found" };
   }
 
-  return {
+  return withSocial({
     title: email.title,
     description: email.excerpt,
-    openGraph: {
-      title: email.title,
-      description: email.excerpt,
-      type: "article",
-      url: `${SITE_URL}/emails/${slug}`,
-      publishedTime: email.publishedAt,
-    },
-  };
+    path: `/emails/${slug}`,
+    type: "article",
+    publishedTime: email.publishedAt,
+  });
 }
 
 export default async function EmailPage({ params }: EmailPageProps) {

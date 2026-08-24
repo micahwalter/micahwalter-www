@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
 import { getBlogPosts } from "@/lib/content";
 import PaginatedPostGrid from "@/components/PaginatedPostGrid";
+import { postCoverOgImage, withSocial } from "@/lib/seo";
 
-export const metadata: Metadata = {
+const firstCovered = getBlogPosts().find((p) => p.coverImage);
+
+export const metadata: Metadata = withSocial({
   title: "Posts",
   description: "All blog posts.",
-};
+  path: "/posts",
+  image: firstCovered ? postCoverOgImage(firstCovered) : undefined,
+});
 
 const POSTS_PER_PAGE = 12;
 

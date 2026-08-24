@@ -4,6 +4,7 @@ import { getSortedSketches, getSketchBySlug } from "@/lib/sketches";
 import { renderMarkdown } from "@/lib/markdown";
 import { format } from "date-fns";
 import type { Metadata } from "next";
+import { SITE_URL, withSocial } from "@/lib/seo";
 
 interface SketchPageProps {
   params: Promise<{ slug: string }>;
@@ -15,8 +16,6 @@ export async function generateStaticParams() {
   return sketches.map((s) => ({ slug: s.slug }));
 }
 
-const SITE_URL = "https://micahwalter.com";
-
 export async function generateMetadata({
   params,
 }: SketchPageProps): Promise<Metadata> {
@@ -25,17 +24,20 @@ export async function generateMetadata({
 
   if (!sketch) return { title: "Not Found" };
 
-  return {
-    title: `${sketch.title} - Micah Walter`,
+  const image = sketch.previewImage
+    ? sketch.previewImage.startsWith("http")
+      ? sketch.previewImage
+      : `${SITE_URL}${sketch.previewImage.startsWith("/") ? "" : "/"}${sketch.previewImage}`
+    : undefined;
+
+  return withSocial({
+    title: sketch.title,
     description: sketch.excerpt,
-    openGraph: {
-      title: sketch.title,
-      description: sketch.excerpt,
-      type: "article",
-      url: `${SITE_URL}/sketches/${slug}`,
-      publishedTime: sketch.publishedAt,
-    },
-  };
+    path: `/sketches/${slug}`,
+    image,
+    type: "article",
+    publishedTime: sketch.publishedAt,
+  });
 }
 
 export default async function SketchPage({ params }: SketchPageProps) {

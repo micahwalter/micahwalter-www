@@ -327,6 +327,9 @@ Resources:
                 Action: s3:PutObject
                 Resource: !Sub arn:aws:s3:::${ImagesBucketName}/images/*
               - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub arn:aws:s3:::${WebsiteBucketName}/og/*
+              - Effect: Allow
                 Action: secretsmanager:GetSecretValue
                 Resource: !Ref PhotoUploadSecret
               - Effect: Allow
@@ -441,6 +444,8 @@ Resources:
           PHOTOS_TABLE: !Ref PhotosTable
           PHOTO_EVENT_BUS: !Ref PhotoEventBus
           TICKETS_API_URL: https://api.micahwalter.com/tickets
+          WEBSITE_BUCKET: !Ref WebsiteBucketName
+          SITE_URL: !Ref SiteUrl
 
   ProcessFnEventInvokeConfig:
     Type: AWS::Lambda::EventInvokeConfig
@@ -769,6 +774,18 @@ Resources:
                   - !Sub ${PhotosTable.Arn}/index/*
               - Effect: Allow
                 Action:
+                  - dynamodb:Query
+                  - dynamodb:GetItem
+                Resource:
+                  - !GetAtt ExposuresTable.Arn
+                  - !Sub ${ExposuresTable.Arn}/index/*
+              - Effect: Allow
+                Action:
+                  - dynamodb:Scan
+                  - dynamodb:GetItem
+                Resource: !GetAtt GalleriesTable.Arn
+              - Effect: Allow
+                Action:
                   - s3:PutObject
                   - s3:AbortMultipartUpload
                 Resource: !Sub arn:aws:s3:::${WebsiteBucketName}/*
@@ -784,11 +801,13 @@ Resources:
       Code:
         S3Bucket: !Ref LambdaArtifactsBucket
         S3Key: !Sub ${LambdaArtifactsKeyPrefix}/photo-upload.zip
-      Timeout: 60
+      Timeout: 120
       MemorySize: 256
       Environment:
         Variables:
           PHOTOS_TABLE: !Ref PhotosTable
+          EXPOSURES_TABLE: !Ref ExposuresTable
+          GALLERIES_TABLE: !Ref GalleriesTable
           WEBSITE_BUCKET: !Ref WebsiteBucketName
           SITE_URL: !Ref SiteUrl
 
@@ -984,6 +1003,9 @@ Resources:
               - Effect: Allow
                 Action: ses:SendEmail
                 Resource: '*'
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub arn:aws:s3:::${WebsiteBucketName}/og/*
 
   ExposureOrchestratorFn:
     Type: AWS::Lambda::Function
@@ -1007,6 +1029,7 @@ Resources:
           ADMIN_EMAIL: !Ref AdminEmail
           SES_FROM_ADDRESS: !Ref AdminEmail
           NEWSLETTER_EVENT_BUS_NAME: !Ref NewsletterEventBusName
+          WEBSITE_BUCKET: !Ref WebsiteBucketName
 
   ExposureSchedulerRole:
     Type: AWS::IAM::Role

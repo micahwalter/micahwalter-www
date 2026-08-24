@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getPostsByYear, getAllYears } from "@/lib/content";
 import PostGrid from "@/components/PostGrid";
 import type { Metadata } from "next";
+import { withSocial } from "@/lib/seo";
 
 interface YearPageProps {
   params: Promise<{
@@ -18,10 +19,11 @@ export async function generateMetadata({ params }: YearPageProps): Promise<Metad
   if (!/^\d{4}$/.test(year)) {
     return {};
   }
-  return {
+  return withSocial({
     title: `Posts from ${year}`,
     description: `Browse all posts published in ${year}`,
-  };
+    path: `/${year}`,
+  });
 }
 
 export default async function YearArchivePage({ params }: YearPageProps) {
