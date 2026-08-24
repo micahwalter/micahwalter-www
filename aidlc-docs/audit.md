@@ -1765,3 +1765,12 @@
 **Context**: Hotfix for production OG crawler rewrite; Function publish does not require a distribution update
 
 ---
+
+## Issue #143 — User merged #145
+**Timestamp**: 2026-08-24T16:15:00Z
+**User Input**: "ok I merged it"
+**AI Response**: Infra-deploy ran and failed in 15s on Publish CloudFront HTML routing function: AWS CLI `Invalid base64: "FunctionCode=fileb:///tmp/static-html-routing.js"`. `--function-code` is a blob; drop the FunctionCode= shorthand and pass `fileb://` directly. Site deploy still in progress from the same push.
+**Context**: Follow-up hotfix after #145 merge
+
+---
+

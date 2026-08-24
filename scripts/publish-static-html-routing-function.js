@@ -30,6 +30,23 @@ function awsJson(args) {
   return result.stdout ? JSON.parse(result.stdout) : {};
 }
 
+function buildUpdateFunctionArgs({ name, etag, comment, runtime, codePath }) {
+  // --function-code is a blob, not a structure. Passing FunctionCode=fileb://...
+  // makes the CLI try to base64-decode the literal string (CI failure on #145).
+  return [
+    'cloudfront',
+    'update-function',
+    '--name',
+    name,
+    '--if-match',
+    etag,
+    '--function-config',
+    JSON.stringify({ Comment: comment, Runtime: runtime }),
+    '--function-code',
+    `fileb://${codePath}`,
+  ];
+}
+
 function resolveFunctionName() {
   if (process.env.CLOUDFRONT_FUNCTION_NAME) {
     return process.env.CLOUDFRONT_FUNCTION_NAME;
@@ -70,27 +87,22 @@ function main() {
   const runtime = config.Runtime || 'cloudfront-js-1.0';
 
   console.log(`Updating CloudFront Function ${name} (${size} bytes, runtime ${runtime})`);
-  const updated = awsJson([
-    'cloudfront',
-    'update-function',
-    '--name',
-    name,
-    '--if-match',
-    etag,
-    '--function-config',
-    JSON.stringify({ Comment: comment, Runtime: runtime }),
-    '--function-code',
-    `FunctionCode=fileb://${codePath}`,
-  ]);
+  const updated = awsJson(
+    buildUpdateFunctionArgs({ name, etag, comment, runtime, codePath }),
+  );
   const newEtag = updated.ETag;
   console.log(`Publishing ${name} (ETag ${newEtag})`);
   awsJson(['cloudfront', 'publish-function', '--name', name, '--if-match', newEtag]);
   console.log(`Published CloudFront Function ${name}`);
 }
 
-try {
-  main();
-} catch (err) {
-  console.error(err.message || err);
-  process.exit(1);
+if (require.main === module) {
+  try {
+    main();
+  } catch (err) {
+    console.error(err.message || err);
+    process.exit(1);
+  }
 }
+
+module.exports = { buildUpdateFunctionArgs, DEFAULT_NAME };
