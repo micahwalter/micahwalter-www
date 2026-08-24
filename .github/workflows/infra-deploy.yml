@@ -8,6 +8,8 @@ on:
       - 'infra/infra.yml'
       - 'infra/infra-secondary.yml'
       - '.github/workflows/infra-deploy.yml'
+      - 'scripts/publish-static-html-routing-function.js'
+      - 'infra/cloudfront/extract-from-template.js'
 
   workflow_dispatch:  # Allow manual triggering
 
@@ -53,6 +55,12 @@ jobs:
             echo "workflow_changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "workflow_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$CHANGED" | grep -Eq '^(scripts/publish-static-html-routing-function\.js|infra/cloudfront/extract-from-template\.js)$'; then
+            echo "function_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "function_changed=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Configure AWS credentials via OIDC
@@ -112,6 +120,7 @@ jobs:
         if: >-
           steps.changed.outputs.primary_changed == 'true' ||
           steps.changed.outputs.workflow_changed == 'true' ||
+          steps.changed.outputs.function_changed == 'true' ||
           github.event_name == 'workflow_dispatch'
         run: node scripts/publish-static-html-routing-function.js
 
