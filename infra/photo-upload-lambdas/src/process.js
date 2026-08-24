@@ -27,6 +27,7 @@ const {
   todayDate,
 } = require('./lib/photo-defaults');
 const { putPhoto } = require('./lib/photos-db');
+const { writePhotoOg } = require('./lib/og-html');
 
 const s3 = new S3Client({});
 const events = new EventBridgeClient({});
@@ -140,6 +141,12 @@ async function processObject(bucket, key) {
 
   await putPhoto(photo);
   console.log(`Wrote photo id ${id} folder ${folder} (enrichment pending)`);
+
+  try {
+    await writePhotoOg(photo);
+  } catch (err) {
+    console.warn(`OG HTML write failed for photo ${id}: ${err.message}`);
+  }
 
   await emitEnrichmentEvent(id);
 

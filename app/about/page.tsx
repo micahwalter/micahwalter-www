@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { withSocial } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withSocial({
   title: "About",
   description: "About Micah Walter — technologist, photographer, and writer exploring AI, cloud, and creativity.",
-};
+  path: "/about",
+});
 
 export default function AboutPage() {
   return (

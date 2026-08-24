@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getPostsByYearMonth, getAllYearMonths } from "@/lib/content";
 import PostGrid from "@/components/PostGrid";
 import type { Metadata } from "next";
+import { withSocial } from "@/lib/seo";
 
 interface MonthPageProps {
   params: Promise<{
@@ -30,10 +31,11 @@ export async function generateMetadata({ params }: MonthPageProps): Promise<Meta
     return {};
   }
   const monthName = MONTH_NAMES[parseInt(month, 10) - 1];
-  return {
+  return withSocial({
     title: `Posts from ${monthName} ${year}`,
     description: `Browse all posts published in ${monthName} ${year}`,
-  };
+    path: `/${year}/${month}`,
+  });
 }
 
 export default async function MonthArchivePage({ params }: MonthPageProps) {

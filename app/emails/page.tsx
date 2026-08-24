@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getEmailPosts } from "@/lib/content";
+import { withSocial } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withSocial({
   title: "Email Archive",
   description: "Archive of newsletter issues.",
-};
+  path: "/emails",
+});
 
 export default function EmailsPage() {
   const emails = getEmailPosts();

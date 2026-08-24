@@ -1,14 +1,12 @@
 import ApiGalleriesIndex from "@/components/ApiGalleriesIndex";
 import type { Metadata } from "next";
+import { withSocial } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Galleries - Micah Walter",
+export const metadata: Metadata = withSocial({
+  title: "Galleries",
   description: "Curated collections of photos.",
-  openGraph: {
-    title: "Galleries - Micah Walter",
-    description: "Curated collections of photos.",
-  },
-};
+  path: "/galleries",
+});
 
 export default function GalleriesPage() {
   return (

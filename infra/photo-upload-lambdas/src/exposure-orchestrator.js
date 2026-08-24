@@ -8,6 +8,7 @@ const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
 const { listExposureCandidates, stampExposureSent } = require('./lib/photos-db');
 const { allocateNextIssueNumber, tryAcquireDailyLock } = require('./lib/exposure-counter');
 const { createExposure } = require('./lib/exposures-db');
+const { writeExposureOg } = require('./lib/og-html');
 const { buildExposureEmail } = require('./lib/exposure-email');
 const { emitNewsletterSendRequested } = require('./lib/newsletter-events');
 
@@ -84,6 +85,18 @@ exports.handler = async (event) => {
     coverImageKey: photo.coverImageKey,
     sentAt,
   });
+
+  try {
+    await writeExposureOg({
+      issueNumber,
+      title: photo.title,
+      caption: photo.caption || '',
+      folderName: photo.folderName,
+      coverImageKey: photo.coverImageKey,
+    });
+  } catch (err) {
+    console.warn(`OG HTML write failed for Exposure ${issueNumber}: ${err.message}`);
+  }
 
   await emitNewsletterSendRequested({
     emailId: issueNumber,

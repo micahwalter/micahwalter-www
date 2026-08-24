@@ -321,6 +321,13 @@ Resources:
             return legacyRedirect;
           }
 
+          // Share crawlers get pre-rendered OG HTML (photos/exposures/galleries are SPA shells)
+          var ogUri = rewriteShareCrawler(uri, request);
+          if (ogUri) {
+            request.uri = ogUri;
+            return request;
+          }
+
           // Static-export shell: serve /photos/0.html for any /photos/<digits>
           // (browser URL unchanged; client reads id from pathname)
           var photoShell = rewritePhotoDetailShell(uri);
@@ -359,6 +366,60 @@ Resources:
             if (c < '0' || c > '9') return false;
           }
           return true;
+        }
+
+        function isShareCrawler(request) {
+          var h = request.headers['user-agent'];
+          if (!h || !h.value) return false;
+          var ua = h.value.toLowerCase();
+          return (
+            ua.indexOf('linkedinbot') !== -1 ||
+            ua.indexOf('twitterbot') !== -1 ||
+            ua.indexOf('facebookexternalhit') !== -1 ||
+            ua.indexOf('facebot') !== -1 ||
+            ua.indexOf('slackbot') !== -1 ||
+            ua.indexOf('discordbot') !== -1 ||
+            ua.indexOf('whatsapp') !== -1 ||
+            ua.indexOf('telegrambot') !== -1 ||
+            ua.indexOf('applebot') !== -1 ||
+            ua.indexOf('pinterest') !== -1 ||
+            ua.indexOf('embedly') !== -1 ||
+            ua.indexOf('redditbot') !== -1 ||
+            ua.indexOf('skypeuripreview') !== -1 ||
+            ua.indexOf('vkshare') !== -1 ||
+            ua.indexOf('iframely') !== -1 ||
+            ua.indexOf('googlebot') !== -1 ||
+            ua.indexOf('bingbot') !== -1 ||
+            ua.indexOf('yandex') !== -1 ||
+            ua.indexOf('duckduckbot') !== -1 ||
+            ua.indexOf('baiduspider') !== -1 ||
+            ua.indexOf('opengraph') !== -1
+          );
+        }
+
+        function rewriteShareCrawler(uri, request) {
+          if (!isShareCrawler(request)) return null;
+          var path = uri;
+          if (path.charAt(0) === '/') path = path.slice(1);
+          if (path.endsWith('/')) path = path.slice(0, -1);
+          if (path === '') return '/og/home.html';
+          var parts = path.split('/');
+          if (parts.length === 1) {
+            if (parts[0] === 'photos') return '/og/photos.html';
+            if (parts[0] === 'exposures') return '/og/exposures.html';
+            if (parts[0] === 'galleries') return '/og/galleries.html';
+            return null;
+          }
+          if (parts.length === 2 && parts[0] === 'photos' && isAllDigits(parts[1])) {
+            return '/og/photos/' + parts[1] + '.html';
+          }
+          if (parts.length === 2 && parts[0] === 'exposures' && isAllDigits(parts[1])) {
+            return '/og/exposures/' + parts[1] + '.html';
+          }
+          if (parts.length === 2 && parts[0] === 'galleries' && parts[1] && parts[1] !== '_placeholder') {
+            return '/og/galleries/' + parts[1] + '.html';
+          }
+          return null;
         }
 
         function getPhotoPostRedirect(uri) {
@@ -458,7 +519,7 @@ Resources:
         function isReservedSegment(seg) {
           var reserved = {
             'about': 1, 'colophon': 1, 'emails': 1, 'exposures': 1, 'galleries': 1,
-            'micro': 1, 'newsletter': 1, 'photos': 1, 'posts': 1,
+            'micro': 1, 'newsletter': 1, 'og': 1, 'photos': 1, 'posts': 1,
             'sketches': 1, 'upload': 1, 'tags': 1, 'topics': 1, 'page': 1
           };
           return reserved[seg] === 1;
@@ -509,7 +570,7 @@ Resources:
           return null;
         }
       FunctionConfig:
-        Comment: Legacy post redirects, clean URL HTML routing, trailing-slash redirects
+        Comment: Legacy post redirects, clean URL HTML routing, share-crawler OG HTML, trailing-slash redirects
         Runtime: cloudfront-js-1.0
 
   # CloudFront Function for apex domain redirect to www

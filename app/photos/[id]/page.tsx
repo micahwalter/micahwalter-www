@@ -1,5 +1,6 @@
 import ApiPhotoDetail from "@/components/ApiPhotoDetail";
 import type { Metadata } from "next";
+import { withSocial } from "@/lib/seo";
 
 interface PhotoPageProps {
   params: Promise<{ id: string }>;
@@ -10,10 +11,11 @@ export function generateStaticParams() {
   return [{ id: "0" }];
 }
 
-export const metadata: Metadata = {
-  title: "Photo - Micah Walter",
+export const metadata: Metadata = withSocial({
+  title: "Photo",
   description: "A photograph from Micah Walter.",
-};
+  path: "/photos",
+});
 
 export default async function PhotoDetailPage({ params }: PhotoPageProps) {
   const { id } = await params;

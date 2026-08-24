@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import SubscribeForm from "./SubscribeForm";
+import { withSocial } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withSocial({
   title: "Newsletter",
   description:
     "Occasional writing on AI, cloud infrastructure, and creativity — plus a photograph most Sundays.",
-};
+  path: "/newsletter",
+});
 
 export default function NewsletterPage() {
   return (

@@ -2,6 +2,7 @@ import Link from "next/link";
 import ExposureDetail from "@/components/ExposureDetail";
 import ExposuresIntro from "@/components/ExposuresIntro";
 import type { Metadata } from "next";
+import { withSocial } from "@/lib/seo";
 
 interface ExposurePageProps {
   params: Promise<{ n: string }>;
@@ -12,11 +13,12 @@ export function generateStaticParams() {
   return [{ n: "0" }];
 }
 
-export const metadata: Metadata = {
-  title: "Exposure - Micah Walter",
+export const metadata: Metadata = withSocial({
+  title: "Exposure",
   description:
     "A photograph from the Exposure series — one photo and a few words, sent most Sundays.",
-};
+  path: "/exposures",
+});
 
 export default async function ExposureIssuePage({ params }: ExposurePageProps) {
   const { n } = await params;

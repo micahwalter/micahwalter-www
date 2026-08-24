@@ -1,5 +1,16 @@
 import { getBlogPosts } from "@/lib/content";
 import HomePhotos from "@/components/HomePhotos";
+import type { Metadata } from "next";
+import { withSocial } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  ...withSocial({
+    title: "Micah Walter",
+    description: "Investigations in AI, Cloud, and Creativity",
+    path: "/",
+  }),
+  title: { absolute: "Micah Walter" },
+};
 
 export default function Home() {
   const recentPosts = getBlogPosts()

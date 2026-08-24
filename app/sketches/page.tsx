@@ -2,15 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getSortedSketches } from "@/lib/sketches";
 import { format } from "date-fns";
+import { withSocial } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Sketches - Micah Walter",
+export const metadata: Metadata = withSocial({
+  title: "Sketches",
   description: "Visual explorations, creative experiments, and interactive projects.",
-  openGraph: {
-    title: "Sketches - Micah Walter",
-    description: "Visual explorations, creative experiments, and interactive projects.",
-  },
-};
+  path: "/sketches",
+});
 
 const TYPE_LABELS: Record<string, string> = {
   html: "HTML",

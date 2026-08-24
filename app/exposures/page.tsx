@@ -1,17 +1,14 @@
 import ExposuresGrid from "@/components/ExposuresGrid";
 import ExposuresIntro from "@/components/ExposuresIntro";
 import type { Metadata } from "next";
+import { withSocial } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Exposures - Micah Walter",
+export const metadata: Metadata = withSocial({
+  title: "Exposures",
   description:
     "A periodic photo newsletter — one photograph and a few words, sent most Sundays. Subscribe for the next issue.",
-  openGraph: {
-    title: "Exposures - Micah Walter",
-    description:
-      "A periodic photo newsletter — one photograph and a few words, sent most Sundays.",
-  },
-};
+  path: "/exposures",
+});
 
 export default function ExposuresPage() {
   return (

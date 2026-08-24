@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getPostsByTag, getAllTags } from "@/lib/content";
 import PostGrid from "@/components/PostGrid";
 import type { Metadata } from "next";
+import { withSocial } from "@/lib/seo";
 
 interface TagPageProps {
   params: Promise<{
@@ -22,10 +23,11 @@ export async function generateMetadata({
   const { tag } = await params;
   const tagName = decodeURIComponent(tag);
 
-  return {
+  return withSocial({
     title: `Posts tagged "${tagName}"`,
     description: `Browse all posts tagged with ${tagName}`,
-  };
+    path: `/tags/${tag}`,
+  });
 }
 
 export default async function TagPage({ params }: TagPageProps) {

@@ -1733,3 +1733,27 @@
 **Context**: CONSTRUCTION complete for #141
 
 ---
+
+## Issue #143 — Initial User Request / Workspace Detection
+**Timestamp**: 2026-08-24T15:10:00Z
+**User Input**: "I want to log an issue on Github around metadata for my posts and photos pages, and index pages so that we get good preview images when sharing on social media.. for example, /exposures currently has no preview image.. This should be more dynamic and interesting when sharing to sites like LinkedIn, etc.."
+**AI Response**: Created GitHub issue #143 with live crawler evidence. Blog posts with covers already emit og:image; /exposures, /photos, homepage, and API-backed detail shells do not.
+**Context**: Issue logged; no code changes
+
+---
+
+## Issue #143 — Implement social previews
+**Timestamp**: 2026-08-24T15:21:00Z
+**User Input**: "yes please"
+**AI Response**: User asked to implement #143. Brownfield workspace; reverse engineering skipped. Extensions remain disabled. Requirements taken from #143 plus live HTML verification. Skipping user stories, application design, and units generation (single unit: Next.js metadata + crawler OG HTML via CloudFront + feed-publisher). Cloud agent proceeds through construction without interactive gates.
+**Context**: INCEPTION complete for #143; CONSTRUCTION begins
+
+---
+
+## Issue #143 — Code Generation and Build and Test
+**Timestamp**: 2026-08-24T15:50:00Z
+**User Input**: "yes please"
+**AI Response**: Implemented site-wide OG/Twitter metadata with share-card.jpg fallback; CloudFront crawler rewrite to og/*.html; feed-publisher + process/orchestrator OG HTML; deploy.yml excludes generated prefixes. Unit tests pass. npm run build passes. Built /exposures HTML now has og:image and summary_large_image.
+**Context**: CONSTRUCTION complete for #143
+
+---

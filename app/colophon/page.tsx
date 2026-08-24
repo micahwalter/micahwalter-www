@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import MermaidDiagram from "@/components/MermaidDiagram";
+import { withSocial } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withSocial({
   title: "Colophon",
   description: "How this site is built — tech stack, infrastructure, and design.",
-};
+  path: "/colophon",
+});
 
 const architectureDiagram = `%%{init: {"flowchart": {"curve": "linear"}} }%%
 flowchart TD

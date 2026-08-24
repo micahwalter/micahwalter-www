@@ -1,15 +1,13 @@
 import Link from "next/link";
 import PhotosGrid from "@/components/PhotosGrid";
 import type { Metadata } from "next";
+import { withSocial } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Photos - Micah Walter",
+export const metadata: Metadata = withSocial({
+  title: "Photos",
   description: "A collection of photos from my travels and daily life.",
-  openGraph: {
-    title: "Photos - Micah Walter",
-    description: "A collection of photos from my travels and daily life.",
-  },
-};
+  path: "/photos",
+});
 
 export default function PhotosPage() {
   return (
