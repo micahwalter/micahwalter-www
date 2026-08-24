@@ -49,14 +49,27 @@ jobs:
             echo "secondary_changed=false" >> "$GITHUB_OUTPUT"
           fi
 
+          if echo "$CHANGED" | grep -q '^\.github/workflows/infra-deploy\.yml$'; then
+            echo "workflow_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "workflow_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      # CloudFormation stack updates that change CloudFront Function code also
+      # PATCH the distribution. That update has failed this workflow before
+      # (AccessDenied / missing IAM on GetFunction, tags, ACM). Keep trying
+      # CFN for real infra changes, but always publish the Function via the
+      # CloudFront API so viewer-request routing can go live even when CFN rolls back.
       - name: Deploy primary stack (infra.yml → micahwalter-www, us-east-1)
+        id: primary
         if: steps.changed.outputs.primary_changed == 'true' || github.event_name == 'workflow_dispatch'
+        continue-on-error: true
         run: |
           aws cloudformation deploy \
             --stack-name micahwalter-www \
@@ -68,6 +81,23 @@ jobs:
               DomainName=micahwalter.com \
               WWWDomainName=www.micahwalter.com
 
+      - name: Show primary stack events on CloudFormation failure
+        if: steps.primary.outcome == 'failure'
+        run: |
+          echo "::error::CloudFormation update of micahwalter-www failed. Recent FAILED events:"
+          aws cloudformation describe-stack-events \
+            --stack-name micahwalter-www \
+            --region ${{ env.AWS_REGION }} \
+            --query 'StackEvents[?contains(ResourceStatus, `FAILED`)].[Timestamp,LogicalResourceId,ResourceStatus,ResourceStatusReason]' \
+            --output table || true
+          echo "--- last 20 events ---"
+          aws cloudformation describe-stack-events \
+            --stack-name micahwalter-www \
+            --region ${{ env.AWS_REGION }} \
+            --max-items 20 \
+            --query 'StackEvents[].[Timestamp,LogicalResourceId,ResourceStatus,ResourceStatusReason]' \
+            --output table || true
+
       - name: Deploy secondary stack (infra-secondary.yml → micahwalter-www-secondary, us-east-2)
         if: steps.changed.outputs.secondary_changed == 'true' || github.event_name == 'workflow_dispatch'
         run: |
@@ -78,17 +108,36 @@ jobs:
             --parameter-overrides \
               CloudFrontDistributionId=${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
 
+      - name: Publish CloudFront HTML routing function
+        if: >-
+          steps.changed.outputs.primary_changed == 'true' ||
+          steps.changed.outputs.workflow_changed == 'true' ||
+          github.event_name == 'workflow_dispatch'
+        run: node scripts/publish-static-html-routing-function.js
+
       - name: Deployment summary
         run: |
           PRIMARY="${{ steps.changed.outputs.primary_changed }}"
           SECONDARY="${{ steps.changed.outputs.secondary_changed }}"
           MANUAL="${{ github.event_name }}"
+          PRIMARY_OUTCOME="${{ steps.primary.outcome }}"
 
           if [ "$MANUAL" = "workflow_dispatch" ]; then
-            echo "Deploy mode: manual (workflow_dispatch) — both stacks deployed"
+            echo "Deploy mode: manual (workflow_dispatch) — both stacks attempted"
           elif [ "$PRIMARY" = "true" ] || [ "$SECONDARY" = "true" ]; then
-            [ "$PRIMARY" = "true" ]   && echo "Deployed: micahwalter-www (us-east-1)"
-            [ "$SECONDARY" = "true" ] && echo "Deployed: micahwalter-www-secondary (us-east-2)"
+            if [ "$PRIMARY" = "true" ]; then
+              echo "Primary stack micahwalter-www (us-east-1): $PRIMARY_OUTCOME"
+            fi
+            if [ "$SECONDARY" = "true" ]; then
+              echo "Deployed: micahwalter-www-secondary (us-east-2)"
+            fi
           else
-            echo "No infra templates changed — nothing deployed"
+            echo "No infra templates changed — CloudFormation skipped"
           fi
+
+      - name: Fail job if CloudFormation primary deploy failed
+        if: steps.primary.outcome == 'failure'
+        run: |
+          echo "CloudFormation failed after rollback. The CloudFront Function publish step still ran so routing/OG rewrites can go live."
+          echo "Fix IAM (infra/github-actions-role.yml must be deployed with the www profile) and re-run this workflow."
+          exit 1

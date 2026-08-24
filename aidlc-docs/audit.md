@@ -1757,3 +1757,11 @@
 **Context**: CONSTRUCTION complete for #143
 
 ---
+
+## Issue #143 — Infra deploy failure after merge
+**Timestamp**: 2026-08-24T16:05:00Z
+**User Input**: "looks like one of the jobs failed"
+**AI Response**: Diagnosed failed run 32747621957 (Deploy Infrastructure CloudFormation Stacks). Site, photo-upload, and secondary stacks succeeded. CloudFormation update of micahwalter-www failed after ~2.5 minutes with no resource reason in CI logs. Same duration as the 2026-07-17 Function+distribution update failure. Adding CloudFront Function API publish fallback, stack-event dump on CFN failure, IAM for tags/ACM, and fixing the summary-step `set -e` `&&` trap.
+**Context**: Hotfix for production OG crawler rewrite; Function publish does not require a distribution update
+
+---
