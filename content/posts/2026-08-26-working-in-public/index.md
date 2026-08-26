@@ -4,7 +4,7 @@ publishedAt: "2026-08-26"
 excerpt: "Working in public is usually sold as a growth strategy. For me it is something quieter and more useful: a way to keep ideas moving, keep the builder muscle warm, and leave a trail I can come back to. This site is the experiment."
 category: "Writing"
 tags: ["working-in-public", "blogging", "github", "open-source", "ai"]
-draft: true
+draft: false
 ---
 
 Working in public is usually pitched as a marketing move. Build your thing where people can see it, narrate the journey, grow an audience, convert the audience into customers or a job or a course. There is a whole genre of advice about it, and most of it assumes the audience is the point.
