@@ -60,10 +60,13 @@ jobs:
             @aws-sdk/credential-provider-node@3 \
             @aws-crypto/sha256-js@5
 
+      # Uses the dedicated allocation role (GitHubActionsTicketsAllocateRole),
+      # not the main deploy role: the deploy role's trust policy is locked to
+      # refs/heads/main, which pull_request-triggered runs can never satisfy.
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_TICKETS_ALLOCATE_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Collect added post files (PR)
