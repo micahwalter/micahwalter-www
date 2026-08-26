@@ -870,6 +870,42 @@ Resources:
               - 'arn:aws:apigateway:us-east-1::/*'
               - 'arn:aws:apigateway:us-east-2::/*'
 
+  # Dedicated role for the PR post-id allocate workflow. The main deploy role
+  # is locked to refs/heads/main (Phase 4), but allocate-post-ids.yml runs on
+  # pull_request events whose OIDC sub is "repo:<org>/<repo>:pull_request", so
+  # it could never assume GitHubActionsDeployRole. This role trusts both the
+  # pull_request sub (PR-triggered allocation) and refs/heads/main
+  # (workflow_dispatch backfills) and carries only the allocate invoke policy.
+  # Set the GitHub Actions secret AWS_TICKETS_ALLOCATE_ROLE_ARN to its ARN.
+  TicketsAllocateRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: GitHubActionsTicketsAllocateRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !GetAtt GitHubOIDCProvider.Arn
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub:
+                  - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:pull_request'
+                  - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/main'
+      Tags:
+        - Key: Project
+          Value: micahwalter-www
+        - Key: Environment
+          Value: Production
+        - Key: Application
+          Value: StaticWebsite
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Purpose
+          Value: GitHubActionsTicketsAllocate
+
   # Runtime invoke for PR post-id allocate workflow (POST /tickets/allocate)
   TicketsAllocateInvokePolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -877,6 +913,7 @@ Resources:
       ManagedPolicyName: GitHubActionsTicketsAllocate
       Roles:
         - !Ref GitHubActionsRole
+        - !Ref TicketsAllocateRole
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -999,6 +1036,12 @@ Outputs:
     Value: !GetAtt GitHubActionsRole.Arn
     Export:
       Name: GitHubActionsDeployRoleArn
+
+  TicketsAllocateRoleArn:
+    Description: ARN of the ticket-allocation role for the allocate-post-ids workflow (set as secret AWS_TICKETS_ALLOCATE_ROLE_ARN)
+    Value: !GetAtt TicketsAllocateRole.Arn
+    Export:
+      Name: GitHubActionsTicketsAllocateRoleArn
 
   OIDCProviderArn:
     Description: ARN of the GitHub OIDC provider
