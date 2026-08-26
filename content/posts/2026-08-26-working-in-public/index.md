@@ -1,4 +1,5 @@
 ---
+id: 179
 title: "You do not need an audience"
 publishedAt: "2026-08-26"
 excerpt: "Working in public is usually sold as a growth strategy. For me it is something quieter and more useful: a way to keep ideas moving, keep the builder muscle warm, and leave a trail I can come back to. This site is the experiment."
