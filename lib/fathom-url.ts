@@ -16,6 +16,7 @@ const RESERVED_SEGMENTS = new Set([
   "photos",
   "posts",
   "sketches",
+  "tokens",
   "upload",
   "tags",
   "topics",

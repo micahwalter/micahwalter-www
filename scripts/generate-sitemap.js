@@ -186,7 +186,7 @@ function generateSitemap() {
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>${baseUrl}/sketches</loc>
+    <loc>${baseUrl}/tokens</loc>
     <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>

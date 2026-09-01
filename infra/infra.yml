@@ -520,7 +520,7 @@ Resources:
           var reserved = {
             'about': 1, 'colophon': 1, 'emails': 1, 'exposures': 1, 'galleries': 1,
             'micro': 1, 'newsletter': 1, 'og': 1, 'photos': 1, 'posts': 1,
-            'sketches': 1, 'upload': 1, 'tags': 1, 'topics': 1, 'page': 1
+            'sketches': 1, 'tokens': 1, 'upload': 1, 'tags': 1, 'topics': 1, 'page': 1
           };
           return reserved[seg] === 1;
         }

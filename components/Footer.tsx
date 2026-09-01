@@ -31,6 +31,10 @@ export default function Footer() {
             <a href="/colophon" className="hover:text-charcoal transition-colors no-underline">
               Colophon
             </a>
+            {" · "}
+            <a href="/tokens" className="hover:text-charcoal transition-colors no-underline">
+              Tokens
+            </a>
           </p>
         </div>
       </div>
