@@ -130,9 +130,11 @@ async function enrichPhoto(photoId, { force = false } = {}) {
 
   // Bedrock on optimized cover
   let aiTags = [];
+  let coverFound = false;
   try {
     const cover = await loadFirstExisting(bedrockCoverCandidates(photo));
     if (cover) {
+      coverFound = true;
       aiTags = await suggestTags(cover.buffer, {
         contentType: cover.contentType,
         key: cover.key,
@@ -182,6 +184,9 @@ async function enrichPhoto(photoId, { force = false } = {}) {
     hasGps,
     geoOk,
     bedrockOk,
+    coverFound,
+    geoTagCount: geoTags.length,
+    aiTagCount: aiTags.length,
     tagCount: tags.length,
     enrichmentStatus: 'complete',
   }));

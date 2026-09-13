@@ -31,6 +31,34 @@ function imageFormat(contentType, key) {
 }
 
 /**
+ * Parse model text into tag strings (comma, newline, or bullet lists).
+ * @param {string} responseText
+ * @returns {string[]}
+ */
+function parseTagResponse(responseText) {
+  let text = String(responseText || '').trim();
+  if (!text) return [];
+
+  // Drop common prose wrappers / label prefixes
+  text = text.replace(/^```[\s\S]*?```/g, (block) => block.replace(/```\w*\n?/g, '').replace(/```/g, ''));
+  text = text.replace(/^["']|["']$/g, '');
+  const tagsIdx = text.search(/\btags\s*:\s*/i);
+  if (tagsIdx >= 0) {
+    text = text.slice(tagsIdx).replace(/^\btags\s*:\s*/i, '');
+  }
+
+  const parts = text
+    .split(/[,\n]+/)
+    .map((part) => part
+      .replace(/^[\s>*\-•\d.)]+/, '')
+      .trim()
+      .toLowerCase())
+    .filter((tag) => tag.length > 0 && tag.length < 30);
+
+  return parts;
+}
+
+/**
  * @param {Buffer} imageBuffer
  * @param {{ contentType?: string, key?: string }} meta
  * @returns {Promise<string[]>}
@@ -63,14 +91,24 @@ async function suggestTags(imageBuffer, meta = {}) {
       .join(' ')
       .trim();
 
-    return responseText
-      .split(',')
-      .map((tag) => tag.trim().toLowerCase())
-      .filter((tag) => tag.length > 0 && tag.length < 30);
+    const tags = parseTagResponse(responseText);
+    if (tags.length === 0) {
+      console.warn(JSON.stringify({
+        msg: 'Bedrock tagging returned no parseable tags',
+        rawPreview: responseText.slice(0, 200),
+        rawLength: responseText.length,
+      }));
+    }
+    return tags;
   } catch (err) {
     console.error('Bedrock tagging failed:', err.message);
     return [];
   }
 }
 
-module.exports = { suggestTags, imageFormat, MODEL_ID };
+module.exports = {
+  suggestTags,
+  imageFormat,
+  parseTagResponse,
+  MODEL_ID,
+};

@@ -73,6 +73,10 @@ DTO includes `city`, `country`, `publicLatitude`/`publicLongitude`, `tags`, `enr
 
 1. Redeploy `micahwalter-www-github-actions` after CI IAM changes (Place Index / EventBridge rule+archive).
 2. Enable Bedrock model access for `us.anthropic.claude-sonnet-4-6` in **us-east-1**.
+3. EnrichFn IAM must allow Anthropic foundation models in **all regions** used by the
+   `us.*` inference profile (often `us-east-2`), e.g.
+   `arn:aws:bedrock:*::foundation-model/anthropic.*` — see issue #153. Us-east-1-only
+   `foundation-model/*` is not enough and yields silent soft-fail (`bedrockOk: false`).
 
 ## Build
 

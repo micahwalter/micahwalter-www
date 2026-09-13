@@ -525,11 +525,16 @@ Resources:
               - Effect: Allow
                 Action: s3:GetObject
                 Resource: !Sub arn:aws:s3:::${ImagesBucketName}/images/*
+              # us.* inference profiles (e.g. us.anthropic.claude-sonnet-4-6) invoke
+              # foundation models in other commercial regions (often us-east-2). Allow
+              # Anthropic FMs in any region while keeping inference-profile scoped to
+              # this account/region. See issue #153.
               - Effect: Allow
                 Action:
                   - bedrock:InvokeModel
                   - bedrock:InvokeModelWithResponseStream
                 Resource:
+                  - arn:aws:bedrock:*::foundation-model/anthropic.*
                   - !Sub arn:aws:bedrock:${AWS::Region}::foundation-model/*
                   - !Sub arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/*
               - Effect: Allow
