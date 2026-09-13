@@ -4,7 +4,7 @@
 - **Project Type**: Brownfield
 - **Start Date**: 2026-09-12T18:01:00Z
 - **Current Stage**: CONSTRUCTION — Code Generation complete (review gate)
-- **Engagement Status**: In progress — [#153](https://github.com/micahwalter/micahwalter-www/issues/153)
+- **Engagement Status**: In progress — [#153](https://github.com/micahwalter/micahwalter-www/issues/153) / PR [#154](https://github.com/micahwalter/micahwalter-www/pull/154)
 - **Branch**: `cursor/fix-photo-ai-tags-ece0`
 
 ## Workspace State
