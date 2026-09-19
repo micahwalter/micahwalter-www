@@ -114,6 +114,17 @@ async function enrichPhoto(photoId, { force = false } = {}) {
     console.error(`enrich GPS step failed for ${photoId}:`, err.message);
   }
 
+  // Fall back to private coords already on the item (e.g. force re-fuzz
+  // when the original object is missing but GPS was stored earlier).
+  if (!hasGps && photo.latitude != null && photo.longitude != null) {
+    hasGps = true;
+    latitude = Number(photo.latitude);
+    longitude = Number(photo.longitude);
+    const fuzzed = fuzzPublicCoords(latitude, longitude);
+    publicLatitude = fuzzed.publicLatitude;
+    publicLongitude = fuzzed.publicLongitude;
+  }
+
   // Reverse geocode
   if (hasGps) {
     try {

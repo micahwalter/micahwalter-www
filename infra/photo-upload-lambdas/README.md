@@ -23,11 +23,15 @@ and Bedrock vision tags.
                                      │
                                      ▼
                                enrich.handler (photo-bus rule)
-                                 original → GPS + fuzz public coords
+                                 original → GPS + fuzz public coords (~2 decimals / neighborhood)
                                  → AWS Location city/country
                                  → Bedrock tags from photo-1200.*
                                  → DynamoDB update (enrichmentStatus=complete)
 ```
+
+**Public geo privacy:** Precise EXIF GPS is stored privately (`latitude` / `longitude`).
+Public fields `publicLatitude` / `publicLongitude` are rounded to **2 decimal places**
+(~1.1 km — neighborhood scale). The site map shows an area view without a pin.
 
 Public / owner HTTP:
 
@@ -86,3 +90,24 @@ make build   # → dist/photo-upload.zip (bundles linux/arm64 sharp)
 
 Deploys via `.github/workflows/photo-upload-deploy.yml` on push to `main` when
 paths under `infra/photo-upload*` change.
+
+## Backfill public coords (neighborhood fuzz)
+
+After deploying an enricher that rounds to 2 decimals, re-fuzz existing photos
+that already have GPS by force-invoking the enrich Lambda (rewrites public
+coords from private GPS / original EXIF; also re-runs Location + Bedrock):
+
+```bash
+# Single photo
+AWS_PROFILE=www aws lambda invoke \
+  --function-name photo-upload-enrich \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{"detail":{"photoId":"171","force":true}}' \
+  /tmp/enrich-out.json
+
+# Verify public coords are 2 decimals
+curl -sS "https://api.micahwalter.com/photos/171" | jq '.publicLatitude, .publicLongitude'
+```
+
+List candidate ids from the public API (`GET /photos/?limit=50`) or DynamoDB
+scan where `latitude` / `longitude` are set, then invoke for each id.
