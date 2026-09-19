@@ -25,7 +25,11 @@ export default function PhotoStaticMap({
       </h3>
       {!failed ? (
         <iframe
-          title={label ? `Map of ${label}` : "Map of photo location"}
+          title={
+            label
+              ? `Approximate map of ${label}`
+              : "Approximate map of photo area"
+          }
           src={embedSrc}
           className="w-full h-[280px] rounded-lg border border-gray/10 bg-cream"
           loading="lazy"
@@ -34,6 +38,8 @@ export default function PhotoStaticMap({
         />
       ) : null}
       <p className={`text-xs text-gray ${failed ? "" : "mt-2"}`}>
+        Approximate area
+        {" · "}
         <a
           href={osmLink}
           target="_blank"

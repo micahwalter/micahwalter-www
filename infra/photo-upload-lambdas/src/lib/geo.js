@@ -2,20 +2,27 @@
  * Geo helpers — fuzz public coords and slugify place tags.
  */
 
-function roundCoord(value, decimals = 3) {
+/** Neighborhood-scale rounding (~1.1 km at equator). */
+const PUBLIC_COORD_DECIMALS = 2;
+
+function roundCoord(value, decimals = PUBLIC_COORD_DECIMALS) {
   if (value == null || Number.isNaN(Number(value))) return null;
   const n = Number(value);
   const f = 10 ** decimals;
   return Math.round(n * f) / f;
 }
 
+/**
+ * Public map coordinates — neighborhood scale (~1.1 km), not street-level.
+ * Precise GPS stays in private latitude/longitude fields only.
+ */
 function fuzzPublicCoords(latitude, longitude) {
   if (latitude == null || longitude == null) {
     return { publicLatitude: null, publicLongitude: null };
   }
   return {
-    publicLatitude: roundCoord(latitude, 3),
-    publicLongitude: roundCoord(longitude, 3),
+    publicLatitude: roundCoord(latitude, PUBLIC_COORD_DECIMALS),
+    publicLongitude: roundCoord(longitude, PUBLIC_COORD_DECIMALS),
   };
 }
 
@@ -36,6 +43,7 @@ function placeTag(label) {
 }
 
 module.exports = {
+  PUBLIC_COORD_DECIMALS,
   roundCoord,
   fuzzPublicCoords,
   placeTag,

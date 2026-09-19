@@ -2,10 +2,10 @@
 
 ## Project Information
 - **Project Type**: Brownfield
-- **Start Date**: 2026-09-12T18:01:00Z
+- **Start Date**: 2026-09-19T22:44:28Z
 - **Current Stage**: CONSTRUCTION — Code Generation complete (review gate)
-- **Engagement Status**: In progress — [#153](https://github.com/micahwalter/micahwalter-www/issues/153) / PR [#154](https://github.com/micahwalter/micahwalter-www/pull/154)
-- **Branch**: `cursor/fix-photo-ai-tags-ece0`
+- **Engagement Status**: In progress — photo map privacy (neighborhood-scale)
+- **Branch**: `cursor/photo-map-privacy-fuzz-abab`
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -15,9 +15,9 @@
 ## Extension Configuration
 | Extension | Enabled | Decided At |
 |-----------|---------|------------|
-| Security Baseline | No | Requirements Analysis (2026-09-12) |
-| Resiliency Baseline | No | Requirements Analysis (2026-09-12) |
-| Property-Based Testing | No | Requirements Analysis (2026-09-12) |
+| Security Baseline | No | Requirements Analysis (2026-09-19) |
+| Resiliency Baseline | No | Requirements Analysis (2026-09-19) |
+| Property-Based Testing | No | Requirements Analysis (2026-09-19) |
 
 ## Stage Progress
 
@@ -32,14 +32,19 @@
 
 ### 🟢 CONSTRUCTION PHASE
 - [x] Functional / NFR / Infra Design — SKIP
-- [x] Code Generation (U1 photo AI tags fix)
-- [x] Build and Test — live verify + unit tests done (`issue-153-build-and-test-summary.md`)
+- [x] Code Generation
+- [x] Build and Test (local); live backfill pending deploy
 
 ### 🟡 OPERATIONS PHASE
-- [ ] Operations — PLACEHOLDER (close #153 after merge)
+- [ ] Backfill public coords after enricher deploy
+
+## Locked decisions
+- Public fuzz: **2 decimal places** (~1.1 km)
+- Map UI: **area, no precise pin**
+- Backfill: **yes** (after deploy)
+- Scope: **server + UI**
 
 ## Current Status
 - **Lifecycle Phase**: CONSTRUCTION
-- **Current Stage**: Code Generation + Build and Test complete — publishing
-- **Live fix**: EnrichFn IAM widened + sparse ids backfilled (AI tags restored in prod API)
-- **Publish**: commit/push/PR for CFN + logging/parse code (user approved 2026-09-13)
+- **Current Stage**: Code Generation + Build and Test complete — awaiting user review before commit/push/PR
+- **Note**: `.env.local` is local-only (gitignored); do not commit `public/mastodon.json`

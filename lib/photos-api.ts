@@ -204,22 +204,28 @@ export function photoIdString(photo: PublicPhoto): string {
   return String(photo.id);
 }
 
-/** OpenStreetMap browse link for public (fuzzed) coordinates. */
+/**
+ * OpenStreetMap browse link for public (fuzzed) coordinates.
+ * Zoom 11 ≈ neighborhood/town; no marker pin (privacy — area only).
+ */
 export function buildOsmBrowseUrl(lat: number, lon: number): string {
-  return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=12/${lat}/${lon}`;
+  return `https://www.openstreetmap.org/#map=11/${lat}/${lon}`;
 }
 
 /**
- * OSM embed iframe URL (no API key). Uses a small bbox around public coords.
- * Prefer this over staticmap.openstreetmap.de (host no longer resolves).
+ * OSM embed iframe URL (no API key). Neighborhood-scale bbox around public
+ * coords (~2-decimal fuzz ≈ 1.1 km). Omits marker= so the view does not imply
+ * an exact capture point. Prefer over staticmap.openstreetmap.de (dead host).
+ *
+ * Default delta 0.08 ≈ ~16 km across at mid-latitudes (town/neighborhood).
  */
-export function buildOsmEmbedUrl(lat: number, lon: number, delta = 0.04): string {
+export function buildOsmEmbedUrl(lat: number, lon: number, delta = 0.08): string {
   const minLon = lon - delta;
   const minLat = lat - delta;
   const maxLon = lon + delta;
   const maxLat = lat + delta;
   const bbox = [minLon, minLat, maxLon, maxLat].join(",");
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik&marker=${encodeURIComponent(`${lat},${lon}`)}`;
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik`;
 }
 
 /** @deprecated Use buildOsmEmbedUrl / buildOsmBrowseUrl — dead staticmap host. */

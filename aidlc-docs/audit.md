@@ -1934,3 +1934,95 @@
 
 ---
 
+
+## New engagement — photo map privacy
+**Timestamp**: 2026-09-19T22:44:28Z
+**User Input**: "For privacy reasons I’d like the map feature on photo pages to be less accurate.. instead of showing the precise location where the photo was taken, it should show a broader area like the town or neighborhood"
+**AI Response**: Started new AI-DLC engagement on branch cursor/photo-map-privacy-fuzz-abab. Welcome message displayed. Workspace Detection: brownfield Next.js blog; RE artifacts exist — skip Reverse Engineering. Current fuzz is 3 decimal places (~110m) with OSM marker at zoom ~12. Created requirement-verification-questions.md (fuzz coarseness, map UI, backfill, scope, three extension opt-ins). Awaiting user answers.
+**Context**: INCEPTION — Workspace Detection complete; Requirements Analysis questions pending
+
+---
+
+## Workspace Detection Complete
+**Timestamp**: 2026-09-19T22:44:28Z
+**User Input**: "(workflow start)"
+**AI Response**: Brownfield confirmed. Reverse Engineering skipped (aidlc-docs/inception/reverse-engineering/ present). Proceeding to Requirements Analysis.
+**Context**: INCEPTION — Workspace Detection
+
+---
+
+## User preference — interactive questions
+**Timestamp**: 2026-09-19T22:45:30Z
+**User Input**: "Please do this interactively in the chat"
+**AI Response**: User overrode question-file workflow; asking requirement clarification questions interactively in chat. Will still record answers in aidlc-docs and update requirement-verification-questions.md after answers.
+**Context**: INCEPTION — Requirements Analysis
+
+---
+
+## Requirements answers received
+**Timestamp**: 2026-09-19T22:46:30Z
+**User Input**: "1. A 
+2. b
+3. A
+4 A
+5-7 - Skip all these"
+**AI Response**: Locked Q1=A (neighborhood ~1km / 2 decimal places), Q2=B (broader area, no exact-spot pin), Q3=A (backfill all existing), Q4=A (server fuzz + map UI), Q5–7=No (skip Security, Resiliency, PBT). Generating requirements.md and presenting Requirements Analysis completion for approval.
+**Context**: INCEPTION — Requirements Analysis
+
+---
+
+## Requirements Analysis approval prompt
+**Timestamp**: 2026-09-19T22:46:45Z
+**User Input**: "(awaiting)"
+**AI Response**: Presented requirements.md for approval. Locked: 2-decimal fuzz, area map no pin, backfill existing, server+UI, extensions off. Awaiting Approve & Continue / Request Changes.
+**Context**: INCEPTION — Requirements Analysis completion gate
+
+---
+
+## Requirements approved
+**Timestamp**: 2026-09-19T22:47:30Z
+**User Input**: "Approve and continue"
+**AI Response**: Requirements approved. Skipping User Stories (clear single-feature privacy tweak). Proceeding to Workflow Planning.
+**Context**: INCEPTION — Requirements Analysis complete → Workflow Planning
+
+---
+
+## Workflow Planning presented
+**Timestamp**: 2026-09-19T22:47:50Z
+**User Input**: "Approve and continue"
+**AI Response**: Skipped User Stories (clear AC in requirements). Created execution-plan.md: skip App Design/Units/per-unit design; execute Code Generation + Build and Test; backfill after deploy. Presenting Workflow Planning for approval / override.
+**Context**: INCEPTION — Workflow Planning approval gate
+
+---
+
+## Workflow Planning approved
+**Timestamp**: 2026-09-19T22:48:30Z
+**User Input**: "Approved"
+**AI Response**: Execution plan approved. Skipping App Design/Units/design stages. Creating Code Generation Part 1 plan for approval.
+**Context**: INCEPTION complete → CONSTRUCTION Code Generation Part 1
+
+---
+
+## Code Generation Part 1 — plan approval prompt
+**Timestamp**: 2026-09-19T22:48:45Z
+**User Input**: "(awaiting)"
+**AI Response**: Created photo-map-privacy-code-generation-plan.md (8 steps: geo 2-decimal fuzz + tests, area OSM embed no marker, backfill docs, README, verify, summary). Awaiting plan approval before Part 2.
+**Context**: CONSTRUCTION — Code Generation Part 1
+
+---
+
+## Code Generation Part 2 started
+**Timestamp**: 2026-09-19T22:49:20Z
+**User Input**: "Approved"
+**AI Response**: Code generation plan approved. Executing Steps 1–8 (geo fuzz, tests, map UI, backfill docs, README, verify, summary).
+**Context**: CONSTRUCTION — Code Generation Part 2
+
+---
+
+## Code Generation + Build and Test complete
+**Timestamp**: 2026-09-19T23:12:00Z
+**User Input**: "Approved"
+**AI Response**: Implemented 2-decimal fuzz (geo.js + tests), enrich stored-GPS fallback, OSM area embed without marker + Approximate area UI, README/backfill docs. Unit tests 32 pass; npm run build OK; manual verify /photos/183 (iframe no marker). Presenting for user review before commit/push/PR per git-review-before-publish. Live API backfill after enricher deploy.
+**Context**: CONSTRUCTION — review gate (no publish yet)
+
+---
