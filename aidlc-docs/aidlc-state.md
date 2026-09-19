@@ -3,7 +3,7 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-09-19T22:44:28Z
-- **Current Stage**: CONSTRUCTION — Code Generation complete (review gate)
+- **Current Stage**: CONSTRUCTION — published (draft PR #155)
 - **Engagement Status**: In progress — photo map privacy (neighborhood-scale)
 - **Branch**: `cursor/photo-map-privacy-fuzz-abab`
 
@@ -46,5 +46,5 @@
 
 ## Current Status
 - **Lifecycle Phase**: CONSTRUCTION
-- **Current Stage**: Code Generation + Build and Test complete — awaiting user review before commit/push/PR
+- **Current Stage**: Draft PR #155 open — backfill after enricher deploy
 - **Note**: `.env.local` is local-only (gitignored); do not commit `public/mastodon.json`
