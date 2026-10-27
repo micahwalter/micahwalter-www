@@ -14,7 +14,7 @@ draft: false
 # Original URL: https://www.micahwalter.com/2024/07/rewriting-chat-cli-again/
 ---
 
-I’m in my third rewrite of [chat-cli](https://github.com/go-micah/chat-cli). The first version was really, really wonky. I was just getting started with writing a CLI in Go, and I took a number of twists and turns before I got a working project together that did mostly what I was thinking it should do.
+I’m in my third rewrite of [chat-cli](https://github.com/micahwalter/chat-cli). The first version was really, really wonky. I was just getting started with writing a CLI in Go, and I took a number of twists and turns before I got a working project together that did mostly what I was thinking it should do.
 
 Then, I rewrote it, building out a layer of abstraction that I thought was going to be necessary to support multiple LLM models in the future.
 
@@ -34,7 +34,7 @@ Recently, AWS released a new API as part of the larger Amazon Bedrock SDK called
 
 From a coding perspective, this is fine if you are just working with a single model, but my program was designed to let the user switch between any model. So, this meant that I had to create a lot of logic in my code to deal with the various idiosyncrasies for each model. In Go, this also means creating data structures (types) for each model's input and output parameters.
 
-To do this, I created a package called [go-bedrock](https://github.com/go-micah/go-bedrock), which is basically all the types for each model in Bedrock. It's a pain to have to go in there and update that package every time AWS releases a new model or an update to an existing one.
+To do this, I created a package called [go-bedrock](https://github.com/micahwalter/go-bedrock), which is basically all the types for each model in Bedrock. It's a pain to have to go in there and update that package every time AWS releases a new model or an update to an existing one.
 
 The Converse API was designed to alleviate this issue, and it's just what I was looking for. It takes all the common attributes of a model and creates a unified type that can be used for any model. Yay!
 

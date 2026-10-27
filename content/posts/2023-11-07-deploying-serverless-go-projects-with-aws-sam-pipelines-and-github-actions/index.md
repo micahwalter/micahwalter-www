@@ -48,6 +48,6 @@ This pipeline has a couple interesting … features:
 1.  You can use feature branches like `feature-new-gizmo` to deploy from a separate feature branch. It will also clean these up as you delete old feature branches.
 2.  It has two stages for "testing" and "production." In this current setup, it will just deploy both of them on every new push to `main`. But, you can utilize GitHub Environments to add a manual intervention or approval step for the production branch.
 
-Here's my [demo application](https://github.com/go-micah/go-sam-pipes) on GitHub including the SAM Pipeline.
+Here's my [demo application](https://github.com/micahwalter/go-sam-pipes) on GitHub including the SAM Pipeline.
 
 That's it!

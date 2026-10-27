@@ -85,7 +85,7 @@ The first function I made was as bare bones as I could do. I mainly wanted to go
 4.  After you've compiled your function, it needs to be zipped.
 5.  Then you just create a new Lambda function in the console, selecting Go as the runtime, and upload your Zip file.
 6.  Finally, you will need to change the setting for the handler to the name of the executable file (not the handler function name)
-7.  I've got a few additional notes and code [here](https://github.com/go-micah/hello-lambda).
+7.  I've got a few additional notes and code [here](https://github.com/micahwalter/hello-lambda).
 
 ### Hello, Serverless Application Model
 
@@ -95,6 +95,6 @@ After some quick research, I decided to explore the [AWS Serverless Application 
 
 SAM provides a very nice toolset for Go, and even has a built in template for setting up a basic API with a Lambda function. You just install the SAM CLI and run `sam init` and follow the prompts, selecting Go as your runtime. The CLI will then build you a project with a SAM template, a basic `Hello, Lambda` function, and a Makefile to automate the build process. You can then use the SAM CLI to deploy your Lambda function and API Gateway to your AWS account.
 
-[Here](https://github.com/go-micah/hello-lambda-api-sam/tree/bafbb2c4bf9a659649b1ea5b7575dd54d4de2c4d) is what the SAM CLI built for me. I haven't really made any changes so far. I just ran through the deploy process and got my simple API to work. This is fun! Now I have a way to build out a Go based API on AWS Lambda, and I can use SAM to test and debug my code locally.
+[Here](https://github.com/micahwalter/hello-lambda-api-sam/tree/bafbb2c4bf9a659649b1ea5b7575dd54d4de2c4d) is what the SAM CLI built for me. I haven't really made any changes so far. I just ran through the deploy process and got my simple API to work. This is fun! Now I have a way to build out a Go based API on AWS Lambda, and I can use SAM to test and debug my code locally.
 
 That's all for now. Now Go away!
