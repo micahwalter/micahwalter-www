@@ -18,7 +18,7 @@ The past couple weeks have been pretty productive in terms of my mission to lear
 
 I also spent a good deal of time learning what I could about [packages](https://pkg.go.dev/) in Go. This seems to be a pretty important core concept, and something I've struggled with in other languages like Python and Node. I think Go has taken a really smart approach to package and dependency management by simplifying things, removing the need for a complex package manager, and creating a [global namespace](https://en.wikipedia.org/wiki/Global_Namespace) by just piggybacking off the World Wide Web's global namespace.
 
-I also started building a [package of my own](https://github.com/go-micah/imaging) to collect together some basic image processing functions. It's really just an exercise to learn more about Go and about building and documenting packages, but also has been a fun way to remind myself of some of the interesting concepts I learned about many years ago while studying [imaging in college](https://www.rit.edu/study/photographic-sciences-bs).
+I also started building a [package of my own](https://github.com/micahwalter/imaging) to collect together some basic image processing functions. It's really just an exercise to learn more about Go and about building and documenting packages, but also has been a fun way to remind myself of some of the interesting concepts I learned about many years ago while studying [imaging in college](https://www.rit.edu/study/photographic-sciences-bs).
 
 Here are my notes.
 
@@ -30,7 +30,7 @@ Packages in Go are a core concept to understand. Here are some key takeaways:
 -   There is a special package called `main` that every Go program implements once and it's where your program begins. A Go Package doesn't need to have a `main` package.
 -   Packages can span multiple files and folders and your package namespace can use these folders to divide things up into logical groups. For example, you can have a package called "imaging" with a sub-folder called "generators" and you can import "generators" separately and parallel to anything else found within the "imaging" package.
 -   Your Go program can have many packages within the code-base. They get imported in the same way as a third party package from GitHub or elsewhere. I'm not entirely sure how Go works out which one to import, but it seems to prioritize local packages first.
--   The namespace is global, which is nice because someone can publish a package at `https://github.com/username/imaging` and I can publish a package at `https://github.com/go-micah/imaging` and we can import both, giving one or both an alias so they don't conflict in the program we are writing.
+-   The namespace is global, which is nice because someone can publish a package at `https://github.com/username/imaging` and I can publish a package at `https://github.com/micahwalter/imaging` and we can import both, giving one or both an alias so they don't conflict in the program we are writing.
 -   There is a website called [pkg.go.dev](https://pkg.go.dev) where you can search for and browse packages and documentation. As a developer you don't need to upload your packages, you just let the site know you have one and it pulls in all the details from wherever you host your code. This is much nicer than PyPi or NPM in my opinion because there is always just a single source of truth for your code.
 
 ## I learned a little about Go Documentation

@@ -26,7 +26,7 @@ When I think about compute, there's basically three main categories of how I can
 
 In my [second post](https://www.micahwalter.com/getting-going-with-go/) I talked briefly about running Go on AWS Lambda. I got it working pretty quickly, and it's likely a topic I'll come back to in more detail as I progress with the language. But, serverless compute isn't always the right choice, and so I thought I'd have a look at containerizing a Go program. (Interestingly, you can run a container on AWS Lambda–something I'm sure to experiment with in the future.)
 
-Containerizing a Go program is pretty simple. I created a basic [hello-docker](https://github.com/go-micah/hello-docker) repository and added the following code:
+Containerizing a Go program is pretty simple. I created a basic [hello-docker](https://github.com/micahwalter/hello-docker) repository and added the following code:
 
 ```
 package mainimport (	"fmt"	"net/http")func hello(w http.ResponseWriter, req *http.Request) {	fmt.Fprintf(w, "Hello, Docker.\n")}func main() {	http.HandleFunc("/", hello)	http.ListenAndServe(":3000", nil)}

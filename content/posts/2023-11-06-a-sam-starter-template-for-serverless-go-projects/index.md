@@ -26,7 +26,7 @@ To start a new project locally, all you need to do is the following:
 > mkdir your-project> cd your-project> sam init
 ```
 
-From here, choose option 2 "Custom Template Location" and enter the repository URL – [https://github.com/go-micah/go-serverless-sam-template](https://github.com/go-micah/go-serverless-sam-template)
+From here, choose option 2 "Custom Template Location" and enter the repository URL – [https://github.com/micahwalter/go-serverless-sam-template](https://github.com/micahwalter/go-serverless-sam-template)
 
 ![](https://www.micahwalter.com/content/images/2023/11/Screenshot-2023-11-06-at-5.04.40-PM.png)
 

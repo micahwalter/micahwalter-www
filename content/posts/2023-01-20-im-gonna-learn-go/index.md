@@ -54,6 +54,6 @@ Here are a handful of notes on what I've learned so far.
 4.  You can explore and publish your own packages via [pkg.go.dev](https://pkg.go.dev). One thing I noticed is you don't need to upload your code here. You just make it aware of your code on GitHub or other places and it pulls it in.
 5.  Getting set up to code isn't too hard anymore. I recall Go being a little difficult to install and configure. That no longer seems to be the case, and in fact, if you use [GitHub Codespaces](https://github.com/features/codespaces) it's already installed and ready to go.
 6.  There is something called `go mod` and although I know it's about managing dependancies, I don't really understand how it works just yet. I mean, it works, but how?!
-7.  Today I wrote up a simple [Hello World](https://github.com/go-micah/hello-lambda) application in Go and deployed it to Lambda. I'll write up my notes on this in my next post. The short version is…it worked!
+7.  Today I wrote up a simple [Hello World](https://github.com/micahwalter/hello-lambda) application in Go and deployed it to Lambda. I'll write up my notes on this in my next post. The short version is…it worked!
 
 I have to say, I'm excited to learn something new, purely for my own enjoyment. I hope you'll follow my progress, and if you are also learning Go, please feel free to reach out!

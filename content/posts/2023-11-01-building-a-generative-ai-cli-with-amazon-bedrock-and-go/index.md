@@ -22,7 +22,7 @@ draft: false
 # Original URL: https://www.micahwalter.com/2023/11/building-a-generative-ai-cli-with-amazon-bedrock-and-go/
 ---
 
-[chat-cli](https://github.com/go-micah/chat-cli) is a project I've been working on for the past couple months. It started out as a way to kick the tires on the now publicly available [Amazon Bedrock](https://aws.amazon.com/bedrock/) service, and also as a way for me to learn a bit more about Go, and the AWS SDK for Go version 2. Since then, it has turned into a bit of an exploration into command line interface design, which is pretty interesting to me!
+[chat-cli](https://github.com/micahwalter/chat-cli) is a project I've been working on for the past couple months. It started out as a way to kick the tires on the now publicly available [Amazon Bedrock](https://aws.amazon.com/bedrock/) service, and also as a way for me to learn a bit more about Go, and the AWS SDK for Go version 2. Since then, it has turned into a bit of an exploration into command line interface design, which is pretty interesting to me!
 
 ![](./chat-cli-4-1.png)
 
@@ -145,4 +145,4 @@ I have a number of thoughts for future additions, but here are the near terms up
 
 ## Help!
 
-Overall this has been a fun project. I've learned quite a bit about Generative AI, Large Language Models, Foundation Models, and have had some fun learning more about Go and building command line interfaces. I'd love some help! If you'd like to try chat-cli on your own, contribute to the code, suggest ideas or comment on my coding skills, please feel free to do so [right here](https://github.com/go-micah/chat-cli).
+Overall this has been a fun project. I've learned quite a bit about Generative AI, Large Language Models, Foundation Models, and have had some fun learning more about Go and building command line interfaces. I'd love some help! If you'd like to try chat-cli on your own, contribute to the code, suggest ideas or comment on my coding skills, please feel free to do so [right here](https://github.com/micahwalter/chat-cli).
